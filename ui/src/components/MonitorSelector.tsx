@@ -1,33 +1,63 @@
 export default function MonitorSelector() {
   return (
-    <aside className="h-full bg-white rounded-xl border border-gray-200 shadow-sm p-3 flex flex-col">
-      <h2 className="text-sm font-semibold text-gray-800">Monitors</h2>
+    <aside className="rounded-2xl border border-[rgb(var(--id-border))] bg-[rgb(var(--id-surface))] p-4 shadow-[var(--id-shadow)]">
+      {/* Monitor Selection */}
+      <div>
+        <div className="mb-2 text-[13px] font-semibold text-gray-700">Monitor Selection</div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        {[1, 2, 3, 4].map((n) => (
+        <div className="mb-2">
           <button
-            key={n}
-            className="py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50"
             type="button"
+            className="flex w-full items-center justify-between rounded-lg border border-[rgb(var(--id-border))] bg-white px-3 py-2 text-sm shadow-sm hover:bg-gray-50"
           >
-            {n}
+            <span>Monitor 1</span>
+            <span aria-hidden>▾</span>
           </button>
-        ))}
+        </div>
+
+        <div className="text-[12px] text-[rgb(var(--id-text-muted))]">2560×1440 Primary</div>
+
+        <div className="mt-3 rounded-xl border border-[rgb(var(--id-border))] bg-white p-3 shadow-sm">
+          <div className="flex items-center justify-between text-[13px]">
+            <div className="flex items-center gap-2">
+              <span className="inline-block size-2 rounded-full bg-emerald-500" />
+              <span>Monitor 1</span>
+            </div>
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600">Active</span>
+          </div>
+
+          <dl className="mt-3 space-y-1 text-[12px] text-[rgb(var(--id-text-muted))]">
+            <div className="flex justify-between">
+              <dt>Role:</dt>
+              <dd>Primary</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt>Resolution:</dt>
+              <dd>2560×1440</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="mt-2 text-[11px] text-[rgb(var(--id-text-muted))]">Active Monitors: 3/4</div>
       </div>
 
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <h3 className="text-xs font-medium text-gray-600">Quick Presets</h3>
-        <div className="mt-2 space-y-2">
-          {['Balanced 2×2', 'Coding Focus', 'Presentation'].map((p) => (
-            <div
-              key={p}
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700"
-            >
-              {p}
-            </div>
-          ))}
+      {/* Quick Presets */}
+      <div className="mt-6">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="text-[13px] font-semibold text-gray-700">Quick Presets</div>
+          <button className="text-[11px] text-gray-500 hover:text-gray-700">Manage</button>
+        </div>
+
+        <div>
+          <button
+            type="button"
+            className="flex w-full items-center justify-between rounded-lg border border-[rgb(var(--id-border))] bg-white px-3 py-2 text-sm shadow-sm hover:bg-gray-50"
+          >
+            <span>Choose a preset (up to 6)</span>
+            <span aria-hidden>▾</span>
+          </button>
         </div>
       </div>
     </aside>
-  );
+  )
 }

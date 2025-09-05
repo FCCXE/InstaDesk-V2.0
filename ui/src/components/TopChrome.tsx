@@ -1,26 +1,26 @@
 export default function TopChrome() {
   return (
-    <header className="h-14 border-b border-gray-200 bg-white grid grid-cols-3 items-center px-4">
-      {/* Left: Logo placeholder 24×24 */}
-      <div className="flex items-center gap-2">
-        <div className="w-6 h-6 rounded bg-gray-200 border border-gray-300" aria-hidden />
-        <span className="text-sm font-medium text-gray-700">InstaDesk</span>
-      </div>
+    <header className="sticky top-0 z-40 w-full border-b border-[rgb(var(--id-border))] bg-[rgb(var(--id-surface))]/95 backdrop-blur supports-[backdrop-filter]:bg-[rgb(var(--id-surface))]/80">
+      <div className="mx-auto flex max-w-[1260px] items-center justify-between gap-3 px-4 py-2.5">
+        {/* Left: logo + brand */}
+        <div className="flex items-center gap-2">
+          <div
+            aria-hidden
+            className="size-6 rounded-md border border-[rgb(var(--id-border))] bg-white shadow-sm"
+          />
+          <span className="text-sm font-medium">InstaDesk</span>
+        </div>
 
-      {/* Center: Dashboard pill */}
-      <div className="flex items-center justify-center">
-        <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700 border border-gray-200">
+        {/* Center: page chip */}
+        <div className="rounded-full border border-[rgb(var(--id-border))] bg-white px-3 py-1 text-xs font-medium shadow-sm">
           Dashboard
-        </span>
+        </div>
+
+        {/* Right: byline */}
+        <div className="text-[11px] text-[rgb(var(--id-text-muted))]">
+          v0.1 • static&nbsp;&nbsp; <span className="text-gray-400">by</span> FxXe Studios
+        </div>
       </div>
-
-      {/* Right: Byline */}
-      <div className="flex items-center justify-end text-xs text-gray-500">v0.1 • static</div>
     </header>
-  );
+  )
 }
-
-// Optional second row (hidden in Phase 0)
-// <div className="h-10 border-b border-gray-200 bg-white px-4 flex items-center text-xs text-gray-500">
-//   BUILDING MODE TOOLBAR (Phase 0: hidden)
-// </div>

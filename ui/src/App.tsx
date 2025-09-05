@@ -1,38 +1,33 @@
-import TopChrome from './components/TopChrome';
-import MonitorSelector from './components/MonitorSelector';
-import WorkspaceGrid from './components/WorkspaceGrid';
-import RightPane from './components/RightPane';
-import BottomControls from './components/BottomControls';
+import TopChrome from './components/TopChrome'
+import MonitorSelector from './components/MonitorSelector'
+import WorkspaceGrid from './components/WorkspaceGrid'
+import RightPane from './components/RightPane'
+import BottomControls from './components/BottomControls'
 
 export default function App() {
   return (
-    <div className="min-h-dvh min-w-full bg-neutral-100 flex items-center justify-center">
-      {/* Fixed 1280×820 centered app surface */}
-      <div className="w-[1280px] h-[820px] bg-neutral-50 shadow ring-1 ring-black/5 overflow-hidden flex flex-col">
-        {/* Top chrome (56px) */}
-        <TopChrome />
+    <div className="min-h-dvh min-w-full bg-[rgb(var(--id-bg))] text-[rgb(var(--id-text))]">
+      {/* Top bar */}
+      <TopChrome />
 
-        {/* Main content: 3 columns (no page scroll at 1280×820) */}
-        <div className="flex-1 min-h-0 grid grid-cols-[256px_1fr_304px] gap-4 p-4 overflow-hidden">
+      {/* Main content frame */}
+      <main className="mx-auto max-w-[1260px] px-4 pb-20">
+        <div className="grid grid-cols-[260px_1fr_300px] gap-6 pt-4">
           {/* Left */}
-          <div className="min-h-0">
-            <MonitorSelector />
-          </div>
+          <MonitorSelector />
 
           {/* Center */}
-          <div className="min-h-0">
+          <div className="rounded-2xl border border-[rgb(var(--id-border))] bg-[rgb(var(--id-surface))] shadow-[var(--id-shadow)]">
             <WorkspaceGrid />
           </div>
 
           {/* Right */}
-          <div className="min-h-0">
-            <RightPane />
-          </div>
+          <RightPane />
         </div>
+      </main>
 
-        {/* Bottom controls (~48px) */}
-        <BottomControls />
-      </div>
+      {/* Bottom sticky controls */}
+      <BottomControls />
     </div>
-  );
+  )
 }

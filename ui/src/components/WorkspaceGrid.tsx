@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-// Phase 0 data model stubs
 export type Cell = { r: number; c: number; appId?: string }
 export type Grid = Cell[]
 
@@ -15,14 +14,12 @@ const cells: Grid = Array.from({ length: 6 * 6 }, (_, i) => ({
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
 
 export default function WorkspaceGrid() {
-  const cardRef = useRef<HTMLElement | null>(null)
   const squareRef = useRef<HTMLDivElement | null>(null)
 
   const [isDragging, setIsDragging] = useState(false)
   const [startCell, setStartCell] = useState<CellIndex | null>(null)
   const [selection, setSelection] = useState<Range | null>(null)
 
-  // Helpers
   const getRect = () => squareRef.current?.getBoundingClientRect() ?? null
 
   const pointToCell = (clientX: number, clientY: number): CellIndex | null => {
@@ -42,48 +39,18 @@ export default function WorkspaceGrid() {
     c1: Math.max(a.c, b.c),
   })
 
-  const clearSelection = () => {
-    setIsDragging(false)
-    setStartCell(null)
-    setSelection(null)
-  }
-
-  // ESC to clear selection
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        clearSelection()
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
-
-  // Mouse handlers
-  const handleSquareMouseDown: React.MouseEventHandler<HTMLDivElement> = (e) => {
+  const handleMouseDown: React.MouseEventHandler<HTMLDivElement> = (e) => {
     if (e.button !== 0) return
     e.preventDefault()
     const start = pointToCell(e.clientX, e.clientY)
     if (!start) return
     setStartCell(start)
-    // Replace existing selection immediately
     setSelection({ r0: start.r, c0: start.c, r1: start.r, c1: start.c })
     setIsDragging(true)
   }
 
-  const handleCardMouseDown: React.MouseEventHandler<HTMLElement> = (e) => {
-    // If the click is outside the square grid (but inside card), clear selection.
-    const sq = squareRef.current
-    if (!sq) return
-    const target = e.target as Node
-    if (!sq.contains(target)) {
-      clearSelection()
-    }
-  }
-
   useEffect(() => {
     if (!isDragging) return
-
     const onMove = (e: MouseEvent) => {
       e.preventDefault()
       if (!startCell) return
@@ -91,14 +58,11 @@ export default function WorkspaceGrid() {
       if (!end) return
       setSelection(normalize(startCell, end))
     }
-
     const onUp = (e: MouseEvent) => {
       e.preventDefault()
       setIsDragging(false)
       setStartCell(null)
-      // Persist selection; just remove the blue overlay by ending drag.
     }
-
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp, { once: true })
     return () => {
@@ -107,7 +71,6 @@ export default function WorkspaceGrid() {
     }
   }, [isDragging, startCell])
 
-  // Compute selection rectangle style (snapped to cells) while dragging
   const selectionRectStyle = (() => {
     if (!selection || !isDragging) return null
     const rect = getRect()
@@ -118,72 +81,63 @@ export default function WorkspaceGrid() {
     const top = selection.r0 * cellH
     const width = (selection.c1 - selection.c0 + 1) * cellW
     const height = (selection.r1 - selection.r0 + 1) * cellH
-    return {
-      left,
-      top,
-      width,
-      height,
-    } as React.CSSProperties
+    return { left, top, width, height }
   })()
 
   const isSelected = (r: number, c: number) =>
     !!selection && r >= selection.r0 && r <= selection.r1 && c >= selection.c0 && c <= selection.c1
 
-  const selectionStatus = (() => {
-    if (!selection) return 'No selection'
+  const selectedCount = (() => {
+    if (!selection) return 0
     const { r0, r1, c0, c1 } = selection
-    const count = (r1 - r0 + 1) * (c1 - c0 + 1)
-    return `Selected: ${r0}–${r1} × ${c0}–${c1} • ${count} cell${count === 1 ? '' : 's'}`
+    return (r1 - r0 + 1) * (c1 - c0 + 1)
   })()
 
   return (
-    <section
-      ref={cardRef}
-      className="h-full bg-white rounded-xl border border-gray-200 shadow-sm p-3 flex flex-col"
-      onMouseDown={handleCardMouseDown}
-    >
-      <div className="flex-1 min-h-0 flex items-center justify-center">
-        {/* Keep the grid square and within available space */}
-        <div className="w-full h-full max-w-full max-h-full aspect-square">
-          {/* Interaction/measure target */}
+    <section className="p-6">
+      <div className="rounded-2xl border border-dashed border-[rgb(var(--id-border))] bg-white p-4">
+        <div className="mx-auto max-w-[880px]">
           <div
             ref={squareRef}
-            className="relative w-full h-full cursor-crosshair select-none"
-            onMouseDown={handleSquareMouseDown}
+            onMouseDown={handleMouseDown}
+            className="relative mx-auto aspect-square w-full select-none"
           >
-            {/* Selection overlay (shown while dragging only) */}
+            {/* Selection overlay while dragging */}
             {selectionRectStyle && (
               <div className="absolute inset-0 pointer-events-none">
                 <div
-                  aria-hidden
-                  className="absolute rounded border border-blue-400/70 bg-blue-200/25"
-                  style={selectionRectStyle}
+                  className="absolute rounded-lg border-2 border-blue-300/70 bg-blue-200/20"
+                  style={selectionRectStyle as React.CSSProperties}
                 />
               </div>
             )}
 
-            {/* 6×6 Grid */}
-            <div className="grid grid-cols-6 grid-rows-6 w-full h-full gap-[3px]">
-              {cells.map((cell) => {
-                const selected = isSelected(cell.r, cell.c)
-                const bgClass = selected ? 'bg-blue-100' : 'bg-white'
-                return (
-                  <div
-                    key={`${cell.r}-${cell.c}`}
-                    className={[
-                      bgClass,
-                      'border border-gray-200 rounded transition-colors duration-150',
-                      'hover:border-gray-400',
-                    ].join(' ')}
-                  />
-                )
-              })}
+            {/* Cells */}
+            <div className="grid h-full w-full grid-cols-6 grid-rows-6 gap-3">
+              {cells.map((cell) => (
+                <div
+                  key={`${cell.r}-${cell.c}`}
+                  className={[
+                    'rounded-lg border bg-white',
+                    isSelected(cell.r, cell.c)
+                      ? 'border-blue-300 ring-2 ring-blue-200/50'
+                      : 'border-[rgb(var(--id-border))] hover:border-gray-300',
+                  ].join(' ')}
+                >
+                  <div className="flex h-full items-center justify-center">
+                    {/* center dot */}
+                    <div className="h-1.5 w-1.5 rounded-full bg-gray-300" />
+                  </div>
+                </div>
+              ))}
             </div>
+          </div>
+
+          <div className="pt-3 text-center text-[11px] text-[rgb(var(--id-text-muted))]">
+            {selectedCount > 0 ? `${selectedCount}/36 selected` : '0/36 cells occupied'}
           </div>
         </div>
       </div>
-
-      <div className="mt-3 text-[11px] text-gray-500">{selectionStatus}</div>
     </section>
   )
 }
