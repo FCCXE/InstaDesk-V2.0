@@ -1,7 +1,48 @@
-﻿@import "tailwindcss";
+﻿/* C:\FcXe Studios\Instadesk\instadesk-tauri\ui\src\index.css */
 
-/* Keep your app-level resets if you want */
-html, body, #root {
-  height: 100%;
-  margin: 0;
+/* Tailwind v4 entry */
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   InstaDesk Theme (v0 scaffold) – tokens only (no @apply)
+-------------------------------------------------------------------*/
+@layer base {
+  :root {
+    /* Colors */
+    --id-bg:            245 245 247;  /* page background */
+    --id-surface:       255 255 255;  /* cards, panes */
+    --id-border:        229 231 235;  /* neutral-200 */
+    --id-border-hover:  209 213 219;  /* neutral-300 */
+    --id-text:          17 24 39;     /* neutral-900 */
+    --id-text-muted:    107 114 128;  /* neutral-500 */
+    --id-primary:       37 99 235;    /* blue-600 */
+    --id-primary-weak:  191 219 254;  /* blue-200 */
+    --id-ring:          59 130 246;   /* blue-500 */
+
+    /* Radii */
+    --id-radius-sm: .5rem;  /* 8px */
+    --id-radius-md: .75rem; /* 12px */
+
+    /* Shadow */
+    --id-shadow: 0 1px 2px 0 rgb(0 0 0 / .06),
+                 0 1px 3px 0 rgb(0 0 0 / .06);
+  }
+
+  /* Base element styling without @apply (to avoid v4 warning) */
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: rgb(var(--id-bg));
+    color: rgb(var(--id-text));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Ring color default (nice focus outline) */
+  :focus {
+    outline-color: rgb(var(--id-ring));
+  }
 }
