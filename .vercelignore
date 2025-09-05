@@ -1,0 +1,29 @@
+# -------------------------
+# InstaDesk Vercel Ignore
+# -------------------------
+
+# Dependencies (will be installed by Vercel anyway)
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Local builds
+dist/
+build/
+out/
+.vite/
+
+# Logs
+*.log
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# IDE configs
+.vscode/
+.idea/
+
+# Backups
+*_backups/
