@@ -1,26 +1,40 @@
 export default function TopChrome() {
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-[rgb(var(--id-border))] bg-[rgb(var(--id-surface))]/95 backdrop-blur supports-[backdrop-filter]:bg-[rgb(var(--id-surface))]/80">
-      <div className="mx-auto flex max-w-[1260px] items-center justify-between gap-3 px-4 py-2.5">
-        {/* Left: logo + brand */}
-        <div className="flex items-center gap-2">
-          <div
-            aria-hidden
-            className="size-6 rounded-md border border-[rgb(var(--id-border))] bg-white shadow-sm"
-          />
-          <span className="text-sm font-medium">InstaDesk</span>
-        </div>
+    <header className="h-14 border-b border-gray-200 bg-white grid grid-cols-3 items-center px-4">
+      {/* Left: InstaDesk logo */}
+      <div className="flex items-center min-w-0">
+        <img
+          src="/brand/instadesk.png"
+          alt="InstaDesk"
+          className="max-h-8 object-contain select-none"
+          draggable={false}
+        />
+      </div>
 
-        {/* Center: page chip */}
-        <div className="rounded-full border border-[rgb(var(--id-border))] bg-white px-3 py-1 text-xs font-medium shadow-sm">
-          Dashboard
-        </div>
+      {/* Center: Dashboard button */}
+      <div className="flex items-center justify-center">
+        <button
+          type="button"
+          className="px-5 py-2 text-[0.95rem] font-semibold text-white 
+                     bg-[#199CFF] hover:bg-[#1380CC] 
+                     rounded-lg shadow-md transition-colors 
+                     scale-110"
+        >
+          DASHBOARD
+        </button>
+      </div>
 
-        {/* Right: byline */}
-        <div className="text-[11px] text-[rgb(var(--id-text-muted))]">
-          v0.1 • static&nbsp;&nbsp; <span className="text-gray-400">by</span> FxXe Studios
-        </div>
+      {/* Right: version + FcXe logo */}
+      <div className="flex items-center justify-end gap-2 text-xs text-gray-500">
+        <span>v0.1 • static</span>
+        <span className="text-gray-400">by</span>
+        <img
+          src="/brand/fcxe.png"
+          alt="FcXe Studios"
+          className="max-h-7 object-contain select-none"
+          draggable={false}
+        />
       </div>
     </header>
-  )
+  );
 }

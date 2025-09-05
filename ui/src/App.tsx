@@ -6,28 +6,35 @@ import BottomControls from './components/BottomControls'
 
 export default function App() {
   return (
-    <div className="min-h-dvh min-w-full bg-[rgb(var(--id-bg))] text-[rgb(var(--id-text))]">
-      {/* Top bar */}
-      <TopChrome />
+    <div className="min-h-dvh min-w-full bg-neutral-100 flex items-center justify-center">
+      {/* Fixed 1280×820 centered app surface */}
+      <div className="w-[1280px] h-[820px] bg-neutral-50 shadow ring-1 ring-black/5 overflow-hidden flex flex-col">
+        {/* Top chrome */}
+        <TopChrome />
 
-      {/* Main content frame */}
-      <main className="mx-auto max-w-[1260px] px-4 pb-20">
-        <div className="grid grid-cols-[260px_1fr_300px] gap-6 pt-4">
-          {/* Left */}
-          <MonitorSelector />
+        {/* Main content: symmetric top/bottom gaps via pt-3 / pb-3 */}
+        <div className="flex-1 min-h-0 grid grid-cols-[284px_1fr_320px] gap-3 px-6 pt-3 pb-3">
+          {/* Left column */}
+          <div className="min-h-0">
+            <MonitorSelector />
+          </div>
 
-          {/* Center */}
-          <div className="rounded-2xl border border-[rgb(var(--id-border))] bg-[rgb(var(--id-surface))] shadow-[var(--id-shadow)]">
+          {/* Center column (grid) */}
+          <div className="min-h-0 overflow-hidden">
             <WorkspaceGrid />
           </div>
 
-          {/* Right */}
-          <RightPane />
+          {/* Right column */}
+          <div className="min-h-0">
+            <RightPane />
+          </div>
         </div>
-      </main>
 
-      {/* Bottom sticky controls */}
-      <BottomControls />
+        {/* Bottom controls row */}
+        <div className="px-6 pb-3">
+          <BottomControls />
+        </div>
+      </div>
     </div>
   )
 }
