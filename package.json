@@ -1,0 +1,31 @@
+{
+  "name": "instadesk-tauri",
+  "version": "1.0.0",
+  "description": "InstaDesk",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FCCXE/InstaDesk-V2.0.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/FCCXE/InstaDesk-V2.0/issues"
+  },
+  "homepage": "https://github.com/FCCXE/InstaDesk-V2.0#readme",
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.13",
+    "vite": "^7.1.4"
+  },
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  }
+}
