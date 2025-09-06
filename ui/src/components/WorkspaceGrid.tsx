@@ -1,173 +1,119 @@
-// Phase 0 data model stubs
-export type Cell = { r: number; c: number; appId?: string }
-export type Grid = Cell[]
+import { useEffect, useMemo, useRef } from 'react'
+import {
+  useAppState,   // central store
+  cellKey,
+  GRID_ROWS,
+  GRID_COLS,
+} from '../state/AppState'
 
-import { useEffect, useRef, useState } from 'react'
-
-type CellIndex = { r: number; c: number }
-type Range = { r0: number; c0: number; r1: number; c1: number }
-
-const cells: Grid = Array.from({ length: 6 * 6 }, (_, i) => ({
-  r: Math.floor(i / 6),
-  c: i % 6,
+// Build a static GRID_ROWS × GRID_COLS grid
+type Cell = { r: number; c: number }
+const cells: Cell[] = Array.from({ length: GRID_ROWS * GRID_COLS }, (_, i) => ({
+  r: Math.floor(i / GRID_COLS),
+  c: i % GRID_COLS,
 }))
 
-const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v))
-
 export default function WorkspaceGrid() {
-  const cardRef = useRef<HTMLElement | null>(null)
-  const squareRef = useRef<HTMLDivElement | null>(null)
+  // Keep your proven “cell mouse handlers + window mouseup” UX
+  const draggingRef = useRef(false)
 
-  const [isDragging, setIsDragging] = useState(false)
-  const [startCell, setStartCell] = useState<CellIndex | null>(null)
-  const [selection, setSelection] = useState<Range | null>(null)
+  // From AppState
+  const {
+    selection,            // Set<"r,c">
+    beginDrag,            // (r, c) => void
+    updateDrag,           // (r, c) => void
+    endDrag,              // () => void
+    clearSelection,       // () => void
+  } = useAppState()
 
-  // Helpers
-  const getRect = () => squareRef.current?.getBoundingClientRect() ?? null
-
-  const pointToCell = (clientX: number, clientY: number): CellIndex | null => {
-    const rect = getRect()
-    if (!rect) return null
-    const x = clamp(clientX - rect.left, 0, Math.max(0, rect.width - 0.0001))
-    const y = clamp(clientY - rect.top, 0, Math.max(0, rect.height - 0.0001))
-    const c = clamp(Math.floor((x / rect.width) * 6), 0, 5)
-    const r = clamp(Math.floor((y / rect.height) * 6), 0, 5)
-    return { r, c }
-  }
-
-  const normalize = (a: CellIndex, b: CellIndex): Range => ({
-    r0: Math.min(a.r, b.r),
-    c0: Math.min(a.c, b.c),
-    r1: Math.max(a.r, b.r),
-    c1: Math.max(a.c, b.c),
-  })
-
-  const clearSelection = () => {
-    setIsDragging(false)
-    setStartCell(null)
-    setSelection(null)
-  }
-
-  // ESC to clear selection
+  // ESC clears via provider
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') clearSelection()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        draggingRef.current = false
+        clearSelection()
+      }
     }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [clearSelection])
 
-  // Mouse handlers
-  const handleSquareMouseDown: React.MouseEventHandler<HTMLDivElement> = (e) => {
+  // Window mouseup stamps the selection in provider
+  useEffect(() => {
+    const onUp = () => {
+      if (!draggingRef.current) return
+      draggingRef.current = false
+      endDrag()
+    }
+    window.addEventListener('mouseup', onUp, true)
+    return () => window.removeEventListener('mouseup', onUp, true)
+  }, [endDrag])
+
+  // Handlers bound to each cell
+  const onCellMouseDown = (r: number, c: number) => (e: React.MouseEvent) => {
     if (e.button !== 0) return
+    draggingRef.current = true
+    beginDrag(r, c)
     e.preventDefault()
-    const start = pointToCell(e.clientX, e.clientY)
-    if (!start) return
-    setStartCell(start)
-    // Replace existing selection immediately
-    setSelection({ r0: start.r, c0: start.c, r1: start.r, c1: start.c })
-    setIsDragging(true)
+    e.stopPropagation()
   }
 
-  const handleCardMouseDown: React.MouseEventHandler<HTMLElement> = (e) => {
-    const sq = squareRef.current
-    if (!sq) return
-    const target = e.target as Node
-    if (!sq.contains(target)) clearSelection()
+  const onCellMouseEnter = (r: number, c: number) => () => {
+    if (!draggingRef.current) return
+    updateDrag(r, c)
   }
 
-  useEffect(() => {
-    if (!isDragging) return
+  // Status line from central Set<CellKey>
+  const status = useMemo(() => {
+    if (selection.size === 0) return 'No selection'
+    let rMin = Infinity, rMax = -Infinity, cMin = Infinity, cMax = -Infinity
+    selection.forEach((k) => {
+      const [rs, cs] = k.split(',')
+      const r = parseInt(rs, 10), c = parseInt(cs, 10)
+      if (r < rMin) rMin = r
+      if (r > rMax) rMax = r
+      if (c < cMin) cMin = c
+      if (c > cMax) cMax = c
+    })
+    const count = selection.size
+    return `Selected: ${rMin}–${rMax} × ${cMin}–${cMax} • ${count} cell${count === 1 ? '' : 's'}`
+  }, [selection])
 
-    const onMove = (e: MouseEvent) => {
-      e.preventDefault()
-      if (!startCell) return
-      const end = pointToCell(e.clientX, e.clientY)
-      if (!end) return
-      setSelection(normalize(startCell, end))
-    }
-
-    const onUp = (e: MouseEvent) => {
-      e.preventDefault()
-      setIsDragging(false)
-      setStartCell(null)
-    }
-
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp, { once: true })
-    return () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
-    }
-  }, [isDragging, startCell])
-
-  // Compute selection rectangle style (snapped to cells) while dragging
-  const selectionRectStyle = (() => {
-    if (!selection || !isDragging) return null
-    const rect = getRect()
-    if (!rect) return null
-    const cellW = rect.width / 6
-    const cellH = rect.height / 6
-    const left = selection.c0 * cellW
-    const top = selection.r0 * cellH
-    const width = (selection.c1 - selection.c0 + 1) * cellW
-    const height = (selection.r1 - selection.r0 + 1) * cellH
-    return { left, top, width, height }
-  })()
-
-  const isSelected = (r: number, c: number) =>
-    !!selection && r >= selection.r0 && r <= selection.r1 && c >= selection.c0 && c <= selection.c1
-
-  const selectionStatus = (() => {
-    if (!selection) return 'No selection'
-    const { r0, r1, c0, c1 } = selection
-    const count = (r1 - r0 + 1) * (c1 - c0 + 1)
-    return `Selected: ${r0}–${r1} × ${c0}–${c1} • ${count} cell${count === 1 ? '' : 's'}`
-  })()
+  const isHighlighted = (r: number, c: number) => selection.has(cellKey(r, c))
 
   return (
-    <section
-      ref={cardRef}
-      className="h-full w-full bg-white rounded-xl border border-gray-200 shadow-sm p-3 flex flex-col"
-      onMouseDown={handleCardMouseDown}
-    >
+    <section className="h-full w-full bg-white rounded-xl border border-gray-200 shadow-sm p-3 flex flex-col">
       <div className="flex-1 min-h-0 flex items-center justify-center">
         <div className="w-full h-full max-w-full max-h-full aspect-square">
-          {/* Interaction/measure target */}
-          <div
-            ref={squareRef}
-            className="relative w-full h-full cursor-crosshair select-none"
-            onMouseDown={handleSquareMouseDown}
-          >
-            {/* Selection overlay */}
-            {selectionRectStyle && (
-              <div className="absolute inset-0 pointer-events-none">
-                <div
-                  aria-hidden
-                  className="absolute rounded border border-blue-400/70 bg-blue-200/25"
-                  style={selectionRectStyle as React.CSSProperties}
-                />
-              </div>
-            )}
-
-            {/* 6×6 Grid */}
-            <div className="grid grid-cols-6 grid-rows-6 w-full h-full gap-[3px]">
-              {cells.map((cell) => (
-                <div
-                  key={`${cell.r}-${cell.c}`}
-                  className={[
-                    'bg-white border border-gray-200 rounded transition-colors',
-                    'hover:border-gray-400',
-                    isSelected(cell.r, cell.c) ? 'bg-blue-100' : '',
-                  ].join(' ')}
-                />
-              ))}
+          <div className="relative w-full h-full select-none">
+            {/* Grid */}
+            <div className="grid w-full h-full gap-[3px]"
+                 style={{
+                   gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
+                   gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`,
+                 }}>
+              {cells.map(({ r, c }) => {
+                const highlighted = isHighlighted(r, c)
+                return (
+                  <div
+                    key={`${r}-${c}`}
+                    onMouseDown={onCellMouseDown(r, c)}
+                    onMouseEnter={onCellMouseEnter(r, c)}
+                    className="border rounded transition-colors"
+                    style={{
+                      backgroundColor: highlighted ? 'rgba(59,130,246,0.18)' : '#ffffff',
+                      borderColor: highlighted ? '#93c5fd' : '#e5e7eb',
+                      cursor: 'crosshair',
+                    }}
+                  />
+                )
+              })}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-3 text-[11px] text-gray-500">{selectionStatus}</div>
+      <div className="mt-3 text-[11px] text-gray-500">{status}</div>
     </section>
   )
 }
