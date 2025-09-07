@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react'
 import { useAppState, APPS } from '../state/AppState'
+import LayoutsPane from './layouts/LayoutsPane'
 
+type TopTab = 'Apps' | 'Layouts' | 'Settings' | 'Help'
 type MiniTab = 'Favorites' | 'Apps' | 'URLs'
 type AppKey = string
 
@@ -12,48 +14,113 @@ const APP_NAMES: Record<AppKey, string> = Object.values(APPS).reduce((acc, a: an
 
 /** -------------------- Main Right Pane -------------------- */
 export default function RightPane() {
+  // NEW: top-level tab state (defaults to Apps)
+  const [topTab, setTopTab] = useState<TopTab>('Apps')
+  // Existing: inner Apps mini-tabs
   const [miniTab, setMiniTab] = useState<MiniTab>('Apps')
 
   return (
-    <aside className="
-      h-full flex flex-col overflow-hidden
-      rounded-2xl border border-[rgb(var(--id-border))]
-      bg-[rgb(var(--id-surface))] shadow-[var(--id-shadow)]
-    ">
-      {/* Top (primary) tabs – visuals only */}
+    <aside
+      className="
+        h-full flex flex-col overflow-hidden
+        rounded-2xl border border-[rgb(var(--id-border))]
+        bg-[rgb(var(--id-surface))] shadow-[var(--id-shadow)]
+      "
+    >
+      {/* Top (primary) tabs — now clickable */}
       <div className="flex items-center gap-6 border-b border-[rgb(var(--id-border))] px-6 pt-2">
-        <div className="py-2 text-sm font-medium text-gray-900 border-b-2 border-blue-500">Apps</div>
-        <div className="py-2 text-sm text-gray-500">Layouts</div>
-        <div className="py-2 text-sm text-gray-500">Settings</div>
-        <div className="py-2 text-sm text-gray-500">Help</div>
+        <button
+          onClick={() => setTopTab('Apps')}
+          className={[
+            'py-2 text-sm font-medium',
+            topTab === 'Apps'
+              ? 'text-gray-900 border-b-2 border-blue-600'
+              : 'text-gray-500 hover:text-gray-700',
+          ].join(' ')}
+        >
+          Apps
+        </button>
+        <button
+          onClick={() => setTopTab('Layouts')}
+          className={[
+            'py-2 text-sm',
+            topTab === 'Layouts'
+              ? 'text-gray-900 border-b-2 border-blue-600'
+              : 'text-gray-500 hover:text-gray-700',
+          ].join(' ')}
+        >
+          Layouts
+        </button>
+        <button
+          onClick={() => setTopTab('Settings')}
+          className={[
+            'py-2 text-sm',
+            topTab === 'Settings'
+              ? 'text-gray-900 border-b-2 border-blue-600'
+              : 'text-gray-500 hover:text-gray-700',
+          ].join(' ')}
+        >
+          Settings
+        </button>
+        <button
+          onClick={() => setTopTab('Help')}
+          className={[
+            'py-2 text-sm',
+            topTab === 'Help'
+              ? 'text-gray-900 border-b-2 border-blue-600'
+              : 'text-gray-500 hover:text-gray-700',
+          ].join(' ')}
+        >
+          Help
+        </button>
       </div>
 
       {/* Scroll body */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6 pb-6">
-        {/* Mini tabs */}
-        <div className="mt-3 mb-3 flex items-center gap-2 text-xs">
-          {(['Favorites', 'Apps', 'URLs'] as const).map((t) => {
-            const active = miniTab === t
-            return (
-              <button
-                key={t}
-                onClick={() => setMiniTab(t)}
-                className={[
-                  'rounded-full px-3 py-1 border',
-                  active
-                    ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                    : 'border-[rgb(var(--id-border))] bg-white text-gray-600 hover:bg-gray-50',
-                ].join(' ')}
-              >
-                {t}
-              </button>
-            )
-          })}
-        </div>
+        {topTab === 'Apps' && (
+          <>
+            {/* Mini tabs (unchanged) */}
+            <div className="mt-3 mb-3 flex items-center gap-2 text-xs">
+              {(['Favorites', 'Apps', 'URLs'] as const).map((t) => {
+                const active = miniTab === t
+                return (
+                  <button
+                    key={t}
+                    onClick={() => setMiniTab(t)}
+                    className={[
+                      'rounded-full px-3 py-1 border',
+                      active
+                        ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
+                        : 'border-[rgb(var(--id-border))] bg-white text-gray-600 hover:bg-gray-50',
+                    ].join(' ')}
+                  >
+                    {t}
+                  </button>
+                )
+              })}
+            </div>
 
-        {miniTab === 'Favorites' && <FavoritesVisual />}
-        {miniTab === 'Apps' && <AppsVisual />}
-        {miniTab === 'URLs' && <UrlsBuilderVisual />}
+            {miniTab === 'Favorites' && <FavoritesVisual />}
+            {miniTab === 'Apps' && <AppsVisual />}
+            {miniTab === 'URLs' && <UrlsBuilderVisual />}
+          </>
+        )}
+
+        {/* SAFE: Layouts placeholder only (no impact to Apps) */}
+        {topTab === 'Layouts' && <LayoutsPane />}
+
+        {/* Minimal placeholders for Settings/Help to avoid errors */}
+        {topTab === 'Settings' && (
+          <div className="mt-3 rounded-xl border border-[rgb(var(--id-border))] bg-white p-4 text-sm text-slate-600">
+            Settings (state-only placeholder)
+          </div>
+        )}
+
+        {topTab === 'Help' && (
+          <div className="mt-3 rounded-xl border border-[rgb(var(--id-border))] bg-white p-4 text-sm text-slate-600">
+            Help (state-only placeholder)
+          </div>
+        )}
       </div>
     </aside>
   )
@@ -137,11 +204,16 @@ function AppsVisual() {
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="inline-block size-2 rounded-full" style={{ backgroundColor: app.color || '#9ca3af' }} />
+                  <span
+                    className="inline-block size-2 rounded-full"
+                    style={{ backgroundColor: app.color || '#9ca3af' }}
+                  />
                   <span className="text-[14px] text-gray-900">{app.name}</span>
                 </div>
-                {/* Category removed intentionally in Favorites; kept here is fine, but you can remove if desired */}
-                <span className="text-[12px] text-gray-500">{app.category || app.tag || ''}</span>
+                {/* Category kept here; remove if you prefer parity with Favorites */}
+                <span className="text-[12px] text-gray-500">
+                  {app.category || app.tag || ''}
+                </span>
               </div>
             </button>
           )
