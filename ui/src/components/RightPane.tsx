@@ -132,6 +132,7 @@ function UrlsBuilderPane() {
     resetUrlBuilder,
     saveUrlBuilder,
     previewUrlBuilder,
+    setOpenMode,
   } = useAppState();
 
   const [flash, setFlash] = useState<string | null>(null);
@@ -217,13 +218,28 @@ function UrlsBuilderPane() {
           ))}
         </div>
 
-        {/* Open behavior (visual only for now) */}
+        {/* Open behavior — now bound to state */}
         <div className="mt-3">
           <div className="mb-2 text-sm font-medium text-slate-700">Open behavior</div>
           <div className="flex flex-wrap items-center gap-2">
-            <Radio name="open" label="Single window" />
-            <Radio name="open" label="Per tab group" />
-            <Radio name="open" label="Per URL" />
+            <Radio
+              name="open"
+              label="Single window"
+              checked={urlBuilder.openMode === "single"}
+              onChange={() => setOpenMode("single")}
+            />
+            <Radio
+              name="open"
+              label="Per tab group"
+              checked={urlBuilder.openMode === "per-group"}
+              onChange={() => setOpenMode("per-group")}
+            />
+            <Radio
+              name="open"
+              label="Per URL"
+              checked={urlBuilder.openMode === "per-url"}
+              onChange={() => setOpenMode("per-url")}
+            />
           </div>
         </div>
 
@@ -375,10 +391,26 @@ function Input({
   );
 }
 
-function Radio({ name, label }: { name: string; label: string }) {
+function Radio({
+  name,
+  label,
+  checked,
+  onChange,
+}: {
+  name: string;
+  label: string;
+  checked?: boolean;
+  onChange?: () => void;
+}) {
   return (
     <label className="flex items-center gap-2 text-xs text-slate-700">
-      <input type="radio" name={name} className="h-3 w-3" />
+      <input
+        type="radio"
+        name={name}
+        className="h-3 w-3"
+        checked={!!checked}
+        onChange={onChange}
+      />
       <span>{label}</span>
     </label>
   );
