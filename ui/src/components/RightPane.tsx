@@ -2,13 +2,29 @@ import React, { useMemo, useState } from "react";
 
 /**
  * RightPane — Apps | Layouts | Settings | Help
- * Change in this commit: Apps → Apps selection/action row buttons now
- * enforce two-line labels with proper centering and spacing.
+ * Scope of this change (Apps → Apps only):
+ *  - Refresh now clears the search input
+ *  - New “Browse…” button opens a native file picker (Tauri) so the user can
+ *    choose ANY app (e.g., .exe / .lnk). The chosen app becomes the selected app.
+ * Notes:
+ *  - We do not persist custom apps to history yet; this just selects the app so
+ *    it can be assigned to the grid. (We’ll add “Recent/Custom Apps” later.)
  */
 
 import LayoutsPane from "./layouts/LayoutsPane";
 import SettingsPane from "./settings/SettingsPane";
 import { useAppState } from "../state/AppState";
+
+// Tauri native dialog for Windows file selection (safe no-op on web)
+let openFileDialog: null | ((opts?: any) => Promise<string | string[] | null>) = null;
+try {
+  // Lazy require so dev server can still run in web preview
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  openFileDialog = require("@tauri-apps/api/dialog").open;
+} catch {
+  // running without Tauri (web preview)
+  openFileDialog = null;
+}
 
 /* ---------------------------------- Root ---------------------------------- */
 
@@ -151,9 +167,7 @@ function UrlsBuilderPane() {
 
   const onPreview = () => {
     const snap = previewUrlBuilder();
-    showFlash(
-      `Preview: ${snap.tabGroups.reduce((n, g) => n + g.urls.filter(Boolean).length, 0)} URL(s).`
-    );
+    showFlash(`Preview: ${snap.tabGroups.reduce((n, g) => n + g.urls.filter(Boolean).length, 0)} URL(s).`);
   };
 
   return (
@@ -273,6 +287,8 @@ function AppsHistoryPane() {
   } = useAppState();
 
   const [query, setQuery] = useState("");
+  const [flash, setFlash] = useState<string | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
 
   // Exact list/order per approved visual
   const APP_LIST = useMemo(
@@ -301,18 +317,78 @@ function AppsHistoryPane() {
   const canAssign = Boolean(selectedApp && selCount > 0);
   const canUnassign = selCount > 0;
 
+  const showFlash = (msg: string) => {
+    setFlash(msg);
+    window.setTimeout(() => setFlash(null), 1400);
+  };
+
+  const onAssign = () => {
+    if (!canAssign) return;
+    assignSelected();
+    showFlash(`Assigned “${selectedApp}” to ${selCount} cell(s).`);
+  };
+
+  const onUnassign = () => {
+    if (!canUnassign) return;
+    unassignSelected();
+    showFlash(`Unassigned ${selCount} cell(s).`);
+  };
+
+  const onRefresh = () => {
+    // Clear search text and show refreshed timestamp
+    setQuery("");
+    setLastRefreshed(new Date());
+    showFlash("App list refreshed.");
+  };
+
+  const onBrowse = async () => {
+    try {
+      if (!openFileDialog) {
+        showFlash("Native picker unavailable in web preview.");
+        return;
+      }
+      const picked = await openFileDialog({
+        title: "Select an application",
+        multiple: false,
+        directory: false,
+        filters: [
+          { name: "Executables", extensions: ["exe", "lnk", "bat", "cmd"] },
+          { name: "All files", extensions: ["*"] },
+        ],
+      });
+      if (!picked || Array.isArray(picked)) return;
+      const path = picked as string;
+
+      // Derive a friendly name from the filename (e.g., "C:\\...\\chrome.exe" → "Chrome")
+      const base = path.replace(/\\/g, "/").split("/").pop() || "Custom App";
+      const name = base.replace(/\.(exe|lnk|bat|cmd)$/i, "").trim() || "Custom App";
+
+      // Select this app immediately so user can Assign
+      setSelectedApp(name as any);
+      showFlash(`Selected app: ${name}`);
+    } catch (err) {
+      showFlash("Could not open the picker.");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-3">
       {/* Top card */}
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
-        {/* Search row */}
-        <div className="mb-3">
+        {/* Search row + Refresh + Browse */}
+        <div className="mb-3 flex items-center gap-2">
           <Input
             placeholder="Search applications …"
             className="w-full"
             value={query}
             onChange={setQuery}
           />
+          <GhostBtn onClick={onRefresh} className="h-8 px-2">
+            Refresh
+          </GhostBtn>
+          <GhostBtn onClick={onBrowse} className="h-8 px-2">
+            Browse…
+          </GhostBtn>
         </div>
 
         {/* Selection + equal-width two-line buttons */}
@@ -324,16 +400,15 @@ function AppsHistoryPane() {
           <div className="col-span-8">
             <div className="grid grid-cols-2 gap-2">
               <PrimaryBtn
-                onClick={() => canAssign && assignSelected()}
+                onClick={onAssign}
                 disabled={!canAssign}
                 className="h-12 w-full whitespace-normal leading-tight text-center"
                 forceTwoRows
                 top="Assign to"
                 bottom="Selection"
               />
-
               <GhostBtn
-                onClick={() => canUnassign && unassignSelected()}
+                onClick={onUnassign}
                 disabled={!canUnassign}
                 className="h-12 w-full whitespace-normal leading-tight text-center"
                 forceTwoRows
@@ -344,10 +419,21 @@ function AppsHistoryPane() {
           </div>
         </div>
 
-        {/* Helper line */}
+        {/* Helper + flash */}
         <div className="text-xs text-slate-500">
           Pick an app and select cells to enable Assign
+          {lastRefreshed && (
+            <span className="ml-2 text-[11px] text-slate-400">
+              • refreshed {lastRefreshed.toLocaleTimeString()}
+            </span>
+          )}
         </div>
+
+        {flash && (
+          <div className="mt-2 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-xs text-sky-700">
+            {flash}
+          </div>
+        )}
 
         {/* Disabled input bar (visual only) */}
         <div className="mt-3">
@@ -374,6 +460,7 @@ function AppsHistoryPane() {
                     ? "bg-sky-50 text-slate-800 ring-1 ring-sky-200"
                     : "text-slate-700 hover:bg-slate-50",
                 ].join(" ")}
+                aria-pressed={active}
               >
                 <div className="flex items-center gap-2">
                   <span className={`inline-block h-2 w-2 rounded-full ${app.dot}`} />
@@ -516,10 +603,7 @@ function Radio({
   );
 }
 
-/* Buttons
-   - Support optional two-line content via props {forceTwoRows, top, bottom}
-   - Force centered, stacked layout with flex-col
-*/
+/* Buttons with optional two-line content */
 function PrimaryBtn({
   children,
   onClick,
