@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useRef, useState } from 'react'
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 /* ============================================================================
    Grid constants
@@ -132,7 +132,7 @@ type AppStateContext = {
   copyGrid: () => void
   pasteGrid: () => void
 
-  // monitors + presets (MonitorSelector & DisplayArray)
+  // monitors + presets
   monitors: Monitor[]
   currentMonitorId: string
   setCurrentMonitor: (id: string) => void
@@ -154,6 +154,7 @@ type AppStateContext = {
   resetUrlBuilder: () => void
   saveUrlBuilder: () => UrlBuilderDraft
   previewUrlBuilder: () => UrlBuilderDraft
+  setOpenMode: (mode: UrlOpenMode) => void
 }
 
 const Ctx = createContext<AppStateContext | null>(null)
@@ -257,7 +258,8 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
 
   const addTabGroup = () => setUrlBuilder(prev => {
     const id = groupSeed + 1
-    setGroupSeed(id)
+    setGroupSeed(id
+    )
     return { ...prev, tabGroups: [...prev.tabGroups, newGroup(id)] }
   })
   const setTabTitle = (groupId: string, title: string) =>
@@ -281,6 +283,8 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     setUrlBuilder({ browser: null, tabGroups: [newGroup(1), newGroup(2)], openMode: 'single' })
   const saveUrlBuilder = () => urlBuilder
   const previewUrlBuilder = () => urlBuilder
+  const setOpenMode = (mode: UrlOpenMode) =>
+    setUrlBuilder(prev => ({ ...prev, openMode: mode }))
 
   /* ---------- Context value ---------- */
   const value = useMemo<AppStateContext>(() => ({
@@ -322,11 +326,31 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     resetUrlBuilder,
     saveUrlBuilder,
     previewUrlBuilder,
+    setOpenMode,
   }), [
     selection, assignments, selectedApp, clipboard,
     monitors, currentMonitorId, presets, pendingPresetByMonitor,
     urlBuilder, browsers
   ])
+
+  /* ---------- Dev console hook (localhost/Vite dev only) ---------- */
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const isDev = (import.meta as any)?.env?.DEV === true
+    const isLocalhost = typeof location !== 'undefined' && location.hostname === 'localhost'
+    if (!(isDev || isLocalhost)) return
+    try {
+      ;(window as any).$insta = value
+      ;(globalThis as any).$insta = value
+      console.info('[InstaDesk] AppState exposed on window.$insta')
+    } catch {}
+    return () => {
+      try {
+        if ((window as any).$insta === value) delete (window as any).$insta
+        if ((globalThis as any).$insta === value) delete (globalThis as any).$insta
+      } catch {}
+    }
+  }, [value])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

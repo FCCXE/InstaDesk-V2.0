@@ -12,7 +12,7 @@ export default function MonitorSelector() {
   const current = monitors.find((m) => m.id === currentMonitorId)!
   const activeCount = monitors.filter((m) => m.active).length
 
-  // Presets dropdown
+  // Quick Presets (visual + minimal state)
   const [open, setOpen] = React.useState(false)
   const pending = getPendingPreset(currentMonitorId)
   const handleChoose = (pid: PresetId) => {
@@ -20,10 +20,8 @@ export default function MonitorSelector() {
     setOpen(false)
   }
 
-  // --- FIX: Normalize chip order so M1..M4 map to Monitor 1..4 (no visual changes) ---
-  // We derive a local, sorted view for the chips only. Dropdown and other visuals unchanged.
+  // Normalize chip order so M1..M4 map to Monitor 1..4 (labels unchanged)
   const chipMonitors = React.useMemo(() => {
-    // Attempt numeric sort by the trailing number in "Monitor N"; fallback to name
     const getNum = (name: string) => {
       const m = name.match(/(\d+)\s*$/)
       return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER
@@ -121,16 +119,16 @@ export default function MonitorSelector() {
           </div>
         </div>
 
-        {/* Tally (unchanged) */}
+        {/* Tally */}
         <div className="mt-2 text-[11px] text-[rgb(var(--id-text-muted))]">
           Active Monitors: {activeCount}/{monitors.length}
         </div>
 
-        {/* NEW: Display Array (visual-only, no layout changes) */}
+        {/* Display Array */}
         <DisplayArray />
       </div>
 
-      {/* Quick Presets (visual trigger only) */}
+      {/* Quick Presets (visual + minimal state) */}
       <div className="mt-6">
         <div className="mb-2 flex items-center justify-between">
           <div className="text-[13px] font-semibold text-gray-700">Quick Presets</div>
@@ -158,9 +156,7 @@ export default function MonitorSelector() {
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => {
-                    handleChoose(p.id as PresetId)
-                  }}
+                  onClick={() => handleChoose(p.id as PresetId)}
                   className="flex w-full items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-gray-50"
                   role="menuitem"
                 >
