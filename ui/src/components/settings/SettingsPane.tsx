@@ -5,7 +5,8 @@ export default function SettingsPane() {
     <div className="p-4">
       <h2 className="text-base font-medium mb-2">Settings</h2>
       <p className="text-sm opacity-70">
-        Settings panel placeholder (pre-desktop recovery). Replace with the real UI when ready.
+        Placeholder panel to satisfy RightPane import during Phase-B recovery.
+        Replace with the real Settings UI when ready.
       </p>
     </div>
   );
