@@ -2,13 +2,13 @@ import React, { useMemo, useState } from "react";
 
 /**
  * RightPane — Apps | Layouts | Settings | Help
- * Scope of this change (Apps → Apps only):
- *  - Refresh now clears the search input
- *  - New “Browse…” button opens a native file picker (Tauri) so the user can
- *    choose ANY app (e.g., .exe / .lnk). The chosen app becomes the selected app.
- * Notes:
- *  - We do not persist custom apps to history yet; this just selects the app so
- *    it can be assigned to the grid. (We’ll add “Recent/Custom Apps” later.)
+ * This file includes:
+ * - Apps → URLs builder
+ * - Apps → Apps history
+ * - Apps → Favorites (with persistence via AppState)
+ * Update in this block:
+ *  - Favorites: Add Favorite has a web-preview fallback (manual path prompt)
+ *  - Favorites: Long labels/URLs now truncate with ellipsis; Delete always visible
  */
 
 import LayoutsPane from "./layouts/LayoutsPane";
@@ -131,7 +131,6 @@ function SubTab({
 }
 
 /* ------------------------------- URLs Builder ----------------------------- */
-/* unchanged visuals/behavior */
 
 function UrlsBuilderPane() {
   const {
@@ -366,7 +365,7 @@ function AppsHistoryPane() {
       // Select this app immediately so user can Assign
       setSelectedApp(name as any);
       showFlash(`Selected app: ${name}`);
-    } catch (err) {
+    } catch {
       showFlash("Could not open the picker.");
     }
   };
@@ -484,18 +483,45 @@ function AppsHistoryPane() {
 /* -------------------------------- Favorites ------------------------------- */
 
 function FavoritesPane() {
-  const favorites = useMemo(
-    () => [
-      { id: "fav1", name: "Outlook", logo: "📧" },
-      { id: "fav2", name: "Chrome", logo: "🌐" },
-      { id: "fav3", name: "VS Code", logo: "🧩" },
-      { id: "fav4", name: "Notepad", logo: "📝" },
-      { id: "fav5", name: "GitHub", logo: "🐙" },
-    ],
-    []
-  );
+  const {
+    favorites,
+    addFavoriteFromPath,
+    addCustomUrl,
+    removeFavorite,
+    renameFavorite,
+  } = useAppState();
 
-  const editMode = false;
+  const [edit, setEdit] = useState(false);
+
+  const onAddFavorite = async () => {
+    // Prefer Tauri picker; fall back to manual path prompt in web preview
+    if (openFileDialog) {
+      const picked = await openFileDialog({
+        title: "Select an application",
+        multiple: false,
+        directory: false,
+        filters: [
+          { name: "Executables", extensions: ["exe", "lnk", "bat", "cmd"] },
+          { name: "All files", extensions: ["*"] },
+        ],
+      });
+      if (!picked || Array.isArray(picked)) return;
+      addFavoriteFromPath(picked as string);
+      return;
+    }
+    // Fallback for Vite/web preview
+    const path = prompt(
+      "Enter full path to the application (e.g., C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe):"
+    );
+    if (path && path.trim()) addFavoriteFromPath(path.trim());
+  };
+
+  const onAddCustom = () => {
+    const url = prompt("Enter URL (https://…):");
+    if (!url || !url.trim()) return;
+    const label = prompt("Label (optional):") || undefined;
+    addCustomUrl(url.trim(), label?.trim());
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -503,26 +529,52 @@ function FavoritesPane() {
         <div className="mb-3 flex items-center justify-between">
           <div className="text-base font-semibold text-slate-800">Favorites</div>
           <div className="flex items-center gap-2">
-            <GhostBtn disabled>{editMode ? "Done" : "Edit"}</GhostBtn>
-            <GhostBtn disabled>+ Add Favorite</GhostBtn>
+            <GhostBtn onClick={() => setEdit((e) => !e)}>{edit ? "Done" : "Edit"}</GhostBtn>
+            <GhostBtn onClick={onAddFavorite}>+ Add Favorite</GhostBtn>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-2">
           {favorites.map((f) => (
-            <div key={f.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2">
-              <div className="flex items-center gap-2">
-                <span className="text-base">{f.logo}</span>
-                <span className="text-sm font-medium text-slate-800">{f.name}</span>
-                <span className="ml-1 text-amber-500">★</span>
+            <div
+              key={f.id}
+              className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2"
+            >
+              {/* Left: icon + name + star; name truncates */}
+              <div className="min-w-0 flex flex-1 items-center gap-2">
+                <span className="text-base shrink-0">{f.icon}</span>
+                <span
+                  className="truncate text-sm font-medium text-slate-800"
+                  title={f.name}
+                  onDoubleClick={() => {
+                    if (!edit) return;
+                    const name = prompt("Rename favorite:", f.name);
+                    if (name && name.trim()) renameFavorite(f.id, name.trim());
+                  }}
+                >
+                  {f.name}
+                </span>
+                <span className="ml-1 shrink-0 text-amber-500">★</span>
               </div>
-              {editMode ? <GhostBtn disabled>🗑 Delete</GhostBtn> : <div className="h-7" />}
+
+              {/* Right: actions (never pushed out of view) */}
+              <div className="ml-2 shrink-0">
+                {edit ? <GhostBtn onClick={() => removeFavorite(f.id)}>🗑 Delete</GhostBtn> : <div className="h-7" />}
+              </div>
             </div>
           ))}
+          {favorites.length === 0 && (
+            <div className="rounded-md border border-dashed border-slate-200 p-3 text-center text-xs text-slate-500">
+              No favorites yet. Use “+ Add Favorite” or “+ Add Custom App/URL”.
+            </div>
+          )}
         </div>
 
         <div className="mt-3">
-          <button className="h-8 w-full cursor-not-allowed rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100" disabled>
+          <button
+            onClick={onAddCustom}
+            className="h-8 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100"
+          >
             + Add Custom App/URL
           </button>
         </div>
