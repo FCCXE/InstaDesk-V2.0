@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 import {
   useAppState,   // central store
   cellKey,
@@ -25,6 +25,15 @@ export default function WorkspaceGrid() {
     endDrag,              // () => void
     clearSelection,       // () => void
   } = useAppState()
+
+  // Broadcast selection size to the RightPane (Apps) on every change
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent('insta:selection', {
+        detail: { count: selection.size },
+      })
+    )
+  }, [selection])
 
   // ESC clears via provider
   useEffect(() => {
@@ -76,7 +85,8 @@ export default function WorkspaceGrid() {
       if (c > cMax) cMax = c
     })
     const count = selection.size
-    return `Selected: ${rMin}–${rMax} × ${cMin}–${cMax} • ${count} cell${count === 1 ? '' : 's'}`
+    // Inclusive end bounds for readability: show 0–3 × 0–3 (not 0–2 × 0–2) for a 3×3 block
+    return `Selected: ${rMin}–${rMax + 1} × ${cMin}–${cMax + 1} • ${count} cell${count === 1 ? '' : 's'}`
   }, [selection])
 
   const isHighlighted = (r: number, c: number) => selection.has(cellKey(r, c))
@@ -87,11 +97,13 @@ export default function WorkspaceGrid() {
         <div className="w-full h-full max-w-full max-h-full aspect-square">
           <div className="relative w-full h-full select-none">
             {/* Grid */}
-            <div className="grid w-full h-full gap-[3px]"
-                 style={{
-                   gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
-                   gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`,
-                 }}>
+            <div
+              className="grid w-full h-full gap-[3px]"
+              style={{
+                gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
+                gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`,
+              }}
+            >
               {cells.map(({ r, c }) => {
                 const highlighted = isHighlighted(r, c)
                 return (
