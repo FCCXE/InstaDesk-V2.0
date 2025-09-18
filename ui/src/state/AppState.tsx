@@ -23,7 +23,6 @@ export const cellKey = (r: number, c: number): CellKey => `${r},${c}`
 
 // Internal helpers
 type Assignments = Record<CellKey, AppId | null>
-
 const makeEmptyAssignments = (): Assignments => {
   const obj: Assignments = {}
   for (let r = 0; r < GRID_ROWS; r++) {
@@ -45,14 +44,30 @@ const rectSelectionSet = (r1: number, c1: number, r2: number, c2: number): Set<C
   }
   return set
 }
-
 const unionSets = (a: Set<CellKey>, b: Set<CellKey>) => {
   const out = new Set<CellKey>(a)
   b.forEach((k) => out.add(k))
   return out
 }
 
-// Context surface (exported via hook)
+// Monitor model
+export type Monitor = {
+  id: string
+  name: string
+  role: 'Primary' | 'Secondary'
+  resolution: string
+  active: boolean
+}
+
+// Sample monitors (placeholder until OS detection)
+const SAMPLE_MONITORS: Monitor[] = [
+  { id: 'm1', name: 'Monitor 1', role: 'Primary', resolution: '2560×1440', active: true },
+  { id: 'm2', name: 'Monitor 2', role: 'Secondary', resolution: '1920×1080', active: true },
+  { id: 'm3', name: 'Monitor 3', role: 'Secondary', resolution: '1920×1080', active: true },
+  { id: 'm4', name: 'Monitor 4', role: 'Secondary', resolution: '1920×1080', active: false },
+]
+
+// Context surface
 type Modifiers = { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean }
 type AppStateContext = {
   selection: Set<CellKey>
@@ -77,6 +92,11 @@ type AppStateContext = {
   clearGrid: () => void
   copyGrid: () => void
   pasteGrid: () => void
+
+  // Monitors
+  monitors: Monitor[]
+  currentMonitorId: string
+  setCurrentMonitor: (id: string) => void
 }
 
 const Ctx = createContext<AppStateContext | null>(null)
@@ -87,6 +107,15 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   const [assignments, setAssignments] = useState<Assignments>(() => makeEmptyAssignments())
   const [selectedApp, setSelectedApp] = useState<AppId | null>(null)
   const [clipboard, setClipboard] = useState<Assignments | null>(null)
+
+  // Monitor state
+  const [monitors] = useState<Monitor[]>(SAMPLE_MONITORS)
+  const [currentMonitorId, setCurrentMonitorId] = useState<string>('m1')
+
+  const setCurrentMonitor = (id: string) => {
+    setCurrentMonitorId(id)
+    window.dispatchEvent(new CustomEvent('insta:monitor-changed', { detail: { id } }))
+  }
 
   // Drag state refs
   const isDraggingRef = useRef(false)
@@ -104,19 +133,16 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     const initial = rectSelectionSet(row, col, row, col)
     setSelection(additive ? unionSets(baseSelectionRef.current, initial) : initial)
   }
-
   const updateDrag = (row: number, col: number) => {
     if (!isDraggingRef.current || !dragStartRef.current) return
     const { r, c } = dragStartRef.current
     const rect = rectSelectionSet(r, c, row, col)
     setSelection(additiveRef.current ? unionSets(baseSelectionRef.current, rect) : rect)
   }
-
   const endDrag = () => {
     isDraggingRef.current = false
     dragStartRef.current = null
   }
-
   const toggleCell = (row: number, col: number) => {
     const k = cellKey(row, col)
     setSelection((prev) => {
@@ -126,7 +152,6 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
       return next
     })
   }
-
   const clearSelection = () => setSelection(new Set())
 
   // Assign/Unassign
@@ -138,7 +163,6 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
       return next
     })
   }
-
   const unassignSelected = () => {
     setAssignments((prev) => {
       const next: Assignments = { ...prev }
@@ -168,7 +192,10 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     clearGrid,
     copyGrid,
     pasteGrid,
-  }), [selection, assignments, selectedApp, clipboard])
+    monitors,
+    currentMonitorId,
+    setCurrentMonitor,
+  }), [selection, assignments, selectedApp, clipboard, monitors, currentMonitorId])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
