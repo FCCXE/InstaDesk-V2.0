@@ -1,527 +1,386 @@
-import React, { useMemo, useState } from 'react'
-import { useAppState, APPS } from '../state/AppState'
-import LayoutsPane from './layouts/LayoutsPane'
+import React, { useMemo, useState } from "react";
 
-type TopTab = 'Apps' | 'Layouts' | 'Settings' | 'Help'
-type MiniTab = 'Favorites' | 'Apps' | 'URLs'
-type AppKey = string
+/**
+ * RightPane — Phase A visuals (state-only)
+ * - Top tabs: Apps | Layouts | Settings | Help
+ * - Apps sub-tabs: URLs | Apps (History) | Favorites   (visuals only)
+ * - Layouts: uses the dedicated LayoutsPane (vertical list visuals)
+ * - Settings: uses the dedicated SettingsPane (approved mock)
+ *
+ * IMPORTANT:
+ * - No OS actions. State-only. Full-file replacement.
+ * - Scrollable body; no horizontal overflow.
+ * - Compact toolbar/buttons per Phase A conventions.
+ */
 
-// Simple mapping just for labels/colors; visuals only
-const APP_NAMES: Record<AppKey, string> = Object.values(APPS).reduce((acc, a: any) => {
-  acc[a.id] = a.name
-  return acc
-}, {} as Record<string, string>)
+import LayoutsPane from "./layouts/LayoutsPane";
+import SettingsPane from "./settings/SettingsPane";
 
-/** -------------------- Main Right Pane -------------------- */
+/* ---------------------------------- Root ---------------------------------- */
+
 export default function RightPane() {
-  // NEW: top-level tab state (defaults to Apps)
-  const [topTab, setTopTab] = useState<TopTab>('Apps')
-  // Existing: inner Apps mini-tabs
-  const [miniTab, setMiniTab] = useState<MiniTab>('Apps')
+  const [tab, setTab] = useState<MainTab>("Apps");
 
   return (
-    <aside
-      className="
-        h-full flex flex-col overflow-hidden
-        rounded-2xl border border-[rgb(var(--id-border))]
-        bg-[rgb(var(--id-surface))] shadow-[var(--id-shadow)]
-      "
-    >
-      {/* Top (primary) tabs — now clickable */}
-      <div className="flex items-center gap-6 border-b border-[rgb(var(--id-border))] px-6 pt-2">
-        <button
-          onClick={() => setTopTab('Apps')}
-          className={[
-            'py-2 text-sm font-medium',
-            topTab === 'Apps'
-              ? 'text-gray-900 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700',
-          ].join(' ')}
-        >
-          Apps
-        </button>
-        <button
-          onClick={() => setTopTab('Layouts')}
-          className={[
-            'py-2 text-sm',
-            topTab === 'Layouts'
-              ? 'text-gray-900 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700',
-          ].join(' ')}
-        >
-          Layouts
-        </button>
-        <button
-          onClick={() => setTopTab('Settings')}
-          className={[
-            'py-2 text-sm',
-            topTab === 'Settings'
-              ? 'text-gray-900 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700',
-          ].join(' ')}
-        >
-          Settings
-        </button>
-        <button
-          onClick={() => setTopTab('Help')}
-          className={[
-            'py-2 text-sm',
-            topTab === 'Help'
-              ? 'text-gray-900 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700',
-          ].join(' ')}
-        >
-          Help
-        </button>
+    <div className="flex h-full w-full flex-col overflow-hidden">
+      {/* Top Tabs */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-3 py-2">
+        <TopTab label="Apps" active={tab === "Apps"} onClick={() => setTab("Apps")} />
+        <TopTab label="Layouts" active={tab === "Layouts"} onClick={() => setTab("Layouts")} />
+        <TopTab label="Settings" active={tab === "Settings"} onClick={() => setTab("Settings")} />
+        <TopTab label="Help" active={tab === "Help"} onClick={() => setTab("Help")} />
       </div>
 
-      {/* Scroll body */}
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-6 pb-6">
-        {topTab === 'Apps' && (
-          <>
-            {/* Mini tabs (unchanged) */}
-            <div className="mt-3 mb-3 flex items-center gap-2 text-xs">
-              {(['Favorites', 'Apps', 'URLs'] as const).map((t) => {
-                const active = miniTab === t
-                return (
-                  <button
-                    key={t}
-                    onClick={() => setMiniTab(t)}
-                    className={[
-                      'rounded-full px-3 py-1 border',
-                      active
-                        ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
-                        : 'border-[rgb(var(--id-border))] bg-white text-gray-600 hover:bg-gray-50',
-                    ].join(' ')}
-                  >
-                    {t}
-                  </button>
-                )
-              })}
-            </div>
-
-            {miniTab === 'Favorites' && <FavoritesVisual />}
-            {miniTab === 'Apps' && <AppsVisual />}
-            {miniTab === 'URLs' && <UrlsBuilderVisual />}
-          </>
-        )}
-
-        {/* SAFE: Layouts placeholder only (no impact to Apps) */}
-        {topTab === 'Layouts' && <LayoutsPane />}
-
-        {/* Minimal placeholders for Settings/Help to avoid errors */}
-        {topTab === 'Settings' && (
-          <div className="mt-3 rounded-xl border border-[rgb(var(--id-border))] bg-white p-4 text-sm text-slate-600">
-            Settings (state-only placeholder)
-          </div>
-        )}
-
-        {topTab === 'Help' && (
-          <div className="mt-3 rounded-xl border border-[rgb(var(--id-border))] bg-white p-4 text-sm text-slate-600">
-            Help (state-only placeholder)
-          </div>
-        )}
-      </div>
-    </aside>
-  )
-}
-
-/** -------------------- Apps (History) Visuals -------------------- */
-function AppsVisual() {
-  const { selection } = useAppState()
-
-  const selectionCount =
-    (selection as any)?.count ??
-    (selection as any)?.size ??
-    (Array.isArray((selection as any)?.cells) ? (selection as any).cells.length : 0)
-
-  const [query, setQuery] = useState('')
-  const [selectedAppId, setSelectedAppId] = useState<AppKey | null>(null)
-
-  const rows = useMemo(() => {
-    const all = Object.values(APPS) as any[]
-    const q = query.trim().toLowerCase()
-    return q ? all.filter((a) => a.name.toLowerCase().includes(q)) : all
-  }, [query])
-
-  const assignDisabled = selectionCount === 0 || !selectedAppId
-  const unassignDisabled = selectionCount === 0
-
-  return (
-    <div className="pb-2">
-      {/* Search */}
-      <div className="mb-3">
-        <input
-          type="text"
-          placeholder="Search applications …"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="w-full rounded-lg border border-[rgb(var(--id-border))] bg-white px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-blue-200"
-        />
-      </div>
-
-      {/* Selection row (compact buttons) */}
-      <div className="mb-2 grid grid-cols-[1fr_auto] items-center gap-3">
-        <div className="min-w-0 truncate text-[11px] text-[rgb(var(--id-text-muted))]">
-          Selection:&nbsp;{selectionCount > 0 ? <strong>{selectionCount}</strong> : 'none'}
-        </div>
-        <div className="flex shrink-0 items-center justify-end gap-2">
-          <MiniBtn
-            label="Assign to Selection"
-            primary
-            disabled={assignDisabled}
-            onClick={() => {}}
-          />
-          <MiniBtn
-            label="Unassign Selection"
-            disabled={unassignDisabled}
-            onClick={() => {}}
-          />
-        </div>
-      </div>
-
-      <div className="mb-1.5 text-[11px] text-[rgb(var(--id-text-muted))]">
-        Select cells and Pick an app to enable Assign
-      </div>
-      <div className="mb-3 w-full rounded-lg border border-[rgb(var(--id-border))] bg-[rgb(var(--id-surface))] px-3 py-1.5 text-sm opacity-70" />
-
-      {/* App History */}
-      <div className="mb-2 text-[13px] text-gray-500">App History:</div>
-
-      <div className="space-y-3">
-        {rows.map((app: any) => {
-          const focused = selectedAppId === app.id
-          return (
-            <button
-              key={app.id}
-              onClick={() => setSelectedAppId(app.id)}
-              className={[
-                'w-full rounded-xl border px-3 py-3 text-left shadow-sm transition',
-                focused
-                  ? 'border-blue-400 bg-white ring-2 ring-blue-400 ring-offset-2'
-                  : 'border-[rgb(var(--id-border))] bg-white hover:bg-gray-50',
-              ].join(' ')}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="inline-block size-2 rounded-full"
-                    style={{ backgroundColor: app.color || '#9ca3af' }}
-                  />
-                  <span className="text-[14px] text-gray-900">{app.name}</span>
-                </div>
-                {/* Category kept here; remove if you prefer parity with Favorites */}
-                <span className="text-[12px] text-gray-500">
-                  {app.category || app.tag || ''}
-                </span>
-              </div>
-            </button>
-          )
-        })}
+      {/* Body */}
+      <div className="min-h-0 flex-1 overflow-hidden">
+        {tab === "Apps" && <AppsPane />}
+        {tab === "Layouts" && <LayoutsPane />}
+        {tab === "Settings" && <SettingsPane />}
+        {tab === "Help" && <HelpPane />}
       </div>
     </div>
-  )
+  );
 }
 
-/** -------------------- Favorites Visuals (APPROVED) -------------------- */
-function FavoritesVisual() {
-  const { selection } = useAppState()
+type MainTab = "Apps" | "Layouts" | "Settings" | "Help";
 
-  const selectionCount =
-    (selection as any)?.count ??
-    (selection as any)?.size ??
-    (Array.isArray((selection as any)?.cells) ? (selection as any).cells.length : 0)
+/* ------------------------------- Tabs (UI) -------------------------------- */
 
-  const [query, setQuery] = useState('')
-
-  // Local visual-only favorites list
-  const defaultFavs: AppKey[] = ['outlook', 'chrome', 'vscode', 'notepad', 'github']
-  const [favorites, setFavorites] = useState<AppKey[]>(defaultFavs)
-  const [isEditing, setIsEditing] = useState(false)
-
-  const filteredFavs = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return favorites
-    return favorites.filter((id) => APP_NAMES[id]?.toLowerCase().includes(q))
-  }, [favorites, query])
-
-  return (
-    <div className="pb-2">
-      {/* Search */}
-      <div className="mb-3">
-        <input
-          type="text"
-          placeholder="Search applications …"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="w-full rounded-lg border border-[rgb(var(--id-border))] bg-white px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-blue-200"
-        />
-      </div>
-
-      {/* Selection row (compact buttons) */}
-      <div className="mb-2 grid grid-cols-[1fr_auto] items-center gap-3">
-        <div className="min-w-0 truncate text-[11px] text-[rgb(var(--id-text-muted))]">
-          Selection:&nbsp;{selectionCount > 0 ? <strong>{selectionCount}</strong> : 'none'}
-        </div>
-        <div className="flex shrink-0 items-center justify-end gap-2">
-          <MiniBtn label="Assign to Selection" primary disabled onClick={() => {}} />
-          <MiniBtn label="Unassign Selection" disabled onClick={() => {}} />
-        </div>
-      </div>
-
-      <div className="mb-1.5 text-[11px] text-[rgb(var(--id-text-muted))]">
-        Select cells and Pick an app to enable Assign
-      </div>
-
-      {/* Favorites header + actions */}
-      <div className="mt-6 mb-6 flex items-center justify-between">
-        <div className="text-[13px] text-gray-500">Favorites</div>
-        <div className="flex items-center gap-2">
-          <GhostBtn label="Edit" onClick={() => setIsEditing((v) => !v)} />
-          <GhostBtn label="+ Add Favorite" onClick={() => { /* open picker (visual) */ }} />
-        </div>
-      </div>
-
-      {/* Favorites list */}
-      <div className="space-y-3">
-        {filteredFavs.map((id) => (
-          <FavoriteCard
-            key={id}
-            name={APP_NAMES[id] || id}
-            isEditing={isEditing}
-            onRemove={() => setFavorites((arr) => arr.filter((x) => x !== id))}
-          />
-        ))}
-      </div>
-
-      {/* Add Custom at bottom */}
-      <button
-        className="mt-3 w-full rounded-xl border border-[rgb(var(--id-border))] bg-white px-3 py-3 text-center text-[13px] font-medium text-blue-600 shadow-sm hover:bg-blue-50"
-        onClick={() => { /* open custom builder (visual) */ }}
-      >
-        + Add Custom App/URL
-      </button>
-    </div>
-  )
-}
-
-function FavoriteCard({
-  name,
-  isEditing,
-  onRemove,
+function TopTab({
+  label,
+  active,
+  onClick,
 }: {
-  name: string
-  isEditing: boolean
-  onRemove: () => void
+  label: string;
+  active?: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <div className="w-full rounded-xl border border-[rgb(var(--id-border))] bg-white px-3 py-3 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {/* Filled star */}
-          <svg width="18" height="18" viewBox="0 0 24 24" className="text-yellow-400">
-            <path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-          </svg>
-          {/* App logo */}
-          <AppLogo name={name} />
-          <div className="text-[14px] text-gray-900 font-medium">{name}</div>
-        </div>
-
-        {/* Trash (only in Edit mode) */}
-        {isEditing ? (
-          <button
-            className="rounded-md border border-[rgb(var(--id-border))] bg-white px-2 py-2 hover:bg-red-50"
-            onClick={onRemove}
-            aria-label={`Remove ${name} from favorites`}
-            title="Remove"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" className="text-red-500">
-              <path fill="currentColor" d="M9 3h6l1 1h4v2H4V4h4l1-1zm2 7h2v8h-2v-8zM7 10h2v8H7v-8zm8 0h2v8h-2v-8z"/>
-            </svg>
-          </button>
-        ) : null}
-      </div>
-    </div>
-  )
-}
-
-/** Simple SVG-ish logos (approximate, no external assets) */
-function AppLogo({ name }: { name: string }) {
-  const n = name.toLowerCase()
-  const box = 'inline-flex items-center justify-center w-7 h-7 rounded-md border border-[rgb(var(--id-border))] bg-white'
-  if (n.includes('chrome')) {
-    return (
-      <div className={box} title="Chrome">
-        <div className="relative w-5 h-5">
-          <span className="absolute inset-0 rounded-full bg-red-500" />
-          <span className="absolute inset-0" style={{ clipPath: 'polygon(50% 50%, 100% 0, 100% 100%)', background: '#f4b400' }} />
-          <span className="absolute inset-0" style={{ clipPath: 'polygon(0 100%, 0 0, 50% 50%)', background: '#0f9d58' }} />
-          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-blue-500 border border-white" />
-        </div>
-      </div>
-    )
-  }
-  if (n.includes('outlook')) {
-    return (
-      <div className={box} title="Outlook">
-        <div className="w-5 h-5 rounded-sm bg-blue-600 relative">
-          <div className="absolute left-1.5 top-1 w-2.5 h-3 bg-white text-blue-600 text-[10px] font-bold flex items-center justify-center">O</div>
-        </div>
-      </div>
-    )
-  }
-  if (n.includes('vs code')) {
-    return (
-      <div className={box} title="VS Code">
-        <div className="w-5 h-5 rounded-sm bg-sky-600 relative">
-          <svg viewBox="0 0 24 24" className="absolute inset-0 m-auto w-4 h-4 text-white">
-            <path fill="currentColor" d="M20 4v16l-7-3-7 3V7l7-3 7 3z"/>
-          </svg>
-        </div>
-      </div>
-    )
-  }
-  if (n.includes('notepad')) {
-    return (
-      <div className={box} title="Notepad">
-        <div className="w-5 h-5 rounded-sm bg-white border border-gray-300 relative">
-          <div className="absolute left-1 right-1 top-1 h-0.5 bg-blue-500" />
-          <div className="absolute left-1 right-1 top-2 h-0.5 bg-gray-300" />
-          <div className="absolute left-1 right-1 top-3 h-0.5 bg-gray-300" />
-        </div>
-      </div>
-    )
-  }
-  if (n.includes('github')) {
-    return (
-      <div className={box} title="GitHub">
-        <div className="w-5 h-5 rounded-full bg-black text-white text-[9px] font-bold flex items-center justify-center">GH</div>
-      </div>
-    )
-  }
-  return (
-    <div className={box} title={name}>
-      <div className="w-5 h-5 rounded-sm bg-gray-100 text-[10px] text-gray-500 flex items-center justify-center">
-        {name.slice(0,2).toUpperCase()}
-      </div>
-    </div>
-  )
-}
-
-/** Reusable compact buttons */
-function MiniBtn({ label, primary, disabled, onClick }: { label: string; primary?: boolean; disabled?: boolean; onClick: () => void }) {
-  return (
     <button
-      disabled={!!disabled}
+      type="button"
       onClick={onClick}
       className={[
-        'inline-flex min-w-0 items-center justify-center rounded-md border shadow-sm text-[11px] !h-7 !px-2 !w-auto whitespace-nowrap',
-        disabled
-          ? 'border-[rgb(var(--id-border))] bg-gray-100 text-gray-400 cursor-not-allowed'
-          : primary
-            ? 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700'
-            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50',
-      ].join(' ')}
-      style={{ height: 28, padding: '0 8px', width: 'auto' }}
+        "h-8 rounded-full px-3 text-sm",
+        active
+          ? "bg-sky-50 text-sky-700 ring-1 ring-sky-200"
+          : "bg-slate-100 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200",
+      ].join(" ")}
     >
       {label}
     </button>
-  )
-}
-/** Ghost button (header actions) */
-function GhostBtn({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="rounded-md border border-[rgb(var(--id-border))] bg-white px-3 py-1.5 text-[11px] text-blue-600 shadow-sm hover:bg-blue-50"
-    >
-      {label}
-    </button>
-  )
+  );
 }
 
-/** -------------------- URLs builder (visual only) -------------------- */
-function UrlsBuilderVisual() {
-  const [browser, setBrowser] = useState('Chrome')
-  const [tabs, setTabs] = useState(
-    Array.from({ length: 2 }, () => ({ title: '', urls: ['', '', ''] }))
-  )
+/* -------------------------------- Apps Pane ------------------------------- */
 
+function AppsPane() {
+  const [sub, setSub] = useState<AppsSubTab>("URLs");
   return (
-    <div className="pb-6">
-      <h3 className="mb-2 text-sm font-medium text-gray-900">URL Builder</h3>
-
-      <label className="block text-xs text-gray-600">Browser</label>
-      <div className="mb-4 mt-1 flex items-center gap-2">
-        <select
-          value={browser}
-          onChange={(e) => setBrowser(e.target.value)}
-          className="w-[240px] rounded-lg border border-[rgb(var(--id-border))] bg-white px-3 py-2 text-sm shadow-sm"
-        >
-          <option>Chrome</option>
-          <option>Edge</option>
-          <option>Firefox</option>
-        </select>
-        <button
-          className="rounded-lg border border-[rgb(var(--id-border))] bg-white px-3 py-2 text-xs shadow-sm hover:bg-gray-50"
-        >
-          + Add Browser
-        </button>
+    <div className="flex h-full flex-col overflow-hidden p-3">
+      {/* Sub-tabs */}
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <SubTab label="URLs" active={sub === "URLs"} onClick={() => setSub("URLs")} />
+        <SubTab label="Apps (History)" active={sub === "Apps (History)"} onClick={() => setSub("Apps (History)")} />
+        <SubTab label="Favorites" active={sub === "Favorites"} onClick={() => setSub("Favorites")} />
       </div>
 
-      <div className="mb-2 text-xs text-gray-600">Tabs</div>
-
-      {tabs.map((t, idx) => (
-        <div key={idx} className="mb-5">
-          <div className="rounded-xl border border-[rgb(var(--id-border))] bg-white p-3">
-            <input
-              type="text"
-              placeholder={`Tab ${idx + 1} (optional title)`}
-              className="mb-2 w-full rounded-md border border-[rgb(var(--id-border))] bg-white px-2 py-1 text-xs"
-              value={t.title}
-              readOnly
-            />
-            <div className="space-y-2">
-              {t.urls.map((_, i) => (
-                <input
-                  key={i}
-                  type="text"
-                  placeholder="https://example.com"
-                  className="w-full rounded-md border border-[rgb(var(--id-border))] bg-gray-50 px-2 py-1 text-xs"
-                  readOnly
-                />
-              ))}
-            </div>
-          </div>
-          <div className="mt-2 flex justify-end">
-            <button className="rounded-lg border border-[rgb(var(--id-border))] bg-white px-3 py-1.5 text-xs shadow-sm hover:bg-gray-50">
-              + Add URL
-            </button>
-          </div>
-        </div>
-      ))}
-
-      <button
-        className="mb-4 rounded-lg border border-[rgb(var(--id-border))] bg-white px-3 py-1.5 text-xs shadow-sm hover:bg-gray-50"
-        onClick={() => setTabs([...tabs, { title: '', urls: ['', '', ''] }])}
-      >
-        + Add Tab
-      </button>
-
-      <hr className="my-3 border-[rgb(var(--id-border))]" />
-
-      {/* Footer (disabled; visuals only) */}
-      <div className="mt-2 flex items-center gap-2 pb-4">
-        <button className="rounded-md border border-[rgb(var(--id-border))] bg-gray-100 px-3 py-1.5 text-xs text-gray-400" disabled>
-          Assign to Selection
-        </button>
-        <button className="rounded-md border border-[rgb(var(--id-border))] bg-gray-100 px-3 py-1.5 text-xs text-gray-400" disabled>
-          Save Draft
-        </button>
-        <button className="rounded-md border border-[rgb(var(--id-border))] bg-gray-100 px-3 py-1.5 text-xs text-gray-400" disabled>
-          Clear Draft
-        </button>
+      <div className="min-h-0 flex-1 overflow-y-auto pr-2">
+        {sub === "URLs" && <UrlsBuilderPane />}
+        {sub === "Apps (History)" && <AppsHistoryPane />}
+        {sub === "Favorites" && <FavoritesPane />}
       </div>
     </div>
-  )
+  );
+}
+
+type AppsSubTab = "URLs" | "Apps (History)" | "Favorites";
+
+function SubTab({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "h-8 rounded-full px-3 text-sm",
+        active
+          ? "bg-sky-50 text-sky-700 ring-1 ring-sky-200"
+          : "bg-slate-100 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200",
+      ].join(" ")}
+    >
+      {label}
+    </button>
+  );
+}
+
+/* ------------------------------- URLs Builder ----------------------------- */
+
+function UrlsBuilderPane() {
+  // visuals-only, no state wiring yet
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="mb-2 text-base font-semibold text-slate-800">URL Builder</div>
+
+        {/* Browser selector row */}
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <Label>Browser</Label>
+          <Select disabled value="Choose… ▾" />
+          <button
+            className="h-7 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100"
+            disabled
+          >
+            + Add Browser
+          </button>
+        </div>
+
+        {/* Tabs list (visuals) */}
+        <div className="flex flex-col gap-3">
+          {[1, 2].map((t) => (
+            <div key={t} className="rounded-xl border border-slate-200 p-3">
+              <div className="mb-2 flex items-center gap-2">
+                <Label>Tab Title</Label>
+                <Input placeholder="e.g., Research" />
+              </div>
+
+              {/* URLs in tab */}
+              <div className="flex flex-col gap-2">
+                <Input placeholder="https://example.com" />
+                <Input placeholder="https://another.example" />
+              </div>
+
+              <div className="mt-2">
+                <GhostBtn disabled>+ Add URL</GhostBtn>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Open behavior */}
+        <div className="mt-3">
+          <div className="mb-2 text-sm font-medium text-slate-700">Open behavior</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Radio disabled name="open" label="Single window" />
+            <Radio disabled name="open" label="Per tab group" />
+            <Radio disabled name="open" label="Per URL" />
+          </div>
+        </div>
+
+        {/* Bottom buttons (state-only) */}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <PrimaryBtn disabled>Save</PrimaryBtn>
+          <GhostBtn disabled>Preview</GhostBtn>
+          <GhostBtn disabled>Reset</GhostBtn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------ Apps History ------------------------------ */
+
+function AppsHistoryPane() {
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Compact toolbar + search + hints */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <Input placeholder="Search apps…" className="min-w-[200px]" />
+          <GhostBtn disabled>Refresh</GhostBtn>
+        </div>
+        <div className="text-xs text-slate-500">
+          Select cells and <span className="font-medium">Pick an app</span> to enable Assign.
+        </div>
+      </div>
+
+      {/* History list (visuals) */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-2">
+        <div className="flex flex-col">
+          {["Outlook", "Chrome", "VS Code", "Notepad", "GitHub Desktop"].map((app) => (
+            <button
+              key={app}
+              className="flex items-center justify-between rounded-md px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-300"
+              disabled
+            >
+              <span>{app}</span>
+              <span className="text-xs text-slate-400">Recently used</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------- Favorites ------------------------------- */
+
+function FavoritesPane() {
+  const favorites = useMemo(
+    () => [
+      { id: "fav1", name: "Outlook", logo: "📧" },
+      { id: "fav2", name: "Chrome", logo: "🌐" },
+      { id: "fav3", name: "VS Code", logo: "🧩" },
+      { id: "fav4", name: "Notepad", logo: "📝" },
+      { id: "fav5", name: "GitHub", logo: "🐙" },
+    ],
+    []
+  );
+
+  const editMode = false; // visuals only
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        {/* Header actions (right) */}
+        <div className="mb-3 flex items-center justify-between">
+          <div className="text-base font-semibold text-slate-800">Favorites</div>
+          <div className="flex items-center gap-2">
+            <GhostBtn disabled>{editMode ? "Done" : "Edit"}</GhostBtn>
+            <GhostBtn disabled>+ Add Favorite</GhostBtn>
+          </div>
+        </div>
+
+        {/* Cards */}
+        <div className="grid grid-cols-1 gap-2">
+          {favorites.map((f) => (
+            <div
+              key={f.id}
+              className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base">{f.logo}</span>
+                <span className="text-sm font-medium text-slate-800">{f.name}</span>
+                {/* filled star (approved visuals) */}
+                <span className="ml-1 text-amber-500">★</span>
+              </div>
+              {/* Trash only in Edit mode (visuals) */}
+              {editMode ? <GhostBtn disabled>🗑 Delete</GhostBtn> : <div className="h-7" />}
+            </div>
+          ))}
+        </div>
+
+        {/* Full-width Add Custom button at bottom */}
+        <div className="mt-3">
+          <button
+            className="h-8 w-full cursor-not-allowed rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100"
+            disabled
+          >
+            + Add Custom App/URL
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------------- Help ----------------------------------- */
+
+function HelpPane() {
+  return (
+    <div className="flex h-full flex-col overflow-hidden p-3">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="text-base font-semibold text-slate-800">Help</div>
+        <div className="mt-2 text-sm text-slate-600">
+          This is a visuals-only shell for Phase A. No OS actions are performed. Use the tabs above
+          to preview Apps, Layouts, and Settings UI. For support, open the project README.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------ Tiny UI bits ------------------------------ */
+
+function Label({ children }: { children: React.ReactNode }) {
+  return <div className="text-sm text-slate-700">{children}</div>;
+}
+
+function Input({
+  placeholder,
+  className = "",
+}: {
+  placeholder?: string;
+  className?: string;
+}) {
+  return (
+    <input
+      disabled
+      placeholder={placeholder}
+      className={[
+        "h-7 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-800 placeholder:text-slate-400",
+        "focus:outline-none focus:ring-2 focus:ring-sky-300",
+        "disabled:cursor-not-allowed",
+        className,
+      ].join(" ")}
+    />
+  );
+}
+
+function Select({
+  value,
+  disabled = true,
+}: {
+  value: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      className="h-7 min-w-[140px] rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed"
+      disabled={disabled}
+    >
+      {value}
+    </button>
+  );
+}
+
+function Radio({ name, label, disabled = true }: { name: string; label: string; disabled?: boolean }) {
+  return (
+    <label className="flex items-center gap-2 text-xs text-slate-700">
+      <input type="radio" name={name} disabled={disabled} className="h-3 w-3" />
+      <span>{label}</span>
+    </label>
+  );
+}
+
+function PrimaryBtn({
+  children,
+  disabled,
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      className="h-7 rounded-md bg-sky-600 px-3 text-xs font-medium text-white shadow hover:bg-sky-700 disabled:cursor-not-allowed"
+    >
+      {children}
+    </button>
+  );
+}
+
+function GhostBtn({
+  children,
+  disabled,
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      className="h-7 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed"
+    >
+      {children}
+    </button>
+  );
 }
