@@ -1,4 +1,4 @@
-import React from "react";
+import type { ReactNode } from "react";
 
 /**
  * SettingsPane — visuals only (state-only)
@@ -64,7 +64,7 @@ export default function SettingsPane() {
               <Label>Apply Layout</Label>
               <Select value="Ctrl + Alt + L" />
             </Row>
-              <Row>
+            <Row>
               <Label>Toggle Selection</Label>
               <Select value="Ctrl + Alt + S" />
             </Row>
@@ -88,19 +88,17 @@ function Section({
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_0_rgba(0,0,0,0.02)]">
       <div className="mb-3 text-base font-semibold text-slate-800">{title}</div>
-      <div className="flex flex-col divide-y divide-slate-100/80">
-        {children}
-      </div>
+      <div className="flex flex-col divide-y divide-slate-100/80">{children}</div>
     </div>
   );
 }
 
-function Row({ children }: { children: React.ReactNode }) {
+function Row({ children }: { children: ReactNode }) {
   return (
     <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
       {children}
@@ -108,7 +106,7 @@ function Row({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Label({ children }: { children: React.ReactNode }) {
+function Label({ children }: { children: ReactNode }) {
   return <div className="text-sm text-slate-700">{children}</div>;
 }
 
@@ -117,18 +115,14 @@ function Toggle({ on = true }: { on?: boolean }) {
     <div
       className={[
         "relative h-6 w-[46px] cursor-not-allowed rounded-full border",
-        on
-          ? "border-sky-200 bg-sky-100"
-          : "border-slate-200 bg-slate-100",
+        on ? "border-sky-200 bg-sky-100" : "border-slate-200 bg-slate-100",
       ].join(" ")}
       aria-disabled
     >
       <div
         className={[
           "absolute top-[2px] h-[20px] w-[22px] rounded-full border bg-white transition-all",
-          on
-            ? "right-[2px] border-sky-200"
-            : "left-[2px] border-slate-200",
+          on ? "right-[2px] border-sky-200" : "left-[2px] border-slate-200",
         ].join(" ")}
       />
     </div>

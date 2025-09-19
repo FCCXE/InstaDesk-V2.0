@@ -1,32 +1,38 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 
-/**
- * RightPane — Apps | Layouts | Settings | Help
- * Scope of this change (Apps → Apps only):
- *  - Refresh now clears the search input
- *  - New “Browse…” button opens a native file picker (Tauri) so the user can
- *    choose ANY app (e.g., .exe / .lnk). The chosen app becomes the selected app.
- * Notes:
- *  - We do not persist custom apps to history yet; this just selects the app so
- *    it can be assigned to the grid. (We’ll add “Recent/Custom Apps” later.)
- */
-
+/* Other panes (unchanged) */
 import LayoutsPane from "./layouts/LayoutsPane";
 import SettingsPane from "./settings/SettingsPane";
+
+/* App state (grid selection, assign/unassign, URL builder state, etc.) */
 import { useAppState } from "../state/AppState";
 
-// Tauri native dialog for Windows file selection (safe no-op on web)
-let openFileDialog: null | ((opts?: any) => Promise<string | string[] | null>) = null;
-try {
-  // Lazy require so dev server can still run in web preview
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  openFileDialog = require("@tauri-apps/api/dialog").open;
-} catch {
-  // running without Tauri (web preview)
-  openFileDialog = null;
-}
+/* Favorites + History services (persisted storage) */
+import {
+  listFavorites,
+  removeFavorite,
+  type Favorite,
+} from "../services/FavoritesService";
+import {
+  listHistory,
+  removeHistory,
+  clearHistory,
+  type AppHistoryItem,
+} from "../services/AppsHistoryService";
 
-/* ---------------------------------- Root ---------------------------------- */
+/* Modals */
+import AddFavoriteModal from "./common/AddFavoriteModal";
+import BrowseAppModal from "./common/BrowseAppModal";
+
+/* Helper */
+import TruncateText from "./common/TruncateText";
+
+/* -------------------------------------------------------------------------- */
+/*                                    Shell                                   */
+/* -------------------------------------------------------------------------- */
+
+type MainTab = "Apps" | "Layouts" | "Settings" | "Help";
+type AppsSubTab = "URLs" | "Apps" | "Favorites";
 
 export default function RightPane() {
   const [tab, setTab] = useState<MainTab>("Apps");
@@ -51,8 +57,6 @@ export default function RightPane() {
     </div>
   );
 }
-
-type MainTab = "Apps" | "Layouts" | "Settings" | "Help";
 
 /* ------------------------------- Tabs (UI) -------------------------------- */
 
@@ -81,7 +85,9 @@ function TopTab({
   );
 }
 
-/* -------------------------------- Apps Pane ------------------------------- */
+/* -------------------------------------------------------------------------- */
+/*                                   Apps Pane                                */
+/* -------------------------------------------------------------------------- */
 
 function AppsPane() {
   const [sub, setSub] = useState<AppsSubTab>("Apps");
@@ -94,16 +100,23 @@ function AppsPane() {
         <SubTab label="Favorites" active={sub === "Favorites"} onClick={() => setSub("Favorites")} />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto pr-2">
+      {/* Content area:
+          - URLs pane: outer vertical scroll so Save/Preview/Reset are reachable
+          - Apps/Favorites: preserve previous layout (no extra outer scroll) */}
+      <div
+        className={
+          sub === "URLs"
+            ? "min-h-0 flex-1 overflow-y-auto pr-2"
+            : "min-h-0 flex-1 overflow-visible pr-2"
+        }
+      >
         {sub === "URLs" && <UrlsBuilderPane />}
-        {sub === "Apps" && <AppsHistoryPane />}
+        {sub === "Apps" && <AppsAppsPane />}
         {sub === "Favorites" && <FavoritesPane />}
       </div>
     </div>
   );
 }
-
-type AppsSubTab = "URLs" | "Apps" | "Favorites";
 
 function SubTab({
   label,
@@ -130,8 +143,259 @@ function SubTab({
   );
 }
 
-/* ------------------------------- URLs Builder ----------------------------- */
-/* unchanged visuals/behavior */
+/* -------------------------------------------------------------------------- */
+/*                        Apps → Apps (tightened layout)                      */
+/* -------------------------------------------------------------------------- */
+
+type AppsHistoryRow = {
+  id: string;
+  label: string;
+  category: string;
+  dot: string;
+  path?: string; // for Custom rows
+};
+
+function AppsAppsPane() {
+  const { selection, selectedApp, setSelectedApp, assignSelected, unassignSelected } = useAppState();
+
+  /* UI state */
+  const [query, setQuery] = useState("");
+  const [editMode, setEditMode] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  /* Seeds (visual) — expanded so you see the scrollbar immediately */
+  const SEEDS = useMemo(
+    () => [
+      { id: "Outlook", category: "Communication", dot: "bg-emerald-500" },
+      { id: "Chrome", category: "Browser", dot: "bg-sky-500" },
+      { id: "VS Code", category: "Development", dot: "bg-violet-500" },
+      { id: "Notepad", category: "Text", dot: "bg-slate-400" },
+      { id: "GitHub", category: "Development", dot: "bg-indigo-500" },
+      { id: "Stack Overflow", category: "Development", dot: "bg-amber-500" },
+      { id: "Slack", category: "Communication", dot: "bg-fuchsia-500" },
+      { id: "Teams", category: "Communication", dot: "bg-purple-500" },
+      { id: "Zoom", category: "Communication", dot: "bg-blue-500" },
+      { id: "Edge", category: "Browser", dot: "bg-cyan-500" },
+      { id: "Firefox", category: "Browser", dot: "bg-orange-500" },
+      { id: "Brave", category: "Browser", dot: "bg-amber-600" },
+      { id: "Figma", category: "Design", dot: "bg-pink-500" },
+      { id: "Photoshop", category: "Design", dot: "bg-blue-600" },
+      { id: "Illustrator", category: "Design", dot: "bg-amber-700" },
+      { id: "Word", category: "Office", dot: "bg-sky-600" },
+      { id: "Excel", category: "Office", dot: "bg-green-600" },
+      { id: "PowerPoint", category: "Office", dot: "bg-red-500" },
+      { id: "Postman", category: "Development", dot: "bg-orange-600" },
+      { id: "Docker", category: "Development", dot: "bg-sky-700" },
+    ],
+    []
+  );
+
+  /* Persisted history */
+  const [history, setHistory] = useState<AppHistoryItem[]>(() => listHistory());
+
+  /* Rows */
+  const rows: AppsHistoryRow[] = useMemo(() => {
+    const custom: AppsHistoryRow[] = history.map((h) => ({
+      id: h.id,
+      label: h.title || h.path,
+      category: "Custom",
+      dot: "bg-slate-500",
+      path: h.path,
+    }));
+    const seedRows: AppsHistoryRow[] = SEEDS.map((s) => ({
+      id: `seed:${s.id}`,
+      label: s.id,
+      category: s.category,
+      dot: s.dot,
+    }));
+    return [...seedRows, ...custom];
+  }, [SEEDS, history]);
+
+  /* Filter */
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter(
+      (r) => r.label.toLowerCase().includes(q) || r.category.toLowerCase().includes(q)
+    );
+  }, [rows, query]);
+
+  /* Derived */
+  const selCount = selection.size;
+  const canAssign = Boolean(selectedApp && selCount > 0);
+  const canUnassign = selCount > 0;
+
+  /* Actions */
+  const onBrowse = () => setShowModal(true);
+  const onRefresh = () => {
+    setQuery("");
+    setSelectedApp(null);
+    setHistory(listHistory());
+  };
+  const onClearCustom = () => {
+    if (!confirm("Clear all Custom history items? This cannot be undone.")) return;
+    clearHistory();
+    setHistory(listHistory());
+    setSelectedApp(null);
+  };
+  const onDeleteCustom = (row: AppsHistoryRow) => {
+    if (!row.path) return;
+    if (!confirm(`Delete "${row.label}" from history?`)) return;
+    const match = history.find((h) => h.path.toLowerCase() === row.path!.toLowerCase());
+    if (match) {
+      removeHistory(match.id);
+      setHistory(listHistory());
+      if (selectedApp === (row.label as any)) setSelectedApp(null);
+    }
+  };
+  const onAssign = () => {
+    if (!canAssign) return;
+    assignSelected();
+  };
+  const onUnassign = () => {
+    if (!canUnassign) return;
+    unassignSelected();
+  };
+
+  /* ----------------------------- Render ---------------------------------- */
+
+  // Compact button sizing (uniform)
+  const smallBtnH = editMode ? "h-9" : "h-8"; // slightly taller in edit mode for two-line Clear/Custom
+  const smallBtnCommon = `shrink-0 ${smallBtnH} px-2 text-[11px]`;
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Controls card — exact layout */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        {/* Title */}
+        <div className="text-[13px] font-medium text-slate-600">
+          Select Cells and Pick an App to enable assign
+        </div>
+
+        {/* Button row: compact sizing + extra right padding; never hits card edge */}
+        <div className="mt-3 flex items-center gap-1 pr-4">
+          <GhostBtn className={smallBtnCommon} onClick={onBrowse}>
+            Browse
+          </GhostBtn>
+          <GhostBtn className={smallBtnCommon} onClick={onRefresh}>
+            Refresh
+          </GhostBtn>
+          <GhostBtn className={smallBtnCommon} onClick={() => setEditMode((v) => !v)}>
+            {editMode ? "Done" : "Edit"}
+          </GhostBtn>
+
+        {editMode && (
+            <GhostBtn
+              className="shrink-0 h-9 w-[64px] mr-1 px-1 text-[11px] whitespace-normal text-center leading-tight overflow-hidden"
+              onClick={onClearCustom}
+              title="Clear Custom"
+            >
+              <span className="block">Clear</span>
+              <span className="block">Custom</span>
+            </GhostBtn>
+          )}
+        </div>
+
+        {/* Selection label (left) + Assign/Unassign stack (right, narrower) */}
+        <div className="mt-3 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 text-xs text-slate-700">
+            <span className="truncate">Selection Grid : {selCount > 0 ? selCount : "none"}</span>
+          </div>
+
+          <div className="flex flex-col items-end gap-2">
+            <PrimaryBtn onClick={onAssign} disabled={!canAssign} className="h-8 w-[132px]">
+              Assign to Selection
+            </PrimaryBtn>
+            <GhostBtn onClick={onUnassign} disabled={!canUnassign} className="h-8 w-[132px]">
+              Unassign Selection
+            </GhostBtn>
+          </div>
+        </div>
+
+        {/* Search */}
+        <div className="mt-3">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search applications from App History ..."
+            className="h-8 w-full rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-300"
+          />
+        </div>
+      </div>
+
+      {/* App History list (internal vertical scroll) */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-2">
+        <div className="px-2 py-1 text-sm font-medium text-slate-700">App History :</div>
+
+        <div className="max-h-[360px] overflow-y-auto pr-1">
+          {filtered.map((r) => {
+            const active = selectedApp === (r.label as any);
+            const isCustom = r.category === "Custom";
+            const title = isCustom && r.path ? r.path : undefined;
+
+            return (
+              <div
+                key={`${r.category}:${r.id}`}
+                className={[
+                  "flex items-center justify-between rounded-md px-3 py-2 text-left text-sm",
+                  active ? "bg-sky-50 text-slate-800 ring-1 ring-sky-200" : "text-slate-700 hover:bg-slate-50",
+                ].join(" ")}
+                title={title}
+              >
+                <button
+                  onClick={() => setSelectedApp(active ? null : (r.label as any))}
+                  className="flex w-full items-center justify-between focus:outline-none"
+                  aria-pressed={active}
+                  title={title}
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className={`inline-block h-2 w-2 rounded-full ${r.dot}`} />
+                    <span className="truncate font-medium">{r.label}</span>
+                  </div>
+                  <div className="ml-2 flex items-center gap-2">
+                    <span className="text-xs text-slate-500">{r.category}</span>
+                    {isCustom && (
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600 ring-1 ring-slate-200">
+                        Custom
+                      </span>
+                    )}
+                  </div>
+                </button>
+
+                {editMode && isCustom ? (
+                  <GhostBtn onClick={() => onDeleteCustom(r)} className="ml-3 h-7 whitespace-nowrap px-2">
+                    🗑 Delete
+                  </GhostBtn>
+                ) : (
+                  <div className="h-7 w-[64px]" />
+                )}
+              </div>
+            );
+          })}
+
+          {filtered.length === 0 && (
+            <div className="px-3 py-8 text-center text-xs text-slate-500">No apps match your search.</div>
+          )}
+        </div>
+      </div>
+
+      {/* Browse modal */}
+      <BrowseAppModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        onSaved={(item) => {
+          setHistory(listHistory());
+          setSelectedApp(item.title as any);
+          setShowModal(false);
+        }}
+      />
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                          URL Builder (unchanged)                           */
+/* -------------------------------------------------------------------------- */
 
 function UrlsBuilderPane() {
   const {
@@ -175,7 +439,6 @@ function UrlsBuilderPane() {
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
         <div className="mb-2 text-base font-semibold text-slate-800">URL Builder</div>
 
-        {/* Browser selector row */}
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <Label>Browser</Label>
           <select
@@ -199,40 +462,31 @@ function UrlsBuilderPane() {
           >
             + Add Browser
           </GhostBtn>
+          <GhostBtn onClick={() => addTabGroup()}>+ Add Tab Group</GhostBtn>
         </div>
 
-        {/* Tab groups */}
-        <div className="flex flex-col gap-3">
-          {urlBuilder.tabGroups.map((g) => (
-            <div key={g.id} className="rounded-xl border border-slate-200 p-3">
-              <div className="mb-2 flex items-center gap-2">
-                <Label>Tab Title</Label>
-                <Input
-                  value={g.title}
-                  onChange={(v) => setTabTitle(g.id, v)}
-                  placeholder="e.g., Research"
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                {g.urls.map((u, i) => (
-                  <Input
-                    key={i}
-                    value={u}
-                    onChange={(v) => setUrlLine(g.id, i, v)}
-                    placeholder={i === 0 ? "https://example.com" : "https://another.example"}
-                  />
-                ))}
-              </div>
-
-              <div className="mt-2">
-                <GhostBtn onClick={() => addUrlLine(g.id)}>+ Add URL</GhostBtn>
-              </div>
+        {urlBuilder.tabGroups.map((g) => (
+          <div key={g.id} className="mb-3 rounded-xl border border-slate-200 p-3">
+            <div className="mb-2 flex items-center gap-2">
+              <Label>Tab Title</Label>
+              <Input value={g.title} onChange={(v) => setTabTitle(g.id, v)} placeholder="e.g., Research" />
             </div>
-          ))}
-        </div>
+            <div className="flex flex-col gap-2">
+              {g.urls.map((u, i) => (
+                <Input
+                  key={i}
+                  value={u}
+                  onChange={(v) => setUrlLine(g.id, i, v)}
+                  placeholder={i === 0 ? "https://example.com" : "https://another.example"}
+                />
+              ))}
+            </div>
+            <div className="mt-2">
+              <GhostBtn onClick={() => addUrlLine(g.id)}>+ Add URL</GhostBtn>
+            </div>
+          </div>
+        ))}
 
-        {/* Open behavior — wired */}
         <div className="mt-3">
           <div className="mb-2 text-sm font-medium text-slate-700">Open behavior</div>
           <div className="flex flex-wrap items-center gap-2">
@@ -257,14 +511,12 @@ function UrlsBuilderPane() {
           </div>
         </div>
 
-        {/* Bottom buttons */}
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <PrimaryBtn onClick={onSave}>Save</PrimaryBtn>
           <GhostBtn onClick={onPreview}>Preview</GhostBtn>
           <GhostBtn onClick={onReset}>Reset</GhostBtn>
         </div>
 
-        {/* tiny inline confirmation */}
         {flash && (
           <div className="mt-2 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-xs text-sky-700">
             {flash}
@@ -275,227 +527,26 @@ function UrlsBuilderPane() {
   );
 }
 
-/* ------------------------------ Apps (History) ---------------------------- */
-
-function AppsHistoryPane() {
-  const {
-    selection,
-    selectedApp,
-    setSelectedApp,
-    assignSelected,
-    unassignSelected,
-  } = useAppState();
-
-  const [query, setQuery] = useState("");
-  const [flash, setFlash] = useState<string | null>(null);
-  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
-
-  // Exact list/order per approved visual
-  const APP_LIST = useMemo(
-    () => [
-      { id: "Outlook", category: "Communication", dot: "bg-emerald-500" },
-      { id: "Chrome", category: "Browser", dot: "bg-sky-500" },
-      { id: "VS Code", category: "Development", dot: "bg-violet-500" },
-      { id: "Notepad", category: "Text", dot: "bg-slate-400" },
-      { id: "GitHub", category: "Development", dot: "bg-indigo-500" },
-      { id: "Stack Overflow", category: "Development", dot: "bg-amber-500" },
-    ],
-    []
-  );
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return APP_LIST;
-    return APP_LIST.filter(
-      (a) =>
-        a.id.toLowerCase().includes(q) ||
-        a.category.toLowerCase().includes(q)
-    );
-  }, [APP_LIST, query]);
-
-  const selCount = selection.size;
-  const canAssign = Boolean(selectedApp && selCount > 0);
-  const canUnassign = selCount > 0;
-
-  const showFlash = (msg: string) => {
-    setFlash(msg);
-    window.setTimeout(() => setFlash(null), 1400);
-  };
-
-  const onAssign = () => {
-    if (!canAssign) return;
-    assignSelected();
-    showFlash(`Assigned “${selectedApp}” to ${selCount} cell(s).`);
-  };
-
-  const onUnassign = () => {
-    if (!canUnassign) return;
-    unassignSelected();
-    showFlash(`Unassigned ${selCount} cell(s).`);
-  };
-
-  const onRefresh = () => {
-    // Clear search text and show refreshed timestamp
-    setQuery("");
-    setLastRefreshed(new Date());
-    showFlash("App list refreshed.");
-  };
-
-  const onBrowse = async () => {
-    try {
-      if (!openFileDialog) {
-        showFlash("Native picker unavailable in web preview.");
-        return;
-      }
-      const picked = await openFileDialog({
-        title: "Select an application",
-        multiple: false,
-        directory: false,
-        filters: [
-          { name: "Executables", extensions: ["exe", "lnk", "bat", "cmd"] },
-          { name: "All files", extensions: ["*"] },
-        ],
-      });
-      if (!picked || Array.isArray(picked)) return;
-      const path = picked as string;
-
-      // Derive a friendly name from the filename (e.g., "C:\\...\\chrome.exe" → "Chrome")
-      const base = path.replace(/\\/g, "/").split("/").pop() || "Custom App";
-      const name = base.replace(/\.(exe|lnk|bat|cmd)$/i, "").trim() || "Custom App";
-
-      // Select this app immediately so user can Assign
-      setSelectedApp(name as any);
-      showFlash(`Selected app: ${name}`);
-    } catch (err) {
-      showFlash("Could not open the picker.");
-    }
-  };
-
-  return (
-    <div className="flex flex-col gap-3">
-      {/* Top card */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4">
-        {/* Search row + Refresh + Browse */}
-        <div className="mb-3 flex items-center gap-2">
-          <Input
-            placeholder="Search applications …"
-            className="w-full"
-            value={query}
-            onChange={setQuery}
-          />
-          <GhostBtn onClick={onRefresh} className="h-8 px-2">
-            Refresh
-          </GhostBtn>
-          <GhostBtn onClick={onBrowse} className="h-8 px-2">
-            Browse…
-          </GhostBtn>
-        </div>
-
-        {/* Selection + equal-width two-line buttons */}
-        <div className="mb-2 grid grid-cols-12 items-center gap-2">
-          <div className="col-span-4 text-xs text-slate-700">
-            Selection: {selCount > 0 ? selCount : "none"}
-          </div>
-
-          <div className="col-span-8">
-            <div className="grid grid-cols-2 gap-2">
-              <PrimaryBtn
-                onClick={onAssign}
-                disabled={!canAssign}
-                className="h-12 w-full whitespace-normal leading-tight text-center"
-                forceTwoRows
-                top="Assign to"
-                bottom="Selection"
-              />
-              <GhostBtn
-                onClick={onUnassign}
-                disabled={!canUnassign}
-                className="h-12 w-full whitespace-normal leading-tight text-center"
-                forceTwoRows
-                top="Unassign"
-                bottom="Selection"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Helper + flash */}
-        <div className="text-xs text-slate-500">
-          Pick an app and select cells to enable Assign
-          {lastRefreshed && (
-            <span className="ml-2 text-[11px] text-slate-400">
-              • refreshed {lastRefreshed.toLocaleTimeString()}
-            </span>
-          )}
-        </div>
-
-        {flash && (
-          <div className="mt-2 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-xs text-sky-700">
-            {flash}
-          </div>
-        )}
-
-        {/* Disabled input bar (visual only) */}
-        <div className="mt-3">
-          <input
-            disabled
-            className="h-8 w-full cursor-not-allowed rounded-md border border-slate-200 bg-slate-50 px-3 text-xs text-slate-500"
-          />
-        </div>
-      </div>
-
-      {/* App History list */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-2">
-        <div className="px-2 py-1 text-sm font-medium text-slate-700">App History:</div>
-        <div className="flex flex-col">
-          {filtered.map((app) => {
-            const active = selectedApp === (app.id as any);
-            return (
-              <button
-                key={app.id}
-                onClick={() => setSelectedApp(active ? null : (app.id as any))}
-                className={[
-                  "flex items-center justify-between rounded-md px-3 py-2 text-left text-sm focus:outline-none",
-                  active
-                    ? "bg-sky-50 text-slate-800 ring-1 ring-sky-200"
-                    : "text-slate-700 hover:bg-slate-50",
-                ].join(" ")}
-                aria-pressed={active}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`inline-block h-2 w-2 rounded-full ${app.dot}`} />
-                  <span className="font-medium">{app.id}</span>
-                </div>
-                <span className="text-xs text-slate-500">{app.category}</span>
-              </button>
-            );
-          })}
-          {filtered.length === 0 && (
-            <div className="px-3 py-8 text-center text-xs text-slate-500">
-              No apps match your search.
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* -------------------------------- Favorites ------------------------------- */
+/* -------------------------------------------------------------------------- */
+/*                          Favorites (unchanged)                             */
+/* -------------------------------------------------------------------------- */
 
 function FavoritesPane() {
-  const favorites = useMemo(
-    () => [
-      { id: "fav1", name: "Outlook", logo: "📧" },
-      { id: "fav2", name: "Chrome", logo: "🌐" },
-      { id: "fav3", name: "VS Code", logo: "🧩" },
-      { id: "fav4", name: "Notepad", logo: "📝" },
-      { id: "fav5", name: "GitHub", logo: "🐙" },
-    ],
-    []
-  );
+  const [editMode, setEditMode] = useState(false);
+  const [favorites, setFavorites] = useState<Favorite[]>(() => listFavorites());
+  const [showAdd, setShowAdd] = useState(false);
 
-  const editMode = false;
+  useEffect(() => {
+    setFavorites(listFavorites());
+  }, []);
+
+  const onDelete = (id: string) => {
+    removeFavorite(id);
+    setFavorites(listFavorites());
+  };
+  const onAdded = () => {
+    setFavorites(listFavorites());
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -503,35 +554,49 @@ function FavoritesPane() {
         <div className="mb-3 flex items-center justify-between">
           <div className="text-base font-semibold text-slate-800">Favorites</div>
           <div className="flex items-center gap-2">
-            <GhostBtn disabled>{editMode ? "Done" : "Edit"}</GhostBtn>
-            <GhostBtn disabled>+ Add Favorite</GhostBtn>
+            <GhostBtn onClick={() => setEditMode((v) => !v)}>{editMode ? "Done" : "Edit"}</GhostBtn>
+            <GhostBtn onClick={() => setShowAdd(true)}>+ Add Favorite</GhostBtn>
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-2">
           {favorites.map((f) => (
             <div key={f.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2">
-              <div className="flex items-center gap-2">
-                <span className="text-base">{f.logo}</span>
-                <span className="text-sm font-medium text-slate-800">{f.name}</span>
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="text-base">{f.icon ?? "⭐"}</span>
+                <TruncateText maxWidthClass="max-w-[520px]" className="text-sm font-medium text-slate-800">
+                  {f.title}
+                </TruncateText>
                 <span className="ml-1 text-amber-500">★</span>
               </div>
-              {editMode ? <GhostBtn disabled>🗑 Delete</GhostBtn> : <div className="h-7" />}
+              {editMode ? <GhostBtn onClick={() => onDelete(f.id)}>🗑 Delete</GhostBtn> : <div className="h-7" />}
             </div>
           ))}
+          {favorites.length === 0 && (
+            <div className="rounded-md border border-dashed border-slate-200 p-3 text-center text-xs text-slate-500">
+              No favorites yet. Click “+ Add Favorite” to add an App or a URL.
+            </div>
+          )}
         </div>
 
         <div className="mt-3">
-          <button className="h-8 w-full cursor-not-allowed rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100" disabled>
+          <button
+            className="h-8 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100"
+            onClick={() => setShowAdd(true)}
+          >
             + Add Custom App/URL
           </button>
         </div>
       </div>
+
+      <AddFavoriteModal open={showAdd} onClose={() => setShowAdd(false)} onAdded={onAdded} />
     </div>
   );
 }
 
-/* --------------------------------- Help ----------------------------------- */
+/* -------------------------------------------------------------------------- */
+/*                                    Help                                    */
+/* -------------------------------------------------------------------------- */
 
 function HelpPane() {
   return (
@@ -547,7 +612,9 @@ function HelpPane() {
   );
 }
 
-/* ------------------------------ Tiny UI bits ------------------------------ */
+/* -------------------------------------------------------------------------- */
+/*                                Tiny UI bits                                */
+/* -------------------------------------------------------------------------- */
 
 function Label({ children }: { children: React.ReactNode }) {
   return <div className="text-sm text-slate-700">{children}</div>;
@@ -591,35 +658,22 @@ function Radio({
 }) {
   return (
     <label className="flex items-center gap-2 text-xs text-slate-700">
-      <input
-        type="radio"
-        name={name}
-        className="h-3 w-3"
-        checked={!!checked}
-        onChange={onChange}
-      />
+      <input type="radio" name={name} className="h-3 w-3" checked={!!checked} onChange={onChange} />
       <span>{label}</span>
     </label>
   );
 }
 
-/* Buttons with optional two-line content */
 function PrimaryBtn({
   children,
   onClick,
   disabled,
   className = "",
-  forceTwoRows = false,
-  top,
-  bottom,
 }: {
   children?: React.ReactNode;
   onClick?: () => void;
   disabled?: boolean;
   className?: string;
-  forceTwoRows?: boolean;
-  top?: string;
-  bottom?: string;
 }) {
   return (
     <button
@@ -627,19 +681,12 @@ function PrimaryBtn({
       onClick={onClick}
       disabled={disabled}
       className={[
-        "h-7 rounded-md bg-sky-600 px-3 text-xs font-medium text-white shadow hover:bg-sky-700 disabled:cursor-not-allowed",
-        "flex flex-col items-center justify-center text-center whitespace-normal leading-tight",
+        "rounded-md bg-sky-600 px-3 text-xs font-medium text-white shadow hover:bg-sky-700 disabled:cursor-not-allowed",
+        "flex items-center justify-center whitespace-nowrap",
         className,
       ].join(" ")}
     >
-      {forceTwoRows && (top || bottom) ? (
-        <>
-          <span className="block">{top}</span>
-          <span className="block">{bottom}</span>
-        </>
-      ) : (
-        children
-      )}
+      {children}
     </button>
   );
 }
@@ -649,17 +696,11 @@ function GhostBtn({
   onClick,
   disabled,
   className = "",
-  forceTwoRows = false,
-  top,
-  bottom,
 }: {
   children?: React.ReactNode;
   onClick?: () => void;
   disabled?: boolean;
   className?: string;
-  forceTwoRows?: boolean;
-  top?: string;
-  bottom?: string;
 }) {
   return (
     <button
@@ -667,19 +708,12 @@ function GhostBtn({
       onClick={onClick}
       disabled={disabled}
       className={[
-        "h-7 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed",
-        "flex flex-col items-center justify-center text-center whitespace-normal leading-tight",
+        "h-7 rounded-md border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed",
+        "px-3 whitespace-nowrap",
         className,
       ].join(" ")}
     >
-      {forceTwoRows && (top || bottom) ? (
-        <>
-          <span className="block">{top}</span>
-          <span className="block">{bottom}</span>
-        </>
-      ) : (
-        children
-      )}
+      {children}
     </button>
   );
 }
