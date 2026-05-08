@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { api, type ApiMonitor } from '../services/api'
 
 /* ============================================================================
    Grid constants
@@ -67,7 +68,38 @@ export type Monitor = {
   orientation?: 'landscape' | 'portrait'
 }
 
-// Sample Windows-like layout for the Display Array (viewBox ~ 1000x360)
+// SVG viewBox dimensions used by DisplayArray. Real monitor bounds are
+// scaled into this space so the diagram reflects physical layout.
+const VBW = 1000
+const VBH = 360
+
+function realToMonitors(real: ApiMonitor[]): Monitor[] {
+  if (real.length === 0) return []
+  const xMin = Math.min(...real.map(m => m.bounds.x))
+  const yMin = Math.min(...real.map(m => m.bounds.y))
+  const xMax = Math.max(...real.map(m => m.bounds.x + m.bounds.w))
+  const yMax = Math.max(...real.map(m => m.bounds.y + m.bounds.h))
+  const unionW = Math.max(1, xMax - xMin)
+  const unionH = Math.max(1, yMax - yMin)
+  const pad = 0.06
+  const scale = Math.min((VBW * (1 - 2 * pad)) / unionW, (VBH * (1 - 2 * pad)) / unionH)
+  const offsetX = (VBW - unionW * scale) / 2 - xMin * scale
+  const offsetY = (VBH - unionH * scale) / 2 - yMin * scale
+  return real.map(m => ({
+    id: `m${m.index}`,
+    name: `Monitor ${m.index}`,
+    role: m.primary ? 'Primary' : 'Secondary',
+    resolution: `${m.bounds.w}×${m.bounds.h}`,
+    active: true,
+    x: m.bounds.x * scale + offsetX,
+    y: m.bounds.y * scale + offsetY,
+    w: m.bounds.w * scale,
+    h: m.bounds.h * scale,
+    orientation: m.bounds.h > m.bounds.w ? 'portrait' : 'landscape',
+  }))
+}
+
+// Mock layout used as a placeholder until /monitors resolves (~200ms).
 const SAMPLE_MONITORS: Monitor[] = [
   { id: 'm3', name: 'Monitor 3', role: 'Secondary', resolution: '1920×1080', active: true,
     x: 220, y: 160, w: 260, h: 90, orientation: 'landscape' },
@@ -231,9 +263,25 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   const pasteGrid = () => clipboard && setAssignments({ ...clipboard })
 
   /* ---------- Monitors + presets ---------- */
-  const [monitors] = useState<Monitor[]>(SAMPLE_MONITORS)
+  const [monitors, setMonitors] = useState<Monitor[]>(SAMPLE_MONITORS)
   const [currentMonitorId, setCurrentMonitorId] = useState<string>('m1')
   const setCurrentMonitor = (id: string) => setCurrentMonitorId(id)
+
+  // Fetch real monitor layout from the agent (via FastAPI) on mount.
+  useEffect(() => {
+    let alive = true
+    api.monitors().then(res => {
+      if (!alive || !res.ok) return
+      const real = realToMonitors(res.monitors)
+      if (real.length === 0) return
+      setMonitors(real)
+      const primary = real.find(m => m.role === 'Primary') ?? real[0]
+      setCurrentMonitorId(prev => real.some(m => m.id === prev) ? prev : primary.id)
+    }).catch(err => {
+      console.warn('[InstaDesk] /monitors fetch failed; keeping mock data:', err)
+    })
+    return () => { alive = false }
+  }, [])
 
   const [presets] = useState<Preset[]>(SAMPLE_PRESETS)
   const [pendingPresetByMonitor, setPendingPresetByMonitor] = useState<Record<string, PresetId | null>>({

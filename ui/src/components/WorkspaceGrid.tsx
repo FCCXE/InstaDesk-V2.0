@@ -5,6 +5,7 @@ import {
   GRID_ROWS,
   GRID_COLS,
 } from '../state/AppState'
+import { lookupAppStyle } from '../services/appsCatalog'
 
 // Build a static GRID_ROWS × GRID_COLS grid
 type Cell = { r: number; c: number }
@@ -20,6 +21,7 @@ export default function WorkspaceGrid() {
   // From AppState
   const {
     selection,            // Set<"r,c">
+    assignments,          // Record<"r,c", AppId | null>
     beginDrag,            // (r, c) => void
     updateDrag,           // (r, c) => void
     endDrag,              // () => void
@@ -62,7 +64,7 @@ export default function WorkspaceGrid() {
   const onCellMouseDown = (r: number, c: number) => (e: React.MouseEvent) => {
     if (e.button !== 0) return
     draggingRef.current = true
-    beginDrag(r, c)
+    beginDrag(r, c, { ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey })
     e.preventDefault()
     e.stopPropagation()
   }
@@ -74,7 +76,12 @@ export default function WorkspaceGrid() {
 
   // Status line from central Set<CellKey>
   const status = useMemo(() => {
-    if (selection.size === 0) return 'No selection'
+    if (selection.size === 0) {
+      const assignedCount = Object.values(assignments).filter(Boolean).length
+      return assignedCount === 0
+        ? 'No selection'
+        : `No selection • ${assignedCount} cell${assignedCount === 1 ? '' : 's'} assigned`
+    }
     let rMin = Infinity, rMax = -Infinity, cMin = Infinity, cMax = -Infinity
     selection.forEach((k) => {
       const [rs, cs] = k.split(',')
@@ -85,9 +92,8 @@ export default function WorkspaceGrid() {
       if (c > cMax) cMax = c
     })
     const count = selection.size
-    // Inclusive end bounds for readability: show 0–3 × 0–3 (not 0–2 × 0–2) for a 3×3 block
     return `Selected: ${rMin}–${rMax + 1} × ${cMin}–${cMax + 1} • ${count} cell${count === 1 ? '' : 's'}`
-  }, [selection])
+  }, [selection, assignments])
 
   const isHighlighted = (r: number, c: number) => selection.has(cellKey(r, c))
 
@@ -106,18 +112,27 @@ export default function WorkspaceGrid() {
             >
               {cells.map(({ r, c }) => {
                 const highlighted = isHighlighted(r, c)
+                const assigned = assignments[cellKey(r, c)] ?? null
+                const style = lookupAppStyle(assigned)
+                const baseClasses = 'border rounded transition-colors flex items-center justify-center text-[10px] font-medium overflow-hidden'
+                const classes = style
+                  ? `${baseClasses} ${style.fill} ${style.ring} text-slate-700`
+                  : `${baseClasses} ${highlighted ? 'border-blue-300' : 'border-gray-200'} text-slate-400`
                 return (
                   <div
                     key={`${r}-${c}`}
                     onMouseDown={onCellMouseDown(r, c)}
                     onMouseEnter={onCellMouseEnter(r, c)}
-                    className="border rounded transition-colors"
+                    className={classes}
                     style={{
-                      backgroundColor: highlighted ? 'rgba(59,130,246,0.18)' : '#ffffff',
-                      borderColor: highlighted ? '#93c5fd' : '#e5e7eb',
+                      backgroundColor: !style && highlighted ? 'rgba(59,130,246,0.18)' : undefined,
+                      boxShadow: highlighted ? 'inset 0 0 0 2px rgba(37,99,235,0.55)' : undefined,
                       cursor: 'crosshair',
                     }}
-                  />
+                    title={assigned ?? undefined}
+                  >
+                    {assigned && <span className="truncate px-1">{assigned}</span>}
+                  </div>
                 )
               })}
             </div>
