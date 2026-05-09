@@ -3,7 +3,7 @@ import EditLayoutDrawer from "./EditLayoutDrawer";
 import type { EditLayoutModel, MonitorId } from "./EditLayoutDrawer";
 import { api, type PresetListItem } from "../../services/api";
 import { useAppState, GRID_COLS, GRID_ROWS } from "../../state/AppState";
-import { buildSaveAssignments, nextFreeSlot } from "../../services/layoutBuilder";
+import { buildSaveAssignments, nextFreeSlot, parsePresetIntoCells } from "../../services/layoutBuilder";
 
 /**
  * LayoutsPane
@@ -40,7 +40,7 @@ function presetToCard(p: PresetListItem): LayoutCardModel | null {
 type Toast = { kind: "ok" | "err"; msg: string };
 
 export default function LayoutsPane() {
-  const { assignments, currentMonitorId } = useAppState();
+  const { assignments, currentMonitorId, monitors, replaceGrid } = useAppState();
   const monitorIndex = useMemo(() => {
     const n = parseInt((currentMonitorId || "").replace(/^m/, ""), 10);
     return Number.isFinite(n) && n > 0 ? n : 1;
@@ -103,6 +103,35 @@ export default function LayoutsPane() {
     flash({ kind: "ok", msg: "Edit saved locally only — server-side rename coming soon." });
     closeDrawer();
   }
+
+  const onLoad = async (m: LayoutCardModel) => {
+    setBusyId(m.id);
+    try {
+      const res = await api.presetsGet(m.preset.kind, m.preset.slot);
+      const parsed = parsePresetIntoCells(res.preset.assignments, GRID_COLS, GRID_ROWS);
+      // Map agent's 1-based monitor index back to AppState's "m{N}" id
+      // (mirrors BottomControls' monitorIndex calc, in reverse).
+      const targetMonitorId = `m${parsed.monitorIndex}`;
+      const monitorExists = monitors.some(mm => mm.id === targetMonitorId);
+      replaceGrid(parsed.cells, monitorExists ? targetMonitorId : undefined);
+      const cellCount = Object.keys(parsed.cells).length;
+      const monMsg = parsed.monitorsUsed.length > 1
+        ? ` (multi-monitor: ${parsed.monitorsUsed.map(n => "M" + n).join(", ")})`
+        : "";
+      flash({
+        kind: parsed.warnings.length > 0 ? "ok" : "ok",
+        msg: `Loaded "${m.name}" → ${cellCount} cell${cellCount === 1 ? "" : "s"}${monMsg}. Switch to Apps tab to edit.`,
+      });
+      if (parsed.warnings.length > 0) {
+        // Stack warnings as a second toast after a short delay so the user sees both.
+        window.setTimeout(() => flash({ kind: "err", msg: parsed.warnings.join(" ") }), 200);
+      }
+    } catch (e) {
+      flash({ kind: "err", msg: (e as Error).message });
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const onApply = async (m: LayoutCardModel) => {
     setBusyId(m.id);
@@ -267,6 +296,7 @@ export default function LayoutsPane() {
               onApply={() => onApply(m)}
               onDelete={() => onDelete(m)}
               onEdit={() => openEdit(m)}
+              onLoad={() => onLoad(m)}
             />
           ))}
 
@@ -285,13 +315,14 @@ export default function LayoutsPane() {
 }
 
 function LayoutCard({
-  model, busy, onApply, onDelete, onEdit,
+  model, busy, onApply, onDelete, onEdit, onLoad,
 }: {
   model: LayoutCardModel;
   busy: boolean;
   onApply: () => void;
   onDelete: () => void;
   onEdit: () => void;
+  onLoad: () => void;
 }) {
   const updatedStr = useMemo(() => {
     const d = new Date(model.updatedISO);
@@ -326,6 +357,14 @@ function LayoutCard({
               <PrimaryBtn className="min-w-[108px]" onClick={onApply} disabled={busy}>
                 {busy ? "Applying…" : "Apply"}
               </PrimaryBtn>
+              <GhostBtn
+                className="min-w-[78px] border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
+                onClick={onLoad}
+                disabled={busy}
+                title="Load this layout's assignments back into the grid for editing"
+              >
+                {busy ? "Loading…" : "Load"}
+              </GhostBtn>
             </div>
             <div className="flex items-center gap-2">
               <GhostBtn
@@ -334,7 +373,10 @@ function LayoutCard({
               >
                 Set Preset
               </GhostBtn>
-              <GhostBtn className="min-w-[72px] px-2" onClick={onEdit} title="Edit (visuals-only for now)">
+              <GhostBtn
+                className="min-w-[72px] cursor-not-allowed opacity-60 px-2"
+                title="Use Load instead — Edit drawer is visuals-only and will be removed."
+              >
                 Edit
               </GhostBtn>
             </div>

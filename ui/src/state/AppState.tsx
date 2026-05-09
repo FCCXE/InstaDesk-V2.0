@@ -164,6 +164,9 @@ type AppStateContext = {
   copyGrid: () => void
   pasteGrid: () => void
 
+  // bulk replace (used by "Load Layout" to rehydrate from a saved preset)
+  replaceGrid: (cells: Record<string, string>, monitorId?: string) => void
+
   // monitors + presets
   monitors: Monitor[]
   currentMonitorId: string
@@ -262,6 +265,18 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   const copyGrid = () => setClipboard({ ...assignments })
   const pasteGrid = () => clipboard && setAssignments({ ...clipboard })
 
+  // Replace the grid wholesale (Load Layout). Cells outside the provided
+  // map are cleared. If monitorId is given, switch the monitor selector.
+  const replaceGrid = (cells: Record<string, string>, monitorId?: string) => {
+    const next = makeEmptyAssignments()
+    for (const [k, app] of Object.entries(cells)) {
+      if (k in next) next[k] = app as AppId
+    }
+    setAssignments(next)
+    setSelection(new Set())
+    if (monitorId) setCurrentMonitorId(monitorId)
+  }
+
   /* ---------- Monitors + presets ---------- */
   const [monitors, setMonitors] = useState<Monitor[]>(SAMPLE_MONITORS)
   const [currentMonitorId, setCurrentMonitorId] = useState<string>('m1')
@@ -352,6 +367,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     clearGrid,
     copyGrid,
     pasteGrid,
+    replaceGrid,
 
     // monitors + presets
     monitors,

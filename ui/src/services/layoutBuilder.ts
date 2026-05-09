@@ -110,6 +110,62 @@ export function buildSaveAssignments(
   return { assignments, errors, warnings };
 }
 
+/** Reverse of buildSaveAssignments: take a saved Assignment[] and produce a
+ *  cell-by-cell map suitable for AppState.assignments, plus the suggested
+ *  monitor index. The assignment grid format is "x,y,w,h" 1-based with x as
+ *  column and y as row. */
+export type ParsedPreset = {
+  cells: Record<string, string>;       // "r,c" -> app id (title)
+  monitorIndex: number;                 // first assignment's monitor (1-based)
+  monitorsUsed: number[];               // distinct monitors referenced
+  warnings: string[];
+};
+
+export function parsePresetIntoCells(
+  assignments: Array<{ title?: string; monitor: number; grid: string; gridSize?: string }>,
+  gridCols: number,
+  gridRows: number,
+): ParsedPreset {
+  const warnings: string[] = [];
+  const cells: Record<string, string> = {};
+  const monitorsUsed = new Set<number>();
+  let firstMonitor: number | null = null;
+
+  for (const a of assignments) {
+    if (!a.title) {
+      warnings.push("An assignment is missing its title; skipped.");
+      continue;
+    }
+    monitorsUsed.add(a.monitor);
+    if (firstMonitor === null) firstMonitor = a.monitor;
+
+    const parts = (a.grid || "").split(",").map(s => parseInt(s.trim(), 10));
+    if (parts.length !== 4 || parts.some(n => !Number.isFinite(n) || n <= 0)) {
+      warnings.push(`Skipping "${a.title}": invalid grid "${a.grid}".`);
+      continue;
+    }
+    const [x, y, w, h] = parts;       // 1-based: x=col, y=row
+    // Fill cells (r,c) inclusive of the rectangle. Cap at the active grid size.
+    for (let r = y - 1; r < Math.min(y - 1 + h, gridRows); r++) {
+      for (let c = x - 1; c < Math.min(x - 1 + w, gridCols); c++) {
+        if (r < 0 || c < 0) continue;
+        cells[`${r},${c}`] = a.title;
+      }
+    }
+  }
+
+  if (monitorsUsed.size > 1) {
+    warnings.push(`Layout spans ${monitorsUsed.size} monitors (${[...monitorsUsed].sort().join(", ")}). The grid only shows one monitor at a time — switching to monitor ${firstMonitor}. Other monitors' assignments are loaded too; switch the monitor selector to see them.`);
+  }
+
+  return {
+    cells,
+    monitorIndex: firstMonitor ?? 1,
+    monitorsUsed: [...monitorsUsed].sort(),
+    warnings,
+  };
+}
+
 /** Pick the first slot letter A..Z that isn't already taken. */
 export function nextFreeSlot(taken: string[], kind: "general" | "single" = "general"): string {
   void kind; // kind reserved for future asymmetric slot pools

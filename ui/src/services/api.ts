@@ -62,6 +62,12 @@ export type PresetListItem = {
   updatedAt: string
 }
 
+export type SavedPreset = {
+  kind: PresetKind
+  slot: string
+  assignments: Assignment[]
+}
+
 export type ApiMonitor = {
   index: number      // 1-based, matches --monitor on the agent
   primary: boolean
@@ -91,6 +97,9 @@ export const api = {
   monitors: () => request<MonitorsResponse>('GET', '/monitors'),
   launch: (req: LaunchRequest) => request<LaunchResponse>('POST', '/launch', req),
   presetsList: () => request<{ ok: boolean; presets: PresetListItem[] }>('GET', '/presets/list'),
+  presetsGet: (kind: PresetKind, slot: string) =>
+    request<{ ok: boolean; preset: SavedPreset; path: string }>(
+      'GET', `/presets/get?kind=${encodeURIComponent(kind)}&slot=${encodeURIComponent(slot)}`),
   presetsSave: (kind: PresetKind, slot: string, assignments: Assignment[]) =>
     request<{ ok: boolean; path: string }>('POST', '/presets/save', { kind, slot, assignments }),
   presetsRun: (kind: PresetKind, slot: string) =>
