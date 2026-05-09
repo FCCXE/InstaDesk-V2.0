@@ -17,13 +17,19 @@ export type AppCatalogEntry = {
   url?: string;          // or a URL routed through default browser
   args?: string;         // extra CLI flags (e.g. "--new-window" so single-
                          //   instance apps spawn a NEW window the agent can tile)
+  singleInstance?: boolean;  // when true, the launcher signals the existing
+                         //   instance (no new window is created). The agent
+                         //   tiles the existing window and skips Process.Start.
+                         //   Multi-instance apps (Notepad, browsers via --new-window,
+                         //   File Explorer, Office) leave this unset so each
+                         //   apply produces a brand-new window.
 };
 
 export const APP_CATALOG: AppCatalogEntry[] = [
   { id: "Notepad", category: "Text", dot: "bg-slate-400", fill: "bg-slate-100", ring: "border-slate-400",
     program: "C:\\Windows\\System32\\notepad.exe" },
   { id: "Outlook", category: "Communication", dot: "bg-emerald-500", fill: "bg-emerald-50", ring: "border-emerald-500",
-    program: "%ProgramFiles%\\Microsoft Office\\root\\Office16\\OUTLOOK.EXE" },
+    program: "%ProgramFiles%\\Microsoft Office\\root\\Office16\\OUTLOOK.EXE", singleInstance: true },
   { id: "Chrome",  category: "Browser",       dot: "bg-sky-500",     fill: "bg-sky-50",     ring: "border-sky-500",
     program: "%ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe", args: "--new-window" },
   { id: "VS Code", category: "Development",   dot: "bg-violet-500",  fill: "bg-violet-50",  ring: "border-violet-500",
@@ -35,7 +41,7 @@ export const APP_CATALOG: AppCatalogEntry[] = [
   { id: "Slack",   category: "Communication",  dot: "bg-fuchsia-500", fill: "bg-fuchsia-50", ring: "border-fuchsia-500",
     program: "%LOCALAPPDATA%\\slack\\slack.exe" },
   { id: "Teams",   category: "Communication",  dot: "bg-purple-500",  fill: "bg-purple-50",  ring: "border-purple-500",
-    program: "%LOCALAPPDATA%\\Microsoft\\Teams\\current\\Teams.exe" },
+    program: "%LOCALAPPDATA%\\Microsoft\\Teams\\current\\Teams.exe", singleInstance: true },
   { id: "Zoom",    category: "Communication",  dot: "bg-blue-500",    fill: "bg-blue-50",    ring: "border-blue-500",
     program: "%APPDATA%\\Zoom\\bin\\Zoom.exe" },
   { id: "Edge",    category: "Browser",        dot: "bg-cyan-500",    fill: "bg-cyan-50",    ring: "border-cyan-500",

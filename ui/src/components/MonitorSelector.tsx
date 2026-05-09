@@ -1,26 +1,91 @@
-import React from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useAppState } from '../state/AppState'
-import type { PresetId } from '../state/AppState'
+import { api, type PresetListItem } from '../services/api'
 import DisplayArray from './DisplayArray'
 
+type ApplyState =
+  | { kind: 'idle' }
+  | { kind: 'busy' }
+  | { kind: 'ok'; msg: string }
+  | { kind: 'err'; msg: string }
+
+function presetLabel(p: PresetListItem) {
+  return `${p.kind === 'general' ? 'Layout' : 'Single'} ${p.slot}`
+}
+
 export default function MonitorSelector() {
-  const {
-    monitors, currentMonitorId, setCurrentMonitor,
-    presets, getPendingPreset, setPendingPreset,
-  } = useAppState()
+  const { monitors, currentMonitorId, setCurrentMonitor } = useAppState()
 
   const current = monitors.find((m) => m.id === currentMonitorId)!
   const activeCount = monitors.filter((m) => m.active).length
 
-  // Quick Presets (visual + minimal state)
-  const [open, setOpen] = React.useState(false)
-  const pending = getPendingPreset(currentMonitorId)
-  const handleChoose = (pid: PresetId) => {
-    setPendingPreset(currentMonitorId, pid)
+  /* -------------------- Quick Presets (real data) -------------------- */
+  const [presets, setPresets] = useState<PresetListItem[] | null>(null)
+  const [selected, setSelected] = useState<PresetListItem | null>(null)
+  const [applyState, setApplyState] = useState<ApplyState>({ kind: 'idle' })
+  const [open, setOpen] = useState(false)
+
+  const refresh = useCallback(async () => {
+    try {
+      const res = await api.presetsList()
+      const items = res.presets.filter((p) => p.kind === 'general' && p.slot)
+      setPresets(items)
+      // Drop selection if the underlying preset was deleted.
+      setSelected((prev) =>
+        prev && items.some((i) => i.kind === prev.kind && i.slot === prev.slot) ? prev : null
+      )
+    } catch {
+      setPresets([])
+    }
+  }, [])
+
+  useEffect(() => {
+    refresh()
+    const onChanged = () => refresh()
+    window.addEventListener('insta:presets-changed', onChanged)
+    return () => window.removeEventListener('insta:presets-changed', onChanged)
+  }, [refresh])
+
+  const flash = (s: ApplyState) => {
+    setApplyState(s)
+    if (s.kind === 'ok' || s.kind === 'err') {
+      window.setTimeout(() => setApplyState({ kind: 'idle' }), 2400)
+    }
+  }
+
+  const onApply = async () => {
+    if (!selected) return
+    flash({ kind: 'busy' })
+    try {
+      const r = await api.presetsRun(selected.kind, selected.slot)
+      const failures = r.results.filter((x) => x.exitCode !== 0)
+      if (failures.length === 0) {
+        flash({
+          kind: 'ok',
+          msg: `Applied ${presetLabel(selected)} • ${r.results.length} window${r.results.length === 1 ? '' : 's'}`,
+        })
+      } else {
+        flash({
+          kind: 'err',
+          msg: `${failures.length}/${r.results.length} failed`,
+        })
+      }
+    } catch (e) {
+      flash({ kind: 'err', msg: (e as Error).message })
+    }
+  }
+
+  const onManage = () => {
+    // Tell the right pane to switch to the Layouts tab.
+    window.dispatchEvent(new CustomEvent('insta:open-layouts-tab'))
+  }
+
+  const handleChoose = (p: PresetListItem) => {
+    setSelected(p)
     setOpen(false)
   }
 
-  // Normalize chip order so M1..M4 map to Monitor 1..4 (labels unchanged)
+  /* -------------------- Monitor chip ordering -------------------- */
   const chipMonitors = React.useMemo(() => {
     const getNum = (name: string) => {
       const m = name.match(/(\d+)\s*$/)
@@ -34,85 +99,98 @@ export default function MonitorSelector() {
     })
   }, [monitors])
 
-  // Demo presets for scrollbar validation (disabled; visuals only)
-  const demoPresets: { id: PresetId; name: string; note?: string; _demo?: true }[] = [
-    { id: 'DEMO-FOCUS' as PresetId, name: 'Focus Sprint', note: 'No alerts (demo)', _demo: true },
-    { id: 'DEMO-REVIEW' as PresetId, name: 'Review / Docs', note: 'Docs & mail (demo)', _demo: true },
-  ]
-  const menuPresets = React.useMemo(
-    () => [...presets, ...demoPresets],
-    [presets]
-  )
+  const isApplying = applyState.kind === 'busy'
+  const statusText =
+    applyState.kind === 'busy' ? 'Applying…' :
+    applyState.kind === 'ok' ? applyState.msg :
+    applyState.kind === 'err' ? `Error: ${applyState.msg}` :
+    selected ? `Selected: ${presetLabel(selected)}` :
+    presets === null ? 'Loading…' :
+    presets.length === 0 ? 'No saved layouts. Save one in the Layouts tab.' :
+    'No preset selected'
+  const statusColor =
+    applyState.kind === 'err' ? 'text-red-600' :
+    applyState.kind === 'ok' ? 'text-emerald-600' :
+    applyState.kind === 'busy' ? 'text-sky-600' :
+    'text-gray-500'
 
   return (
     <aside className="rounded-2xl border border-[rgb(var(--id-border))] bg-[rgb(var(--id-surface))] p-4 shadow-[var(--id-shadow)]">
-      {/* ------------------------------------------------------------------ */}
-      {/*  QUICK PRESETS (MOVED TO TOP)                                      */}
-      {/* ------------------------------------------------------------------ */}
+      {/* ---------------------------------------------------- */}
+      {/*  QUICK PRESETS                                       */}
+      {/* ---------------------------------------------------- */}
       <div className="mb-6">
         <div className="mb-2 flex items-center justify-between">
           <div className="text-[13px] font-semibold text-gray-700">Quick Presets</div>
-          <button className="text-[11px] text-gray-500 hover:text-gray-700" disabled title="Coming soon">
+          <button
+            type="button"
+            onClick={onManage}
+            className="text-[11px] text-sky-600 hover:text-sky-800"
+            title="Open the Layouts tab"
+          >
             Manage
           </button>
         </div>
 
-        <div className="relative">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1 min-w-0">
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              disabled={presets !== null && presets.length === 0}
+              className="flex w-full items-center justify-between rounded-lg border border-[rgb(var(--id-border))] bg-white px-3 py-2 text-sm shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <span className="truncate">
+                {selected ? presetLabel(selected) : 'Choose a saved layout'}
+              </span>
+              <span aria-hidden>▾</span>
+            </button>
+
+            {open && presets && presets.length > 0 && (
+              <div
+                className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white p-1 shadow-lg ring-1 ring-gray-200 max-h-44 overflow-y-auto"
+                role="menu"
+              >
+                {presets.map((p) => (
+                  <button
+                    key={`${p.kind}/${p.slot}`}
+                    type="button"
+                    onClick={() => handleChoose(p)}
+                    className="flex w-full items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-gray-50 text-gray-800"
+                    role="menuitem"
+                    title={p.path}
+                  >
+                    <span>{presetLabel(p)}</span>
+                    <span className="ml-2 text-[10px] uppercase tracking-wide text-gray-400">
+                      slot {p.slot}
+                    </span>
+                  </button>
+                ))}
+                <div className="sticky bottom-0 mt-1 h-px bg-gray-200" />
+              </div>
+            )}
+          </div>
+
           <button
             type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="flex w-full items-center justify-between rounded-lg border border-[rgb(var(--id-border))] bg-white px-3 py-2 text-sm shadow-sm hover:bg-gray-50"
+            onClick={onApply}
+            disabled={!selected || isApplying}
+            className="shrink-0 rounded-md bg-sky-600 px-3 py-2 text-xs font-semibold text-white shadow hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+            title={selected ? `POST /presets/run kind=${selected.kind} slot=${selected.slot}` : 'Pick a preset first'}
           >
-            <span>{pending ? displayPresetName(pending, presets) : 'Choose a preset (up to 6)'}</span>
-            <span aria-hidden>▾</span>
+            {isApplying ? '…' : '▶ Apply'}
           </button>
-
-          {open && (
-            <div
-              className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white p-1 shadow-lg ring-1 ring-gray-200
-                         max-h-36 overflow-y-auto"  /* ~3 items tall; scrolls for more */
-              role="menu"
-            >
-              {menuPresets.map((p) => {
-                const isDemo = (p as any)._demo
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => !isDemo && handleChoose(p.id as PresetId)}
-                    className={[
-                      'flex w-full items-center justify-between rounded-md px-2 py-2 text-sm',
-                      isDemo ? 'cursor-not-allowed text-gray-400' : 'hover:bg-gray-50 text-gray-800'
-                    ].join(' ')}
-                    role="menuitem"
-                    disabled={!!isDemo}
-                    title={isDemo ? 'Demo item for scrollbar preview' : undefined}
-                  >
-                    <span>{p.name}</span>
-                    {'note' in p && p.note && <span className="text-[11px] text-gray-500">{p.note}</span>}
-                  </button>
-                )
-              })}
-              {/* sticky ending border for clear visual termination */}
-              <div className="sticky bottom-0 mt-1 h-px bg-gray-200" />
-            </div>
-          )}
         </div>
 
-        <div className="mt-2 text-[11px] text-gray-500">
-          {pending
-            ? <>Selected preset: <span className="font-medium text-gray-700">{displayPresetName(pending, presets)}</span> <span className="text-gray-400">(pending)</span></>
-            : <>No preset selected</>}
-        </div>
+        <div className={`mt-2 text-[11px] ${statusColor}`}>{statusText}</div>
       </div>
 
-      {/* ------------------------------------------------------------------ */}
-      {/*  MONITOR SELECTION (NOW BELOW QUICK PRESETS)                       */}
-      {/* ------------------------------------------------------------------ */}
+      {/* ---------------------------------------------------- */}
+      {/*  MONITOR SELECTION (UNCHANGED)                       */}
+      {/* ---------------------------------------------------- */}
       <div>
         <div className="mb-2 text-[13px] font-semibold text-gray-700">Monitor Selection</div>
 
-        {/* Selector (sorted to match chips) */}
         <div className="mb-2">
           <select
             value={currentMonitorId}
@@ -127,12 +205,10 @@ export default function MonitorSelector() {
           </select>
         </div>
 
-        {/* Short spec line */}
         <div className="text-[12px] text-[rgb(var(--id-text-muted))]">
           {current.resolution} {current.role}
         </div>
 
-        {/* Info card */}
         <div className="mt-3 rounded-xl border border-[rgb(var(--id-border))] bg-white p-3 shadow-sm">
           <div className="flex items-center justify-between text-[13px]">
             <div className="flex items-center gap-2">
@@ -162,7 +238,6 @@ export default function MonitorSelector() {
           </dl>
         </div>
 
-        {/* Chip bar (live, clickable) */}
         <div className="mt-3">
           <div className="mb-1 text-[11px] text-gray-500">Monitors</div>
           <div className="flex flex-wrap gap-2">
@@ -191,18 +266,12 @@ export default function MonitorSelector() {
           </div>
         </div>
 
-        {/* Tally */}
         <div className="mt-2 text-[11px] text-[rgb(var(--id-text-muted))]">
           Active Monitors: {activeCount}/{monitors.length}
         </div>
 
-        {/* Display Array */}
         <DisplayArray />
       </div>
     </aside>
   )
-}
-
-function displayPresetName(id: PresetId, list: { id: PresetId; name: string }[]) {
-  return list.find(p => p.id === id)?.name ?? id
 }

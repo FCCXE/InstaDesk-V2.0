@@ -19,6 +19,12 @@ import {
   clearHistory,
   type AppHistoryItem,
 } from "../services/AppsHistoryService";
+import {
+  listUrlGroups,
+  addUrlGroup,
+  removeUrlGroup,
+  type UrlGroup,
+} from "../services/UrlGroupsService";
 
 /* Modals */
 import AddFavoriteModal from "./common/AddFavoriteModal";
@@ -36,6 +42,13 @@ type AppsSubTab = "URLs" | "Apps" | "Favorites";
 
 export default function RightPane() {
   const [tab, setTab] = useState<MainTab>("Apps");
+
+  // Quick Presets "Manage" link in the left pane dispatches this event.
+  useEffect(() => {
+    const onOpen = () => setTab("Layouts");
+    window.addEventListener("insta:open-layouts-tab", onOpen);
+    return () => window.removeEventListener("insta:open-layouts-tab", onOpen);
+  }, []);
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
@@ -152,7 +165,8 @@ type AppsHistoryRow = {
   label: string;
   category: string;
   dot: string;
-  path?: string; // for Custom rows
+  path?: string;          // for Custom rows
+  urlGroup?: UrlGroup;    // for URL Group rows
 };
 
 function AppsAppsPane() {
@@ -193,8 +207,23 @@ function AppsAppsPane() {
   /* Persisted history */
   const [history, setHistory] = useState<AppHistoryItem[]>(() => listHistory());
 
+  /* Persisted URL groups (refresh when the URL Builder saves new ones) */
+  const [urlGroups, setUrlGroups] = useState<UrlGroup[]>(() => listUrlGroups());
+  useEffect(() => {
+    const onChanged = () => setUrlGroups(listUrlGroups());
+    window.addEventListener("insta:url-groups-changed", onChanged);
+    return () => window.removeEventListener("insta:url-groups-changed", onChanged);
+  }, []);
+
   /* Rows */
   const rows: AppsHistoryRow[] = useMemo(() => {
+    const groupRows: AppsHistoryRow[] = urlGroups.map((g) => ({
+      id: `urlgroup:${g.id}`,
+      label: g.name,
+      category: `URL Group · ${g.browser} · ${g.urls.length} tab${g.urls.length === 1 ? "" : "s"}`,
+      dot: "bg-cyan-500",
+      urlGroup: g,
+    }));
     const custom: AppsHistoryRow[] = history.map((h) => ({
       id: h.id,
       label: h.title || h.path,
@@ -208,8 +237,9 @@ function AppsAppsPane() {
       category: s.category,
       dot: s.dot,
     }));
-    return [...seedRows, ...custom];
-  }, [SEEDS, history]);
+    // URL groups first (most directly user-curated), then custom apps, then seeds.
+    return [...groupRows, ...custom, ...seedRows];
+  }, [SEEDS, history, urlGroups]);
 
   /* Filter */
   const filtered = useMemo(() => {
@@ -231,6 +261,7 @@ function AppsAppsPane() {
     setQuery("");
     setSelectedApp(null);
     setHistory(listHistory());
+    setUrlGroups(listUrlGroups());
   };
   const onClearCustom = () => {
     if (!confirm("Clear all Custom history items? This cannot be undone.")) return;
@@ -239,6 +270,15 @@ function AppsAppsPane() {
     setSelectedApp(null);
   };
   const onDeleteCustom = (row: AppsHistoryRow) => {
+    // URL group rows (no path) — delete from UrlGroupsService.
+    if (row.urlGroup) {
+      if (!confirm(`Delete URL group "${row.label}"?`)) return;
+      removeUrlGroup(row.urlGroup.id);
+      setUrlGroups(listUrlGroups());
+      window.dispatchEvent(new CustomEvent("insta:url-groups-changed"));
+      if (selectedApp === (row.label as any)) setSelectedApp(null);
+      return;
+    }
     if (!row.path) return;
     if (!confirm(`Delete "${row.label}" from history?`)) return;
     const match = history.find((h) => h.path.toLowerCase() === row.path!.toLowerCase());
@@ -331,7 +371,10 @@ function AppsAppsPane() {
           {filtered.map((r) => {
             const active = selectedApp === (r.label as any);
             const isCustom = r.category === "Custom";
-            const title = isCustom && r.path ? r.path : undefined;
+            const isUrlGroup = !!r.urlGroup;
+            const title = isUrlGroup
+              ? `${r.urlGroup!.urls.length} tabs: ${r.urlGroup!.urls.slice(0, 3).join(", ")}${r.urlGroup!.urls.length > 3 ? "…" : ""}`
+              : (isCustom && r.path ? r.path : undefined);
 
             return (
               <div
@@ -350,6 +393,7 @@ function AppsAppsPane() {
                 >
                   <div className="flex min-w-0 items-center gap-2">
                     <span className={`inline-block h-2 w-2 rounded-full ${r.dot}`} />
+                    {isUrlGroup && <span className="text-[12px]">🔗</span>}
                     <span className="truncate font-medium">{r.label}</span>
                   </div>
                   <div className="ml-2 flex items-center gap-2">
@@ -359,10 +403,15 @@ function AppsAppsPane() {
                         Custom
                       </span>
                     )}
+                    {isUrlGroup && (
+                      <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] text-cyan-700 ring-1 ring-cyan-200">
+                        URL Group
+                      </span>
+                    )}
                   </div>
                 </button>
 
-                {editMode && isCustom ? (
+                {editMode && (isCustom || isUrlGroup) ? (
                   <GhostBtn onClick={() => onDeleteCustom(r)} className="ml-3 h-7 whitespace-nowrap px-2">
                     🗑 Delete
                   </GhostBtn>
@@ -421,7 +470,32 @@ function UrlsBuilderPane() {
 
   const onSave = () => {
     const snap = saveUrlBuilder();
-    showFlash(`Saved: ${snap.tabGroups.length} tab group(s).`);
+    if (!snap.browser) {
+      showFlash("Pick a browser first.");
+      return;
+    }
+    const created: string[] = [];
+    const errors: string[] = [];
+    for (const tg of snap.tabGroups) {
+      const urls = tg.urls.filter(Boolean);
+      if (urls.length === 0) continue;
+      const name = tg.title.trim() || `Tabs ${created.length + 1}`;
+      try {
+        addUrlGroup({ name, browser: snap.browser, urls });
+        created.push(name);
+      } catch (e) {
+        errors.push((e as Error).message);
+      }
+    }
+    if (created.length === 0) {
+      showFlash(errors[0] ?? "Add at least one URL to a tab group before saving.");
+      return;
+    }
+    // Notify the Apps list (and anywhere else) so URL groups appear immediately.
+    window.dispatchEvent(new CustomEvent("insta:url-groups-changed"));
+    showFlash(
+      `Saved ${created.length} URL group${created.length === 1 ? "" : "s"}: ${created.join(", ")}. Pick from App History to assign.`
+    );
   };
 
   const onReset = () => {

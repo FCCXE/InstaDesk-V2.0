@@ -20,6 +20,8 @@ export type LaunchRequest = {
   url?: string
   title?: string
   args?: string      // extra command-line flags (e.g. "-n", "--new-window")
+  singleInstance?: boolean   // tile the existing window if any; skip relaunch
+  urls?: string[]    // browser tabs to open in the new window (URL group)
   monitor: number
   grid: string       // "x,y,w,h" 1-based
   gridSize: string   // "colsxrows"
@@ -44,6 +46,8 @@ export type Assignment = {
   url?: string
   title?: string
   args?: string
+  singleInstance?: boolean
+  urls?: string[]
   monitor: number
   grid: string
   gridSize: string

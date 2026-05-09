@@ -4,20 +4,48 @@
 
 import { APP_CATALOG } from "./appsCatalog";
 import { listHistory } from "./AppsHistoryService";
+import { findUrlGroupByName } from "./UrlGroupsService";
 import type { Assignment } from "./api";
 
 export type AppTarget =
-  | { kind: "program"; program: string; args?: string }
+  | { kind: "program"; program: string; args?: string; singleInstance?: boolean; urls?: string[] }
   | { kind: "url"; url: string };
 
 export function resolveAppTarget(app: string): AppTarget | null {
-  // Custom history paths win over catalog defaults — the user knows their
-  // exact install location, the catalog is just best-effort per-app guess.
+  // 1) URL groups — saved bundles of (browser, urls[]). Resolve to the
+  //    catalog's browser entry for the program path + --new-window arg,
+  //    and carry the URL list so the agent opens them as tabs.
+  const urlGroup = findUrlGroupByName(app);
+  if (urlGroup) {
+    const browserSeed = APP_CATALOG.find(e => e.id === urlGroup.browser);
+    if (browserSeed?.program) {
+      return {
+        kind: "program",
+        program: browserSeed.program,
+        args: browserSeed.args ?? "--new-window",
+        singleInstance: false,         // browser windows via --new-window are multi-window
+        urls: urlGroup.urls,
+      };
+    }
+    // Browser path not resolvable (catalog seed missing) — let the user know
+    // by returning null; buildSaveAssignments will record an error.
+    return null;
+  }
+
+  // 2) Custom history paths win over catalog defaults — the user knows their
+  //    exact install location, the catalog is just best-effort per-app guess.
+  //    Custom apps default to multi-instance (no singleInstance flag).
   const custom = listHistory().find(h => h.title === app);
   if (custom) return { kind: "program", program: custom.path };
-  // Fall back to catalog defaults (may need %ENV% expansion server-side).
+
+  // 3) Fall back to catalog defaults (may need %ENV% expansion server-side).
   const seed = APP_CATALOG.find(e => e.id === app);
-  if (seed?.program) return { kind: "program", program: seed.program, args: seed.args };
+  if (seed?.program) return {
+    kind: "program",
+    program: seed.program,
+    args: seed.args,
+    singleInstance: seed.singleInstance,
+  };
   if (seed?.url)     return { kind: "url",     url: seed.url };
   return null;
 }
@@ -99,6 +127,8 @@ export function buildSaveAssignments(
       program: target.kind === "program" ? target.program : undefined,
       url:     target.kind === "url"     ? target.url     : undefined,
       args:    target.kind === "program" ? target.args    : undefined,
+      singleInstance: target.kind === "program" ? target.singleInstance : undefined,
+      urls:    target.kind === "program" ? target.urls    : undefined,
       title: region.app,
       monitor: monitorIndex,
       grid: `${region.x},${region.y},${region.w},${region.h}`,
