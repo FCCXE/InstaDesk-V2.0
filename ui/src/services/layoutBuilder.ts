@@ -7,16 +7,18 @@ import { listHistory } from "./AppsHistoryService";
 import type { Assignment } from "./api";
 
 export type AppTarget =
-  | { kind: "program"; program: string }
+  | { kind: "program"; program: string; args?: string }
   | { kind: "url"; url: string };
 
 export function resolveAppTarget(app: string): AppTarget | null {
-  const seed = APP_CATALOG.find(e => e.id === app);
-  if (seed?.program) return { kind: "program", program: seed.program };
-  if (seed?.url)     return { kind: "url",     url: seed.url };
-  // Custom rows: title in App History → real exe/script path
+  // Custom history paths win over catalog defaults — the user knows their
+  // exact install location, the catalog is just best-effort per-app guess.
   const custom = listHistory().find(h => h.title === app);
   if (custom) return { kind: "program", program: custom.path };
+  // Fall back to catalog defaults (may need %ENV% expansion server-side).
+  const seed = APP_CATALOG.find(e => e.id === app);
+  if (seed?.program) return { kind: "program", program: seed.program, args: seed.args };
+  if (seed?.url)     return { kind: "url",     url: seed.url };
   return null;
 }
 
@@ -96,6 +98,7 @@ export function buildSaveAssignments(
       type: target.kind,
       program: target.kind === "program" ? target.program : undefined,
       url:     target.kind === "url"     ? target.url     : undefined,
+      args:    target.kind === "program" ? target.args    : undefined,
       title: region.app,
       monitor: monitorIndex,
       grid: `${region.x},${region.y},${region.w},${region.h}`,

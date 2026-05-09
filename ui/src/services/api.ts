@@ -19,6 +19,7 @@ export type LaunchRequest = {
   program?: string
   url?: string
   title?: string
+  args?: string      // extra command-line flags (e.g. "-n", "--new-window")
   monitor: number
   grid: string       // "x,y,w,h" 1-based
   gridSize: string   // "colsxrows"
@@ -42,6 +43,7 @@ export type Assignment = {
   program?: string
   url?: string
   title?: string
+  args?: string
   monitor: number
   grid: string
   gridSize: string
