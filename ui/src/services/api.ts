@@ -72,6 +72,19 @@ export type SavedPreset = {
   assignments: Assignment[]
 }
 
+export type BrowseEntry = {
+  name: string
+  isDir: boolean
+  isExe: boolean
+}
+
+export type BrowseResponse = {
+  ok: boolean
+  path: string         // "" when listing drive roots
+  parent: string | null   // null at drive root or top
+  entries: BrowseEntry[]
+}
+
 export type ApiMonitor = {
   index: number      // 1-based, matches --monitor on the agent
   primary: boolean
@@ -100,6 +113,9 @@ export const api = {
   health: () => request<HealthResponse>('GET', '/health'),
   monitors: () => request<MonitorsResponse>('GET', '/monitors'),
   launch: (req: LaunchRequest) => request<LaunchResponse>('POST', '/launch', req),
+  browse: (path?: string) =>
+    request<BrowseResponse>('GET',
+      `/browse${path !== undefined && path !== '' ? `?path=${encodeURIComponent(path)}` : ''}`),
   presetsList: () => request<{ ok: boolean; presets: PresetListItem[] }>('GET', '/presets/list'),
   presetsGet: (kind: PresetKind, slot: string) =>
     request<{ ok: boolean; preset: SavedPreset; path: string }>(

@@ -167,6 +167,7 @@ type AppsHistoryRow = {
   dot: string;
   path?: string;          // for Custom rows
   urlGroup?: UrlGroup;    // for URL Group rows
+  favorite?: Favorite;    // for Favorite rows
 };
 
 function AppsAppsPane() {
@@ -215,6 +216,14 @@ function AppsAppsPane() {
     return () => window.removeEventListener("insta:url-groups-changed", onChanged);
   }, []);
 
+  /* Persisted favorites (refresh when AddFavoriteModal adds or Edit deletes) */
+  const [favorites, setFavorites] = useState<Favorite[]>(() => listFavorites());
+  useEffect(() => {
+    const onChanged = () => setFavorites(listFavorites());
+    window.addEventListener("insta:favorites-changed", onChanged);
+    return () => window.removeEventListener("insta:favorites-changed", onChanged);
+  }, []);
+
   /* Rows */
   const rows: AppsHistoryRow[] = useMemo(() => {
     const groupRows: AppsHistoryRow[] = urlGroups.map((g) => ({
@@ -223,6 +232,13 @@ function AppsAppsPane() {
       category: `URL Group · ${g.browser} · ${g.urls.length} tab${g.urls.length === 1 ? "" : "s"}`,
       dot: "bg-cyan-500",
       urlGroup: g,
+    }));
+    const favRows: AppsHistoryRow[] = favorites.map((f) => ({
+      id: `fav:${f.id}`,
+      label: f.title,
+      category: f.kind === "url" ? "Favorite · URL" : "Favorite · App",
+      dot: f.kind === "url" ? "bg-amber-500" : "bg-amber-600",
+      favorite: f,
     }));
     const custom: AppsHistoryRow[] = history.map((h) => ({
       id: h.id,
@@ -237,9 +253,9 @@ function AppsAppsPane() {
       category: s.category,
       dot: s.dot,
     }));
-    // URL groups first (most directly user-curated), then custom apps, then seeds.
-    return [...groupRows, ...custom, ...seedRows];
-  }, [SEEDS, history, urlGroups]);
+    // URL groups + Favorites first (most directly user-curated), then custom, then seeds.
+    return [...groupRows, ...favRows, ...custom, ...seedRows];
+  }, [SEEDS, history, urlGroups, favorites]);
 
   /* Filter */
   const filtered = useMemo(() => {
@@ -262,6 +278,7 @@ function AppsAppsPane() {
     setSelectedApp(null);
     setHistory(listHistory());
     setUrlGroups(listUrlGroups());
+    setFavorites(listFavorites());
   };
   const onClearCustom = () => {
     if (!confirm("Clear all Custom history items? This cannot be undone.")) return;
@@ -270,12 +287,21 @@ function AppsAppsPane() {
     setSelectedApp(null);
   };
   const onDeleteCustom = (row: AppsHistoryRow) => {
-    // URL group rows (no path) — delete from UrlGroupsService.
+    // URL group rows — delete from UrlGroupsService.
     if (row.urlGroup) {
       if (!confirm(`Delete URL group "${row.label}"?`)) return;
       removeUrlGroup(row.urlGroup.id);
       setUrlGroups(listUrlGroups());
       window.dispatchEvent(new CustomEvent("insta:url-groups-changed"));
+      if (selectedApp === (row.label as any)) setSelectedApp(null);
+      return;
+    }
+    // Favorite rows — delete from FavoritesService.
+    if (row.favorite) {
+      if (!confirm(`Delete favorite "${row.label}"?`)) return;
+      removeFavorite(row.favorite.id);
+      setFavorites(listFavorites());
+      window.dispatchEvent(new CustomEvent("insta:favorites-changed"));
       if (selectedApp === (row.label as any)) setSelectedApp(null);
       return;
     }
@@ -372,8 +398,11 @@ function AppsAppsPane() {
             const active = selectedApp === (r.label as any);
             const isCustom = r.category === "Custom";
             const isUrlGroup = !!r.urlGroup;
+            const isFavorite = !!r.favorite;
             const title = isUrlGroup
               ? `${r.urlGroup!.urls.length} tabs: ${r.urlGroup!.urls.slice(0, 3).join(", ")}${r.urlGroup!.urls.length > 3 ? "…" : ""}`
+              : isFavorite
+              ? r.favorite!.pathOrUrl
               : (isCustom && r.path ? r.path : undefined);
 
             return (
@@ -394,6 +423,7 @@ function AppsAppsPane() {
                   <div className="flex min-w-0 items-center gap-2">
                     <span className={`inline-block h-2 w-2 rounded-full ${r.dot}`} />
                     {isUrlGroup && <span className="text-[12px]">🔗</span>}
+                    {isFavorite && <span className="text-[12px] text-amber-500">★</span>}
                     <span className="truncate font-medium">{r.label}</span>
                   </div>
                   <div className="ml-2 flex items-center gap-2">
@@ -408,10 +438,15 @@ function AppsAppsPane() {
                         URL Group
                       </span>
                     )}
+                    {isFavorite && (
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700 ring-1 ring-amber-200">
+                        Favorite
+                      </span>
+                    )}
                   </div>
                 </button>
 
-                {editMode && (isCustom || isUrlGroup) ? (
+                {editMode && (isCustom || isUrlGroup || isFavorite) ? (
                   <GhostBtn onClick={() => onDeleteCustom(r)} className="ml-3 h-7 whitespace-nowrap px-2">
                     🗑 Delete
                   </GhostBtn>
@@ -617,9 +652,13 @@ function FavoritesPane() {
   const onDelete = (id: string) => {
     removeFavorite(id);
     setFavorites(listFavorites());
+    window.dispatchEvent(new CustomEvent("insta:favorites-changed"));
   };
   const onAdded = () => {
     setFavorites(listFavorites());
+    // AddFavoriteModal already broadcasts on save; this is a defensive
+    // belt-and-suspenders for when other code paths add a favorite.
+    window.dispatchEvent(new CustomEvent("insta:favorites-changed"));
   };
 
   return (
@@ -770,17 +809,20 @@ function GhostBtn({
   onClick,
   disabled,
   className = "",
+  title,
 }: {
   children?: React.ReactNode;
   onClick?: () => void;
   disabled?: boolean;
   className?: string;
+  title?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
+      title={title}
       className={[
         "h-7 rounded-md border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed",
         "px-3 whitespace-nowrap",

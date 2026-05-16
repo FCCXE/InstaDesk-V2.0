@@ -32,6 +32,13 @@ export function listFavorites(): Favorite[] {
   return loadRaw();
 }
 
+/** Look up a favorite by its display title (case-insensitive). Used by
+ *  layoutBuilder.resolveAppTarget to make favorites assignable to grid cells. */
+export function findFavoriteByName(title: string): Favorite | null {
+  const lc = title.toLowerCase();
+  return loadRaw().find(f => f.title.toLowerCase() === lc) ?? null;
+}
+
 export function addFavorite(input: {
   kind: FavoriteKind;
   title: string;

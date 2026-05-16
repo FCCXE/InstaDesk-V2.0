@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export type MonitorId = "M1" | "M2" | "M3" | "M4";
 

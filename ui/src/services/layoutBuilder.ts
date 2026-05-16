@@ -5,6 +5,7 @@
 import { APP_CATALOG } from "./appsCatalog";
 import { listHistory } from "./AppsHistoryService";
 import { findUrlGroupByName } from "./UrlGroupsService";
+import { findFavoriteByName } from "./FavoritesService";
 import type { Assignment } from "./api";
 
 export type AppTarget =
@@ -32,13 +33,35 @@ export function resolveAppTarget(app: string): AppTarget | null {
     return null;
   }
 
-  // 2) Custom history paths win over catalog defaults — the user knows their
+  // 2) Favorites — user-curated quick picks. App favorite = exe path.
+  //    URL favorite = single-tab browser launch via the Chrome catalog seed
+  //    (consistent with URL Groups; if you need a different browser, save
+  //    a URL Group instead with that browser explicitly).
+  const fav = findFavoriteByName(app);
+  if (fav) {
+    if (fav.kind === "app") {
+      return { kind: "program", program: fav.pathOrUrl };
+    }
+    const browserSeed = APP_CATALOG.find(e => e.id === "Chrome");
+    if (browserSeed?.program) {
+      return {
+        kind: "program",
+        program: browserSeed.program,
+        args: browserSeed.args ?? "--new-window",
+        singleInstance: false,
+        urls: [fav.pathOrUrl],
+      };
+    }
+    return null;
+  }
+
+  // 3) Custom history paths win over catalog defaults — the user knows their
   //    exact install location, the catalog is just best-effort per-app guess.
   //    Custom apps default to multi-instance (no singleInstance flag).
   const custom = listHistory().find(h => h.title === app);
   if (custom) return { kind: "program", program: custom.path };
 
-  // 3) Fall back to catalog defaults (may need %ENV% expansion server-side).
+  // 4) Fall back to catalog defaults (may need %ENV% expansion server-side).
   const seed = APP_CATALOG.find(e => e.id === app);
   if (seed?.program) return {
     kind: "program",
@@ -140,6 +163,53 @@ export function buildSaveAssignments(
   return { assignments, errors, warnings };
 }
 
+/** Multi-monitor variant of buildSaveAssignments. Takes a per-monitor
+ *  cell-map keyed by AppState's monitor id ("m1", "m2", ...) and resolves
+ *  each id to the agent's 1-based monitor index via the supplied resolver.
+ *  Emits one Assignment[] containing entries from every monitor with a
+ *  non-empty grid. Errors from any monitor are tagged with that monitor's
+ *  label and propagated. */
+export function buildSaveAssignmentsMulti(
+  cellsByMonitorId: Record<string, Record<string, string | null>>,
+  monitorIdToIndex: (id: string) => number,
+  monitorIdToLabel: (id: string) => string,
+  gridCols: number,
+  gridRows: number,
+): BuildResult {
+  const allAssignments: Assignment[] = [];
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Stable iteration: by monitor index ascending.
+  const entries = Object.entries(cellsByMonitorId)
+    .filter(([, cells]) => Object.values(cells).some(Boolean))
+    .sort(([a], [b]) => monitorIdToIndex(a) - monitorIdToIndex(b));
+
+  if (entries.length === 0) {
+    errors.push("No apps assigned on any monitor. Pick an app and assign it to cells first.");
+    return { assignments: [], errors, warnings };
+  }
+
+  for (const [monitorId, cells] of entries) {
+    const index = monitorIdToIndex(monitorId);
+    const label = monitorIdToLabel(monitorId);
+    const r = buildSaveAssignments(cells, index, gridCols, gridRows);
+    if (r.errors.length > 0) {
+      errors.push(...r.errors.map(e => `[${label}] ${e}`));
+      continue;
+    }
+    if (r.warnings.length > 0) {
+      warnings.push(...r.warnings.map(w => `[${label}] ${w}`));
+    }
+    allAssignments.push(...r.assignments);
+  }
+
+  if (errors.length > 0) {
+    return { assignments: [], errors, warnings };
+  }
+  return { assignments: allAssignments, errors, warnings };
+}
+
 /** Reverse of buildSaveAssignments: take a saved Assignment[] and produce a
  *  cell-by-cell map suitable for AppState.assignments, plus the suggested
  *  monitor index. The assignment grid format is "x,y,w,h" 1-based with x as
@@ -192,6 +262,58 @@ export function parsePresetIntoCells(
     cells,
     monitorIndex: firstMonitor ?? 1,
     monitorsUsed: [...monitorsUsed].sort(),
+    warnings,
+  };
+}
+
+/** Multi-monitor variant: split a saved Assignment[] by monitor index and
+ *  produce a per-monitor cell map keyed by AppState monitor id ("m{N}").
+ *  Used by Load to populate every monitor's grid at once. */
+export type ParsedPresetMulti = {
+  cellsByMonitorId: Record<string, Record<string, string>>;  // "m1" -> {"r,c": app}
+  monitorsUsed: number[];                                     // sorted ascending
+  firstMonitorId: string | null;                              // "m{N}" of the first monitor with assignments
+  warnings: string[];
+};
+
+export function parsePresetIntoCellsMulti(
+  assignments: Array<{ title?: string; monitor: number; grid: string; gridSize?: string }>,
+  gridCols: number,
+  gridRows: number,
+): ParsedPresetMulti {
+  const warnings: string[] = [];
+  const cellsByMonitorId: Record<string, Record<string, string>> = {};
+  const monitorsUsedSet = new Set<number>();
+  let firstMonitorId: string | null = null;
+
+  for (const a of assignments) {
+    if (!a.title) {
+      warnings.push("An assignment is missing its title; skipped.");
+      continue;
+    }
+    const parts = (a.grid || "").split(",").map(s => parseInt(s.trim(), 10));
+    if (parts.length !== 4 || parts.some(n => !Number.isFinite(n) || n <= 0)) {
+      warnings.push(`Skipping "${a.title}" on M${a.monitor}: invalid grid "${a.grid}".`);
+      continue;
+    }
+    const [x, y, w, h] = parts;
+    const monitorId = `m${a.monitor}`;
+    if (!cellsByMonitorId[monitorId]) cellsByMonitorId[monitorId] = {};
+    if (firstMonitorId === null) firstMonitorId = monitorId;
+    monitorsUsedSet.add(a.monitor);
+
+    for (let r = y - 1; r < Math.min(y - 1 + h, gridRows); r++) {
+      for (let c = x - 1; c < Math.min(x - 1 + w, gridCols); c++) {
+        if (r < 0 || c < 0) continue;
+        cellsByMonitorId[monitorId][`${r},${c}`] = a.title;
+      }
+    }
+  }
+
+  return {
+    cellsByMonitorId,
+    monitorsUsed: [...monitorsUsedSet].sort(),
+    firstMonitorId,
     warnings,
   };
 }

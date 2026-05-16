@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import EditLayoutDrawer from "./EditLayoutDrawer";
-import type { EditLayoutModel, MonitorId } from "./EditLayoutDrawer";
+import type { MonitorId } from "./EditLayoutDrawer";
 import { api, type PresetListItem } from "../../services/api";
 import { useAppState, GRID_COLS, GRID_ROWS } from "../../state/AppState";
-import { buildSaveAssignments, nextFreeSlot, parsePresetIntoCells } from "../../services/layoutBuilder";
+import {
+  buildSaveAssignmentsMulti,
+  nextFreeSlot,
+  parsePresetIntoCellsMulti,
+} from "../../services/layoutBuilder";
 
 /**
  * LayoutsPane
@@ -40,24 +43,34 @@ function presetToCard(p: PresetListItem): LayoutCardModel | null {
 type Toast = { kind: "ok" | "err"; msg: string };
 
 export default function LayoutsPane() {
-  const { assignments, currentMonitorId, monitors, replaceGrid } = useAppState();
-  const monitorIndex = useMemo(() => {
-    const n = parseInt((currentMonitorId || "").replace(/^m/, ""), 10);
+  const {
+    monitors, replaceGridMulti,
+    assignmentsByMonitor, assignedCountTotal,
+  } = useAppState();
+  // Resolve a monitor id ("m{N}") to the agent's 1-based index N.
+  const monitorIdToIndex = (id: string) => {
+    const n = parseInt((id || "").replace(/^m/, ""), 10);
     return Number.isFinite(n) && n > 0 ? n : 1;
-  }, [currentMonitorId]);
+  };
+  // Friendly label for toasts: prefer Monitor.name, fall back to "M{N}".
+  const monitorIdToLabel = (id: string) =>
+    monitors.find(m => m.id === id)?.name ?? `M${monitorIdToIndex(id)}`;
 
   const [layouts, setLayouts] = useState<LayoutCardModel[] | null>(null); // null = loading
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [savingNew, setSavingNew] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [editing, setEditing] = useState<LayoutCardModel | null>(null);
 
-  // Count assigned cells, used for enabling/disabling "+ New Layout".
-  const assignedCount = useMemo(
-    () => Object.values(assignments).filter(Boolean).length,
-    [assignments]
+  // Total assigned cells across ALL monitors. Drives + New Layout enable.
+  const assignedCount = assignedCountTotal;
+  // Monitor ids that have at least one assigned cell (sorted by index).
+  const monitorsWithAssignments = useMemo(
+    () => Object.entries(assignmentsByMonitor)
+      .filter(([, m]) => Object.values(m).some(Boolean))
+      .map(([id]) => id)
+      .sort((a, b) => monitorIdToIndex(a) - monitorIdToIndex(b)),
+    [assignmentsByMonitor]
   );
 
   const flash = (t: Toast) => {
@@ -90,40 +103,29 @@ export default function LayoutsPane() {
     window.dispatchEvent(new CustomEvent("insta:presets-changed"));
   };
 
-  function openEdit(l: LayoutCardModel) {
-    setEditing(l);
-    setDrawerOpen(true);
-  }
-  function closeDrawer() {
-    setDrawerOpen(false);
-    setEditing(null);
-  }
-  function saveEdit(_updated: EditLayoutModel) {
-    // Edit drawer is currently visuals-only; deferring real save to a later step.
-    flash({ kind: "ok", msg: "Edit saved locally only — server-side rename coming soon." });
-    closeDrawer();
-  }
-
   const onLoad = async (m: LayoutCardModel) => {
     setBusyId(m.id);
     try {
       const res = await api.presetsGet(m.preset.kind, m.preset.slot);
-      const parsed = parsePresetIntoCells(res.preset.assignments, GRID_COLS, GRID_ROWS);
-      // Map agent's 1-based monitor index back to AppState's "m{N}" id
-      // (mirrors BottomControls' monitorIndex calc, in reverse).
-      const targetMonitorId = `m${parsed.monitorIndex}`;
-      const monitorExists = monitors.some(mm => mm.id === targetMonitorId);
-      replaceGrid(parsed.cells, monitorExists ? targetMonitorId : undefined);
-      const cellCount = Object.keys(parsed.cells).length;
+      const parsed = parsePresetIntoCellsMulti(res.preset.assignments, GRID_COLS, GRID_ROWS);
+      // Switch the grid to the first monitor that has assignments, so the user
+      // immediately sees something. They can navigate to others via the
+      // monitor selector — each monitor's assignments are loaded independently.
+      const switchTo = parsed.firstMonitorId && monitors.some(mm => mm.id === parsed.firstMonitorId)
+        ? parsed.firstMonitorId
+        : undefined;
+      replaceGridMulti(parsed.cellsByMonitorId, switchTo);
+      const totalCells = Object.values(parsed.cellsByMonitorId)
+        .reduce((sum, c) => sum + Object.keys(c).length, 0);
+      const monList = parsed.monitorsUsed.map(n => `M${n}`).join(", ");
       const monMsg = parsed.monitorsUsed.length > 1
-        ? ` (multi-monitor: ${parsed.monitorsUsed.map(n => "M" + n).join(", ")})`
-        : "";
+        ? `${parsed.monitorsUsed.length} monitors (${monList})`
+        : `${monList}`;
       flash({
-        kind: parsed.warnings.length > 0 ? "ok" : "ok",
-        msg: `Loaded "${m.name}" → ${cellCount} cell${cellCount === 1 ? "" : "s"}${monMsg}. Switch to Apps tab to edit.`,
+        kind: "ok",
+        msg: `Loaded "${m.name}" → ${totalCells} cell${totalCells === 1 ? "" : "s"} on ${monMsg}. Switch monitors via the left pane to see each one.`,
       });
       if (parsed.warnings.length > 0) {
-        // Stack warnings as a second toast after a short delay so the user sees both.
         window.setTimeout(() => flash({ kind: "err", msg: parsed.warnings.join(" ") }), 200);
       }
     } catch (e) {
@@ -152,10 +154,13 @@ export default function LayoutsPane() {
 
   const onNewLayout = async () => {
     if (assignedCount === 0) {
-      flash({ kind: "err", msg: "Assign apps to cells first (Apps tab → pick app → Assign to Selection)." });
+      flash({ kind: "err", msg: "Assign apps to cells first (Apps tab → pick app → Assign to Selection). Switch monitors to build a layout that spans more than one." });
       return;
     }
-    const built = buildSaveAssignments(assignments as Record<string, string | null>, monitorIndex, GRID_COLS, GRID_ROWS);
+    const cellsByMonitorIdAny = assignmentsByMonitor as Record<string, Record<string, string | null>>;
+    const built = buildSaveAssignmentsMulti(
+      cellsByMonitorIdAny, monitorIdToIndex, monitorIdToLabel, GRID_COLS, GRID_ROWS,
+    );
     if (built.errors.length > 0) {
       flash({ kind: "err", msg: built.errors[0] });
       return;
@@ -179,10 +184,18 @@ export default function LayoutsPane() {
     setSavingNew(true);
     try {
       await api.presetsSave("general", slot, built.assignments);
-      const summary = built.assignments
-        .map(a => `${a.title ?? "?"}@M${a.monitor}/${a.grid}`)
-        .join(" + ");
-      flash({ kind: "ok", msg: `Saved Layout ${slot}: ${summary}` });
+      // Group assignments by monitor for a friendly summary.
+      const perMonitor = new Map<number, string[]>();
+      for (const a of built.assignments) {
+        const list = perMonitor.get(a.monitor) ?? [];
+        list.push(a.title ?? "?");
+        perMonitor.set(a.monitor, list);
+      }
+      const summary = [...perMonitor.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([m, titles]) => `M${m}: ${titles.join(", ")}`)
+        .join(" • ");
+      flash({ kind: "ok", msg: `Saved Layout ${slot} across ${perMonitor.size} monitor${perMonitor.size === 1 ? "" : "s"} • ${summary}` });
       window.dispatchEvent(new CustomEvent("insta:presets-changed"));
     } catch (e) {
       flash({ kind: "err", msg: (e as Error).message });
@@ -238,8 +251,8 @@ export default function LayoutsPane() {
             ].join(" ")}
             title={
               assignedCount === 0
-                ? "Assign apps to grid cells first (Apps tab)"
-                : `Save current grid as preset (${assignedCount} cells assigned, monitor ${monitorIndex})`
+                ? "Assign apps to grid cells first (Apps tab); switch monitors to build a multi-monitor layout"
+                : `Save grids from ${monitorsWithAssignments.length} monitor${monitorsWithAssignments.length === 1 ? "" : "s"} (${assignedCount} cells total) as one preset`
             }
           >
             {savingNew ? "Saving…" : "+ New Layout"}
@@ -247,7 +260,9 @@ export default function LayoutsPane() {
           <span className="text-xs text-slate-500">
             {assignedCount === 0
               ? "Assign apps to enable"
-              : `${assignedCount} cell${assignedCount === 1 ? "" : "s"} on Monitor ${monitorIndex}`}
+              : monitorsWithAssignments.length === 1
+              ? `${assignedCount} cell${assignedCount === 1 ? "" : "s"} on ${monitorIdToLabel(monitorsWithAssignments[0])}`
+              : `${assignedCount} cells across ${monitorsWithAssignments.length} monitors (${monitorsWithAssignments.map(monitorIdToLabel).join(", ")})`}
           </span>
         </div>
       </div>
@@ -284,7 +299,7 @@ export default function LayoutsPane() {
 
           {layouts && layouts.length === 0 && !error && (
             <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-              No saved layouts yet. Use the temporary <span className="font-medium text-slate-700">💾 Save Layout A</span> button at the bottom (or the new-layout flow coming in step 3).
+              No saved layouts yet. Build a grid in the Apps tab and click <span className="font-medium text-slate-700">+ New Layout</span> above to save your first one.
             </div>
           )}
 
@@ -295,7 +310,6 @@ export default function LayoutsPane() {
               busy={busyId === m.id}
               onApply={() => onApply(m)}
               onDelete={() => onDelete(m)}
-              onEdit={() => openEdit(m)}
               onLoad={() => onLoad(m)}
             />
           ))}
@@ -303,25 +317,17 @@ export default function LayoutsPane() {
           <div className="h-10" />
         </div>
       </div>
-
-      <EditLayoutDrawer
-        open={drawerOpen}
-        model={editing ? { id: editing.id, name: editing.name, monitors: editing.monitors, notes: editing.notes } : null}
-        onSave={saveEdit}
-        onClose={closeDrawer}
-      />
     </div>
   );
 }
 
 function LayoutCard({
-  model, busy, onApply, onDelete, onEdit, onLoad,
+  model, busy, onApply, onDelete, onLoad,
 }: {
   model: LayoutCardModel;
   busy: boolean;
   onApply: () => void;
   onDelete: () => void;
-  onEdit: () => void;
   onLoad: () => void;
 }) {
   const updatedStr = useMemo(() => {

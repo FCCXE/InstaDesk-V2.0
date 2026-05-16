@@ -159,13 +159,21 @@ type AppStateContext = {
   assignSelected: () => void
   unassignSelected: () => void
 
-  // simple grid ops
+  // simple grid ops (operate on the CURRENT monitor's grid)
   clearGrid: () => void
   copyGrid: () => void
   pasteGrid: () => void
 
-  // bulk replace (used by "Load Layout" to rehydrate from a saved preset)
+  // bulk replace (used by "Load Layout" to rehydrate from a saved preset).
+  // replaceGrid replaces ONE monitor's cells; replaceGridMulti replaces
+  // multiple monitors at once and switches the selector to `switchTo`.
   replaceGrid: (cells: Record<string, string>, monitorId?: string) => void
+  replaceGridMulti: (cellsByMonitorId: Record<string, Record<string, string>>, switchTo?: string) => void
+
+  // multi-monitor read access — the saved-layout flow needs the assignments
+  // map for ALL monitors, not just the visible one.
+  assignmentsByMonitor: Record<string, Assignments>
+  assignedCountTotal: number
 
   // monitors + presets
   monitors: Monitor[]
@@ -205,7 +213,9 @@ export function useAppState() {
 export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
   /* ---------- Core grid state ---------- */
   const [selection, setSelection] = useState<Set<CellKey>>(new Set())
-  const [assignments, setAssignments] = useState<Assignments>(() => makeEmptyAssignments())
+  // Per-monitor assignments: each monitor keeps its own grid configuration.
+  // The visible `assignments` derived below is the current monitor's slice.
+  const [assignmentsByMonitor, setAssignmentsByMonitor] = useState<Record<string, Assignments>>({})
   const [selectedApp, setSelectedApp] = useState<AppId | null>(null)
   const [clipboard, setClipboard] = useState<Assignments | null>(null)
 
@@ -245,43 +255,80 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   }
   const clearSelection = () => setSelection(new Set())
 
+  /* ---------- Monitors + presets (need monitor id before grid ops) ---------- */
+  const [monitors, setMonitors] = useState<Monitor[]>(SAMPLE_MONITORS)
+  const [currentMonitorId, setCurrentMonitorId] = useState<string>('m1')
+  const setCurrentMonitor = (id: string) => setCurrentMonitorId(id)
+
+  // Current monitor's view onto assignmentsByMonitor.
+  const assignments: Assignments = useMemo(
+    () => assignmentsByMonitor[currentMonitorId] ?? makeEmptyAssignments(),
+    [assignmentsByMonitor, currentMonitorId]
+  )
+
+  // Total non-null cells across ALL monitors (used by + New Layout).
+  const assignedCountTotal = useMemo(
+    () => Object.values(assignmentsByMonitor).reduce(
+      (sum, a) => sum + Object.values(a).filter(Boolean).length, 0,
+    ),
+    [assignmentsByMonitor]
+  )
+
+  // Helpers that mutate ONLY the current monitor's slice.
+  const setCurrentMonitorAssignments = (next: Assignments) => {
+    setAssignmentsByMonitor((prev) => ({ ...prev, [currentMonitorId]: next }))
+  }
+
   const assignSelected = () => {
     if (!selectedApp) return
-    setAssignments((prev) => {
-      const next: Assignments = { ...prev }
-      selection.forEach((k) => { next[k] = selectedApp })
-      return next
-    })
+    const next: Assignments = { ...assignments }
+    selection.forEach((k) => { next[k] = selectedApp })
+    setCurrentMonitorAssignments(next)
   }
   const unassignSelected = () => {
-    setAssignments((prev) => {
-      const next: Assignments = { ...prev }
-      selection.forEach((k) => { next[k] = null })
-      return next
-    })
+    const next: Assignments = { ...assignments }
+    selection.forEach((k) => { next[k] = null })
+    setCurrentMonitorAssignments(next)
   }
 
-  const clearGrid = () => setAssignments(makeEmptyAssignments())
+  const clearGrid = () => setCurrentMonitorAssignments(makeEmptyAssignments())
   const copyGrid = () => setClipboard({ ...assignments })
-  const pasteGrid = () => clipboard && setAssignments({ ...clipboard })
+  const pasteGrid = () => clipboard && setCurrentMonitorAssignments({ ...clipboard })
 
-  // Replace the grid wholesale (Load Layout). Cells outside the provided
-  // map are cleared. If monitorId is given, switch the monitor selector.
+  // Replace ONE monitor's grid. Cells outside the provided map are cleared.
+  // If monitorId is given, switch the selector after the write.
   const replaceGrid = (cells: Record<string, string>, monitorId?: string) => {
     const next = makeEmptyAssignments()
     for (const [k, app] of Object.entries(cells)) {
       if (k in next) next[k] = app as AppId
     }
-    setAssignments(next)
+    const targetId = monitorId ?? currentMonitorId
+    setAssignmentsByMonitor((prev) => ({ ...prev, [targetId]: next }))
     setSelection(new Set())
     if (monitorId) setCurrentMonitorId(monitorId)
   }
 
-  /* ---------- Monitors + presets ---------- */
-  const [monitors, setMonitors] = useState<Monitor[]>(SAMPLE_MONITORS)
-  const [currentMonitorId, setCurrentMonitorId] = useState<string>('m1')
-  const setCurrentMonitor = (id: string) => setCurrentMonitorId(id)
+  // Replace MULTIPLE monitors' grids at once (used by Load on multi-monitor
+  // presets). Any monitor in the current state but absent from the input
+  // map gets cleared, so the loaded preset is the only state visible.
+  const replaceGridMulti = (
+    cellsByMonitorId: Record<string, Record<string, string>>,
+    switchTo?: string,
+  ) => {
+    const next: Record<string, Assignments> = {}
+    for (const [monId, cells] of Object.entries(cellsByMonitorId)) {
+      const a: Assignments = makeEmptyAssignments()
+      for (const [k, app] of Object.entries(cells)) {
+        if (k in a) a[k] = app as AppId
+      }
+      next[monId] = a
+    }
+    setAssignmentsByMonitor(next)
+    setSelection(new Set())
+    if (switchTo) setCurrentMonitorId(switchTo)
+  }
 
+  /* ---------- Monitors + presets (state declared above grid ops) ---------- */
   // Fetch real monitor layout from the agent (via FastAPI) on mount.
   useEffect(() => {
     let alive = true
@@ -368,6 +415,9 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     copyGrid,
     pasteGrid,
     replaceGrid,
+    replaceGridMulti,
+    assignmentsByMonitor,
+    assignedCountTotal,
 
     // monitors + presets
     monitors,
@@ -392,7 +442,8 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     previewUrlBuilder,
     setOpenMode,
   }), [
-    selection, assignments, selectedApp, clipboard,
+    selection, assignments, assignmentsByMonitor, assignedCountTotal,
+    selectedApp, clipboard,
     monitors, currentMonitorId, presets, pendingPresetByMonitor,
     urlBuilder, browsers
   ])

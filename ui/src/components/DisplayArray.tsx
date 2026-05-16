@@ -1,4 +1,3 @@
-import React from 'react'
 import { useAppState } from '../state/AppState'
 
 /**
