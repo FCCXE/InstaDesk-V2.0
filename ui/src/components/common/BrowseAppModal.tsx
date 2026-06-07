@@ -116,7 +116,7 @@ export default function BrowseAppModal({
         multiple: false,
         directory: false,
         filters: [
-          { name: "Executables", extensions: ["exe", "lnk", "bat", "cmd"] },
+          { name: "Executables", extensions: ["exe", "bat", "cmd"] },
           { name: "All files", extensions: ["*"] },
         ],
       });
@@ -157,8 +157,20 @@ export default function BrowseAppModal({
     const t = title.trim();
     const p = path.trim();
     if (!t || !p) return;
-    if (!/\.(exe|lnk|bat|cmd)$/i.test(p)) {
-      const proceed = confirm("Path does not end with .exe/.lnk/.bat/.cmd. Save anyway?");
+    // Reject shortcut files. .lnk targets resolve through the Windows shell
+    // (COM IShellLink), which Process.Start in the agent does NOT do — the
+    // shortcut launches in a way that ignores our --args and produces
+    // unpredictable results (e.g., the Quick Launch File Explorer.lnk opens
+    // a window the agent can't tile). Force the user to pick the actual exe.
+    if (/\.lnk$/i.test(p)) {
+      setErr(
+        "Shortcut files (.lnk) aren't supported — pick the underlying .exe instead. " +
+        "For File Explorer, use C:\\Windows\\explorer.exe (or just delete this Custom entry to fall back to the built-in catalog)."
+      );
+      return;
+    }
+    if (!/\.(exe|bat|cmd)$/i.test(p)) {
+      const proceed = confirm("Path does not end with .exe/.bat/.cmd. Save anyway?");
       if (!proceed) return;
     }
     try {
