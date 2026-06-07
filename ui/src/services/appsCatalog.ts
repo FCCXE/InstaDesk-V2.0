@@ -87,3 +87,149 @@ export function lookupAppStyle(id: string | null | undefined) {
   if (seed) return { dot: seed.dot, fill: seed.fill, ring: seed.ring };
   return CUSTOM_APP_STYLE;
 }
+
+// ---------------------------------------------------------------------------
+// Instance shade palette
+// ---------------------------------------------------------------------------
+// When two or more regions of the same app live on the same monitor
+// (differentiated by per-cell args override — e.g., two File Explorer
+// windows pointed at different folders), each instance gets a distinct
+// shade within the app's color family so the user can SEE the difference
+// at a glance. Single-instance apps keep their original color (no change).
+//
+// Tailwind v4's class scanner requires every utility class to appear as a
+// literal in source — we cannot template strings like `bg-${color}-${n}`.
+// So this map enumerates the shade ladder per color family explicitly.
+// Add a new family here whenever you add an app whose base color isn't
+// already represented.
+
+export type ShadePair = { fill: string; ring: string };
+
+const SHADE_LADDERS: Record<string, ShadePair[]> = {
+  yellow:   [
+    { fill: "bg-yellow-50",     ring: "border-yellow-500" },
+    { fill: "bg-yellow-100",    ring: "border-yellow-600" },
+    { fill: "bg-yellow-200",    ring: "border-yellow-700" },
+    { fill: "bg-yellow-300",    ring: "border-yellow-800" },
+  ],
+  slate:    [
+    { fill: "bg-slate-100",     ring: "border-slate-400" },
+    { fill: "bg-slate-200",     ring: "border-slate-600" },
+    { fill: "bg-slate-300",     ring: "border-slate-700" },
+    { fill: "bg-slate-400",     ring: "border-slate-800" },
+  ],
+  emerald:  [
+    { fill: "bg-emerald-50",    ring: "border-emerald-500" },
+    { fill: "bg-emerald-100",   ring: "border-emerald-600" },
+    { fill: "bg-emerald-200",   ring: "border-emerald-700" },
+    { fill: "bg-emerald-300",   ring: "border-emerald-800" },
+  ],
+  sky:      [
+    { fill: "bg-sky-50",        ring: "border-sky-500" },
+    { fill: "bg-sky-100",       ring: "border-sky-600" },
+    { fill: "bg-sky-200",       ring: "border-sky-700" },
+    { fill: "bg-sky-300",       ring: "border-sky-800" },
+  ],
+  violet:   [
+    { fill: "bg-violet-50",     ring: "border-violet-500" },
+    { fill: "bg-violet-100",    ring: "border-violet-600" },
+    { fill: "bg-violet-200",    ring: "border-violet-700" },
+    { fill: "bg-violet-300",    ring: "border-violet-800" },
+  ],
+  indigo:   [
+    { fill: "bg-indigo-50",     ring: "border-indigo-500" },
+    { fill: "bg-indigo-100",    ring: "border-indigo-600" },
+    { fill: "bg-indigo-200",    ring: "border-indigo-700" },
+    { fill: "bg-indigo-300",    ring: "border-indigo-800" },
+  ],
+  amber:    [
+    { fill: "bg-amber-50",      ring: "border-amber-500" },
+    { fill: "bg-amber-100",     ring: "border-amber-600" },
+    { fill: "bg-amber-200",     ring: "border-amber-700" },
+    { fill: "bg-amber-300",     ring: "border-amber-800" },
+  ],
+  fuchsia:  [
+    { fill: "bg-fuchsia-50",    ring: "border-fuchsia-500" },
+    { fill: "bg-fuchsia-100",   ring: "border-fuchsia-600" },
+    { fill: "bg-fuchsia-200",   ring: "border-fuchsia-700" },
+    { fill: "bg-fuchsia-300",   ring: "border-fuchsia-800" },
+  ],
+  purple:   [
+    { fill: "bg-purple-50",     ring: "border-purple-500" },
+    { fill: "bg-purple-100",    ring: "border-purple-600" },
+    { fill: "bg-purple-200",    ring: "border-purple-700" },
+    { fill: "bg-purple-300",    ring: "border-purple-800" },
+  ],
+  blue:     [
+    { fill: "bg-blue-50",       ring: "border-blue-500" },
+    { fill: "bg-blue-100",      ring: "border-blue-600" },
+    { fill: "bg-blue-200",      ring: "border-blue-700" },
+    { fill: "bg-blue-300",      ring: "border-blue-800" },
+  ],
+  cyan:     [
+    { fill: "bg-cyan-50",       ring: "border-cyan-500" },
+    { fill: "bg-cyan-100",      ring: "border-cyan-600" },
+    { fill: "bg-cyan-200",      ring: "border-cyan-700" },
+    { fill: "bg-cyan-300",      ring: "border-cyan-800" },
+  ],
+  orange:   [
+    { fill: "bg-orange-50",     ring: "border-orange-500" },
+    { fill: "bg-orange-100",    ring: "border-orange-600" },
+    { fill: "bg-orange-200",    ring: "border-orange-700" },
+    { fill: "bg-orange-300",    ring: "border-orange-800" },
+  ],
+  pink:     [
+    { fill: "bg-pink-50",       ring: "border-pink-500" },
+    { fill: "bg-pink-100",      ring: "border-pink-600" },
+    { fill: "bg-pink-200",      ring: "border-pink-700" },
+    { fill: "bg-pink-300",      ring: "border-pink-800" },
+  ],
+  red:      [
+    { fill: "bg-red-50",        ring: "border-red-500" },
+    { fill: "bg-red-100",       ring: "border-red-600" },
+    { fill: "bg-red-200",       ring: "border-red-700" },
+    { fill: "bg-red-300",       ring: "border-red-800" },
+  ],
+  green:    [
+    { fill: "bg-green-50",      ring: "border-green-500" },
+    { fill: "bg-green-100",     ring: "border-green-600" },
+    { fill: "bg-green-200",     ring: "border-green-700" },
+    { fill: "bg-green-300",     ring: "border-green-800" },
+  ],
+};
+
+// Extract the family name (e.g., "yellow") from a base Tailwind class
+// like "bg-yellow-50" or "border-yellow-500". Returns null when the
+// pattern doesn't match — callers should fall back to the base style.
+function familyOf(klass: string): string | null {
+  const m = klass.match(/^(?:bg|border)-([a-z]+)-\d+$/);
+  return m ? m[1] : null;
+}
+
+/** Pick a fill/ring pair for a given (app id, 0-based instanceIndex).
+ *  instanceIndex 0 returns the catalog's base style — exact same colors
+ *  as today for single-instance layouts (no visual regression). Higher
+ *  instance indices return progressively darker variants from the
+ *  family's shade ladder; beyond the ladder length (rare in practice)
+ *  it clamps to the darkest entry. */
+export function instanceStyleFor(
+  id: string | null | undefined,
+  instanceIndex: number,
+): ShadePair & { dot: string } {
+  const base = lookupAppStyle(id);
+  if (!base) {
+    return { dot: CUSTOM_APP_STYLE.dot, fill: CUSTOM_APP_STYLE.fill, ring: CUSTOM_APP_STYLE.ring };
+  }
+  if (instanceIndex <= 0) {
+    return { dot: base.dot, fill: base.fill, ring: base.ring };
+  }
+  // Prefer the family resolved from the fill class. If that fails (custom
+  // pattern, foreign family), try the ring class. Otherwise stay on base.
+  const family = familyOf(base.fill) ?? familyOf(base.ring);
+  if (!family) return { dot: base.dot, fill: base.fill, ring: base.ring };
+  const ladder = SHADE_LADDERS[family];
+  if (!ladder || ladder.length === 0) return { dot: base.dot, fill: base.fill, ring: base.ring };
+  const clamped = Math.min(instanceIndex, ladder.length - 1);
+  const pair = ladder[clamped];
+  return { dot: base.dot, fill: pair.fill, ring: pair.ring };
+}

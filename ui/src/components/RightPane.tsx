@@ -228,6 +228,7 @@ function AppsAppsPane() {
       { id: "Chrome", category: "Browser", dot: "bg-sky-500" },
       { id: "VS Code", category: "Development", dot: "bg-violet-500" },
       { id: "Notepad", category: "Text", dot: "bg-slate-400" },
+      { id: "File Explorer", category: "System", dot: "bg-yellow-500" },
       { id: "GitHub", category: "Development", dot: "bg-indigo-500" },
       { id: "Stack Overflow", category: "Development", dot: "bg-amber-500" },
       { id: "Slack", category: "Communication", dot: "bg-fuchsia-500" },

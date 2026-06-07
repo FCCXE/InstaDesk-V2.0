@@ -5,7 +5,8 @@ import {
   GRID_ROWS,
   GRID_COLS,
 } from '../state/AppState'
-import { lookupAppStyle } from '../services/appsCatalog'
+import { instanceStyleFor } from '../services/appsCatalog'
+import { computeInstanceIndices } from '../services/instanceIndex'
 
 // Build a static GRID_ROWS × GRID_COLS grid
 type Cell = { r: number; c: number }
@@ -22,11 +23,25 @@ export default function WorkspaceGrid() {
   const {
     selection,            // Set<"r,c">
     assignments,          // Record<"r,c", AppId | null>
+    argsOverridesByMonitor,
+    currentMonitorId,
     beginDrag,            // (r, c) => void
     updateDrag,           // (r, c) => void
     endDrag,              // () => void
     clearSelection,       // () => void
   } = useAppState()
+
+  // Per-cell instance map for the CURRENT monitor. Used to pick a darker
+  // shade + show a "#N" badge when 2+ regions of the same app live on this
+  // monitor (differentiated by per-cell args override). Single-instance
+  // grids skip both treatments — colors stay exactly as they were.
+  const instanceMap = useMemo(
+    () => computeInstanceIndices(
+      assignments,
+      argsOverridesByMonitor[currentMonitorId] ?? {},
+    ),
+    [assignments, argsOverridesByMonitor, currentMonitorId],
+  )
 
   // Broadcast selection size to the RightPane (Apps) on every change
   useEffect(() => {
@@ -112,12 +127,28 @@ export default function WorkspaceGrid() {
             >
               {cells.map(({ r, c }) => {
                 const highlighted = isHighlighted(r, c)
-                const assigned = assignments[cellKey(r, c)] ?? null
-                const style = lookupAppStyle(assigned)
+                const k = cellKey(r, c)
+                const assigned = assignments[k] ?? null
+                const inst = assigned ? instanceMap[k] : undefined
+                const instanceIdx = inst?.instanceIndex ?? 0
+                const totalInst = inst?.totalInstances ?? 1
+                const style = assigned ? instanceStyleFor(assigned, instanceIdx) : null
+
                 const baseClasses = 'border rounded transition-colors flex items-center justify-center text-[10px] font-medium overflow-hidden'
                 const classes = style
                   ? `${baseClasses} ${style.fill} ${style.ring} text-slate-700`
                   : `${baseClasses} ${highlighted ? 'border-blue-300' : 'border-gray-200'} text-slate-400`
+
+                // Tooltip: when there are multiple instances of this app,
+                // surface the args so the user can identify each region
+                // without opening the Apps tab. Single-instance cells get
+                // just the app name (existing behavior).
+                const titleText = assigned
+                  ? (totalInst > 1
+                      ? `${assigned} #${instanceIdx + 1}${inst?.args ? ` — ${inst.args}` : ' — default args'}`
+                      : assigned)
+                  : undefined
+
                 return (
                   <div
                     key={`${r}-${c}`}
@@ -129,9 +160,18 @@ export default function WorkspaceGrid() {
                       boxShadow: highlighted ? 'inset 0 0 0 2px rgba(37,99,235,0.55)' : undefined,
                       cursor: 'crosshair',
                     }}
-                    title={assigned ?? undefined}
+                    title={titleText}
                   >
-                    {assigned && <span className="truncate px-1">{assigned}</span>}
+                    {assigned && (
+                      <span className="truncate px-1">
+                        {totalInst > 1 && (
+                          <span className="mr-1 inline-flex items-center justify-center rounded bg-white/70 px-1 text-[9px] font-semibold text-slate-600 ring-1 ring-slate-300">
+                            #{instanceIdx + 1}
+                          </span>
+                        )}
+                        {assigned}
+                      </span>
+                    )}
                   </div>
                 )
               })}
