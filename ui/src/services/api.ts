@@ -95,6 +95,45 @@ export type ApiMonitor = {
 
 export type MonitorsResponse = { ok: boolean; monitors: ApiMonitor[] }
 
+// ---- Quick Presets ---------------------------------------------------------
+// A Quick Preset is an ordered bundle of saved Layouts (general/single).
+// Apply runs them sequentially on the server (one /presets/run per layout).
+
+export type QuickPresetLayoutRef = {
+  kind: PresetKind
+  slot: string
+}
+
+export type QuickPresetListItem = {
+  slot: string
+  name: string
+  layoutCount: number
+  path: string
+  updatedAt: string
+}
+
+export type SavedQuickPreset = {
+  kind: 'quickpreset'
+  slot: string
+  name: string
+  layouts: QuickPresetLayoutRef[]
+}
+
+export type QuickPresetRunLayoutResult = {
+  kind: PresetKind
+  slot: string
+  ok: boolean
+  error?: string
+  results?: LaunchResponse[]
+}
+
+export type QuickPresetRunResponse = {
+  ok: boolean
+  quickpreset: { slot: string; name: string }
+  summary: string
+  layouts: QuickPresetRunLayoutResult[]
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method,
@@ -126,4 +165,18 @@ export const api = {
     request<{ ok: boolean; results: LaunchResponse[] }>('POST', '/presets/run', { kind, slot }),
   presetsDelete: (kind: PresetKind, slot: string) =>
     request<{ ok: boolean; deleted: string }>('DELETE', '/presets/delete', { kind, slot }),
+
+  // ---- Quick Presets ----
+  quickPresetsList: () =>
+    request<{ ok: boolean; quickpresets: QuickPresetListItem[] }>('GET', '/quickpresets/list'),
+  quickPresetsGet: (slot: string) =>
+    request<{ ok: boolean; quickpreset: SavedQuickPreset; path: string }>(
+      'GET', `/quickpresets/get?slot=${encodeURIComponent(slot)}`),
+  quickPresetsSave: (slot: string, name: string, layouts: QuickPresetLayoutRef[]) =>
+    request<{ ok: boolean; path: string; missingLayouts: string[] }>(
+      'POST', '/quickpresets/save', { slot, name, layouts }),
+  quickPresetsDelete: (slot: string) =>
+    request<{ ok: boolean; deleted: string }>('DELETE', '/quickpresets/delete', { slot }),
+  quickPresetsRun: (slot: string) =>
+    request<QuickPresetRunResponse>('POST', '/quickpresets/run', { slot }),
 }

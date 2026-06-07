@@ -1,7 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useAppState } from '../state/AppState'
-import { api, type PresetListItem } from '../services/api'
+import {
+  api,
+  type PresetListItem,
+  type QuickPresetListItem,
+} from '../services/api'
 import DisplayArray from './DisplayArray'
+import QuickPresetsManager from './quickpresets/QuickPresetsManager'
 
 type ApplyState =
   | { kind: 'idle' }
@@ -9,8 +14,18 @@ type ApplyState =
   | { kind: 'ok'; msg: string }
   | { kind: 'err'; msg: string }
 
-function presetLabel(p: PresetListItem) {
-  return `${p.kind === 'general' ? 'Layout' : 'Single'} ${p.slot}`
+// Dropdown entries — Quick Presets (composed bundles) or single Layouts.
+type DropdownEntry =
+  | { type: 'qp'; slot: string; name: string; layoutCount: number }
+  | { type: 'layout'; layout: PresetListItem }
+
+function entryKey(e: DropdownEntry): string {
+  return e.type === 'qp' ? `qp/${e.slot}` : `layout/${e.layout.kind}/${e.layout.slot}`
+}
+
+function entryLabel(e: DropdownEntry): string {
+  if (e.type === 'qp') return e.name
+  return `${e.layout.kind === 'general' ? 'Layout' : 'Single'} ${e.layout.slot}`
 }
 
 export default function MonitorSelector() {
@@ -19,37 +34,64 @@ export default function MonitorSelector() {
   const current = monitors.find((m) => m.id === currentMonitorId)!
   const activeCount = monitors.filter((m) => m.active).length
 
-  /* -------------------- Quick Presets (real data) -------------------- */
-  const [presets, setPresets] = useState<PresetListItem[] | null>(null)
-  const [selected, setSelected] = useState<PresetListItem | null>(null)
+  /* -------------------- Quick Presets + Layouts (real data) -------------------- */
+  const [layouts, setLayouts] = useState<PresetListItem[] | null>(null)
+  const [quickpresets, setQuickpresets] = useState<QuickPresetListItem[] | null>(null)
+  const [selected, setSelected] = useState<DropdownEntry | null>(null)
   const [applyState, setApplyState] = useState<ApplyState>({ kind: 'idle' })
   const [open, setOpen] = useState(false)
+  const [qpManagerOpen, setQpManagerOpen] = useState(false)
 
-  const refresh = useCallback(async () => {
+  const refreshLayouts = useCallback(async () => {
     try {
       const res = await api.presetsList()
       const items = res.presets.filter((p) => p.kind === 'general' && p.slot)
-      setPresets(items)
-      // Drop selection if the underlying preset was deleted.
-      setSelected((prev) =>
-        prev && items.some((i) => i.kind === prev.kind && i.slot === prev.slot) ? prev : null
-      )
+      setLayouts(items)
     } catch {
-      setPresets([])
+      setLayouts([])
     }
   }, [])
 
+  const refreshQuickPresets = useCallback(async () => {
+    try {
+      const res = await api.quickPresetsList()
+      setQuickpresets(res.quickpresets)
+    } catch {
+      setQuickpresets([])
+    }
+  }, [])
+
+  // Keep `selected` consistent with current lists (drop if underlying entry deleted).
   useEffect(() => {
-    refresh()
-    const onChanged = () => refresh()
-    window.addEventListener('insta:presets-changed', onChanged)
-    return () => window.removeEventListener('insta:presets-changed', onChanged)
-  }, [refresh])
+    if (!selected) return
+    if (selected.type === 'qp') {
+      const stillExists = quickpresets?.some((q) => q.slot === selected.slot)
+      if (quickpresets !== null && !stillExists) setSelected(null)
+    } else {
+      const stillExists = layouts?.some(
+        (l) => l.kind === selected.layout.kind && l.slot === selected.layout.slot,
+      )
+      if (layouts !== null && !stillExists) setSelected(null)
+    }
+  }, [selected, layouts, quickpresets])
+
+  useEffect(() => {
+    refreshLayouts()
+    refreshQuickPresets()
+    const onLayoutsChanged = () => refreshLayouts()
+    const onQpChanged = () => refreshQuickPresets()
+    window.addEventListener('insta:presets-changed', onLayoutsChanged)
+    window.addEventListener('insta:quickpresets-changed', onQpChanged)
+    return () => {
+      window.removeEventListener('insta:presets-changed', onLayoutsChanged)
+      window.removeEventListener('insta:quickpresets-changed', onQpChanged)
+    }
+  }, [refreshLayouts, refreshQuickPresets])
 
   const flash = (s: ApplyState) => {
     setApplyState(s)
     if (s.kind === 'ok' || s.kind === 'err') {
-      window.setTimeout(() => setApplyState({ kind: 'idle' }), 2400)
+      window.setTimeout(() => setApplyState({ kind: 'idle' }), 2800)
     }
   }
 
@@ -57,17 +99,37 @@ export default function MonitorSelector() {
     if (!selected) return
     flash({ kind: 'busy' })
     try {
-      const r = await api.presetsRun(selected.kind, selected.slot)
-      const failures = r.results.filter((x) => x.exitCode !== 0)
-      if (failures.length === 0) {
+      if (selected.type === 'layout') {
+        const r = await api.presetsRun(selected.layout.kind, selected.layout.slot)
+        const failures = r.results.filter((x) => x.exitCode !== 0)
+        if (failures.length === 0) {
+          flash({
+            kind: 'ok',
+            msg: `Applied ${entryLabel(selected)} • ${r.results.length} window${r.results.length === 1 ? '' : 's'}`,
+          })
+        } else {
+          flash({ kind: 'err', msg: `${failures.length}/${r.results.length} failed` })
+        }
+        return
+      }
+
+      // Quick Preset: sequential Layouts on the server.
+      const r = await api.quickPresetsRun(selected.slot)
+      const okCount = r.layouts.filter((x) => x.ok).length
+      const totalWindows = r.layouts.reduce(
+        (sum, x) => sum + (x.results?.length ?? 0),
+        0,
+      )
+      if (okCount === r.layouts.length) {
         flash({
           kind: 'ok',
-          msg: `Applied ${presetLabel(selected)} • ${r.results.length} window${r.results.length === 1 ? '' : 's'}`,
+          msg: `Applied ${r.quickpreset.name} • ${r.layouts.length} Layout${r.layouts.length === 1 ? '' : 's'} • ${totalWindows} window${totalWindows === 1 ? '' : 's'}`,
         })
       } else {
+        const firstErr = r.layouts.find((x) => !x.ok)?.error
         flash({
           kind: 'err',
-          msg: `${failures.length}/${r.results.length} failed`,
+          msg: `${r.layouts.length - okCount}/${r.layouts.length} Layouts failed${firstErr ? ` — ${firstErr}` : ''}`,
         })
       }
     } catch (e) {
@@ -75,13 +137,12 @@ export default function MonitorSelector() {
     }
   }
 
-  const onManage = () => {
-    // Tell the right pane to switch to the Layouts tab.
+  const onOpenLayoutsTab = () => {
     window.dispatchEvent(new CustomEvent('insta:open-layouts-tab'))
   }
 
-  const handleChoose = (p: PresetListItem) => {
-    setSelected(p)
+  const handleChoose = (e: DropdownEntry) => {
+    setSelected(e)
     setOpen(false)
   }
 
@@ -100,13 +161,16 @@ export default function MonitorSelector() {
   }, [monitors])
 
   const isApplying = applyState.kind === 'busy'
+  const hasAny = (layouts?.length ?? 0) > 0 || (quickpresets?.length ?? 0) > 0
+  const loading = layouts === null || quickpresets === null
+
   const statusText =
     applyState.kind === 'busy' ? 'Applying…' :
     applyState.kind === 'ok' ? applyState.msg :
     applyState.kind === 'err' ? `Error: ${applyState.msg}` :
-    selected ? `Selected: ${presetLabel(selected)}` :
-    presets === null ? 'Loading…' :
-    presets.length === 0 ? 'No saved layouts. Save one in the Layouts tab.' :
+    selected ? `Selected: ${entryLabel(selected)}` :
+    loading ? 'Loading…' :
+    !hasAny ? 'No saved layouts. Save one in the Layouts tab.' :
     'No preset selected'
   const statusColor =
     applyState.kind === 'err' ? 'text-red-600' :
@@ -122,14 +186,25 @@ export default function MonitorSelector() {
       <div className="mb-6">
         <div className="mb-2 flex items-center justify-between">
           <div className="text-[13px] font-semibold text-gray-700">Quick Presets</div>
-          <button
-            type="button"
-            onClick={onManage}
-            className="text-[11px] text-sky-600 hover:text-sky-800"
-            title="Open the Layouts tab"
-          >
-            Manage
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setQpManagerOpen(true)}
+              className="text-[11px] text-sky-600 hover:text-sky-800"
+              title="Compose, rename, and delete Quick Presets"
+            >
+              Manage QPs
+            </button>
+            <span className="text-gray-300">·</span>
+            <button
+              type="button"
+              onClick={onOpenLayoutsTab}
+              className="text-[11px] text-sky-600 hover:text-sky-800"
+              title="Open the Layouts tab"
+            >
+              Layouts
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -137,36 +212,79 @@ export default function MonitorSelector() {
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
-              disabled={presets !== null && presets.length === 0}
+              disabled={!loading && !hasAny}
               className="flex w-full items-center justify-between rounded-lg border border-[rgb(var(--id-border))] bg-white px-3 py-2 text-sm shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span className="truncate">
-                {selected ? presetLabel(selected) : 'Choose a saved layout'}
+                {selected ? entryLabel(selected) : 'Choose a Quick Preset or Layout'}
               </span>
               <span aria-hidden>▾</span>
             </button>
 
-            {open && presets && presets.length > 0 && (
+            {open && hasAny && (
               <div
-                className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white p-1 shadow-lg ring-1 ring-gray-200 max-h-44 overflow-y-auto"
+                className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white p-1 shadow-lg ring-1 ring-gray-200 max-h-64 overflow-y-auto"
                 role="menu"
               >
-                {presets.map((p) => (
-                  <button
-                    key={`${p.kind}/${p.slot}`}
-                    type="button"
-                    onClick={() => handleChoose(p)}
-                    className="flex w-full items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-gray-50 text-gray-800"
-                    role="menuitem"
-                    title={p.path}
-                  >
-                    <span>{presetLabel(p)}</span>
-                    <span className="ml-2 text-[10px] uppercase tracking-wide text-gray-400">
-                      slot {p.slot}
-                    </span>
-                  </button>
-                ))}
-                <div className="sticky bottom-0 mt-1 h-px bg-gray-200" />
+                {quickpresets && quickpresets.length > 0 && (
+                  <>
+                    <div className="px-2 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                      Quick Presets
+                    </div>
+                    {quickpresets.map((q) => {
+                      const e: DropdownEntry = {
+                        type: 'qp', slot: q.slot, name: q.name, layoutCount: q.layoutCount,
+                      }
+                      return (
+                        <button
+                          key={entryKey(e)}
+                          type="button"
+                          onClick={() => handleChoose(e)}
+                          className="flex w-full items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-gray-50 text-gray-800"
+                          role="menuitem"
+                          title={q.path}
+                        >
+                          <span className="flex items-center gap-1.5 truncate">
+                            <span aria-hidden className="text-purple-500">⚡</span>
+                            <span className="truncate">{q.name}</span>
+                          </span>
+                          <span className="ml-2 shrink-0 text-[10px] uppercase tracking-wide text-gray-400">
+                            {q.layoutCount} layout{q.layoutCount === 1 ? '' : 's'}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </>
+                )}
+
+                {layouts && layouts.length > 0 && (
+                  <>
+                    {quickpresets && quickpresets.length > 0 && (
+                      <div className="my-1 h-px bg-gray-100" />
+                    )}
+                    <div className="px-2 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                      Layouts
+                    </div>
+                    {layouts.map((p) => {
+                      const e: DropdownEntry = { type: 'layout', layout: p }
+                      return (
+                        <button
+                          key={entryKey(e)}
+                          type="button"
+                          onClick={() => handleChoose(e)}
+                          className="flex w-full items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-gray-50 text-gray-800"
+                          role="menuitem"
+                          title={p.path}
+                        >
+                          <span>{entryLabel(e)}</span>
+                          <span className="ml-2 text-[10px] uppercase tracking-wide text-gray-400">
+                            slot {p.slot}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -176,7 +294,13 @@ export default function MonitorSelector() {
             onClick={onApply}
             disabled={!selected || isApplying}
             className="shrink-0 rounded-md bg-sky-600 px-3 py-2 text-xs font-semibold text-white shadow hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
-            title={selected ? `POST /presets/run kind=${selected.kind} slot=${selected.slot}` : 'Pick a preset first'}
+            title={
+              selected
+                ? selected.type === 'qp'
+                  ? `POST /quickpresets/run slot=${selected.slot}`
+                  : `POST /presets/run kind=${selected.layout.kind} slot=${selected.layout.slot}`
+                : 'Pick a preset first'
+            }
           >
             {isApplying ? '…' : '▶ Apply'}
           </button>
@@ -272,6 +396,10 @@ export default function MonitorSelector() {
 
         <DisplayArray />
       </div>
+
+      {qpManagerOpen && (
+        <QuickPresetsManager onClose={() => setQpManagerOpen(false)} />
+      )}
     </aside>
   )
 }
