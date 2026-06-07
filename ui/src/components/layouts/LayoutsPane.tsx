@@ -50,6 +50,7 @@ export default function LayoutsPane() {
   const {
     monitors, replaceGridMulti,
     assignmentsByMonitor, assignedCountTotal,
+    argsOverridesByMonitor,
   } = useAppState();
   // Resolve a monitor id ("m{N}") to the agent's 1-based index N.
   const monitorIdToIndex = (id: string) => {
@@ -118,7 +119,7 @@ export default function LayoutsPane() {
       const switchTo = parsed.firstMonitorId && monitors.some(mm => mm.id === parsed.firstMonitorId)
         ? parsed.firstMonitorId
         : undefined;
-      replaceGridMulti(parsed.cellsByMonitorId, switchTo);
+      replaceGridMulti(parsed.cellsByMonitorId, switchTo, parsed.argsByMonitorId);
       const totalCells = Object.values(parsed.cellsByMonitorId)
         .reduce((sum, c) => sum + Object.keys(c).length, 0);
       const monList = parsed.monitorsUsed.map(n => `M${n}`).join(", ");
@@ -164,6 +165,7 @@ export default function LayoutsPane() {
     const cellsByMonitorIdAny = assignmentsByMonitor as Record<string, Record<string, string | null>>;
     const built = buildSaveAssignmentsMulti(
       cellsByMonitorIdAny, monitorIdToIndex, monitorIdToLabel, GRID_COLS, GRID_ROWS,
+      argsOverridesByMonitor,
     );
     if (built.errors.length > 0) {
       flash({ kind: "err", msg: built.errors[0] });

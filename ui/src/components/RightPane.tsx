@@ -7,6 +7,9 @@ import SettingsPane from "./settings/SettingsPane";
 /* App state (grid selection, assign/unassign, URL builder state, etc.) */
 import { useAppState } from "../state/AppState";
 
+/* App catalog — used to surface the default args hint under the per-cell override input */
+import { APP_CATALOG } from "../services/appsCatalog";
+
 /* Favorites + History services (persisted storage) */
 import {
   listFavorites,
@@ -171,7 +174,47 @@ type AppsHistoryRow = {
 };
 
 function AppsAppsPane() {
-  const { selection, selectedApp, setSelectedApp, assignSelected, unassignSelected } = useAppState();
+  const {
+    selection, selectedApp, setSelectedApp,
+    assignSelected, unassignSelected,
+    argsForSelection, hasMixedArgsInSelection, setArgsForSelection,
+    assignments,
+  } = useAppState();
+
+  /* ---------------------------------------------------------------------- */
+  /* Per-cell args override input — lets two regions of the same app launch */
+  /* with different parameters (e.g. two File Explorer windows opened on    */
+  /* different folders). Pre-fills from whatever the selected cells already */
+  /* carry; "" reverts to the catalog default for that app.                 */
+  /* ---------------------------------------------------------------------- */
+  const [argsDraft, setArgsDraft] = useState<string>("");
+  const [argsDirty, setArgsDirty] = useState<boolean>(false);
+  // When the selection changes, pull the canonical value back into the input
+  // (unless the user has unsaved edits in flight).
+  useEffect(() => {
+    if (argsDirty) return;
+    setArgsDraft(argsForSelection);
+  }, [argsForSelection, argsDirty]);
+  const onArgsChange = (v: string) => { setArgsDraft(v); setArgsDirty(true); };
+  const onArgsApply = () => { setArgsForSelection(argsDraft); setArgsDirty(false); };
+  const onArgsClear = () => { setArgsForSelection(""); setArgsDraft(""); setArgsDirty(false); };
+
+  // Figure out a default-args hint for the selected cells. Prefer the app
+  // bound to the first selected cell so the hint reflects what's actually
+  // on the grid (not just what's currently armed in the app picker).
+  const appsInSelection = useMemo(() => {
+    const set = new Set<string>();
+    selection.forEach((k) => { const a = assignments[k]; if (a) set.add(a); });
+    return [...set];
+  }, [selection, assignments]);
+  const hintApp =
+    appsInSelection.length === 1 ? appsInSelection[0] :
+    appsInSelection.length === 0 ? (selectedApp ?? null) :
+    null; // mixed apps in selection — don't claim a default
+  const hintCatalogArgs = useMemo(() => {
+    if (!hintApp) return null;
+    return APP_CATALOG.find(e => e.id === hintApp)?.args ?? null;
+  }, [hintApp]);
 
   /* UI state */
   const [query, setQuery] = useState("");
@@ -377,6 +420,62 @@ function AppsAppsPane() {
             </GhostBtn>
           </div>
         </div>
+
+        {/* Per-cell args override — only shown when there's a selection.
+            Lets two regions of the same app launch with different args
+            (e.g., two File Explorer windows pointed at different folders). */}
+        {selCount > 0 && (
+          <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-2">
+            <div className="mb-1 flex items-center justify-between">
+              <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                Launch args for selection
+                {hasMixedArgsInSelection && (
+                  <span className="ml-1 normal-case tracking-normal text-amber-600">
+                    (mixed)
+                  </span>
+                )}
+              </label>
+              {argsForSelection && (
+                <button
+                  type="button"
+                  onClick={onArgsClear}
+                  className="text-[10px] text-slate-500 hover:text-red-600"
+                  title="Clear override → revert these cells to the app's default args"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                value={argsDraft}
+                onChange={(e) => onArgsChange(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') onArgsApply() }}
+                placeholder={
+                  hasMixedArgsInSelection
+                    ? "Mixed — type to overwrite all selected cells"
+                    : 'e.g. "C:\\Downloads" for File Explorer'
+                }
+                className="h-7 flex-1 rounded-md border border-slate-200 bg-white px-2 text-[11px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-300"
+              />
+              <PrimaryBtn
+                onClick={onArgsApply}
+                disabled={!argsDirty}
+                className="h-7 px-3 text-[11px]"
+              >
+                Apply
+              </PrimaryBtn>
+            </div>
+            <div className="mt-1 text-[10px] text-slate-500">
+              {hintApp && hintCatalogArgs
+                ? <>Replaces app default <code className="rounded bg-slate-200 px-1">{hintCatalogArgs}</code>. Include it in your override if you still need it.</>
+                : hintApp
+                  ? <>App default is empty. Whatever you type here is appended to the launch command.</>
+                  : <>Differentiates two regions of the same app (e.g. two File Explorer windows on distinct folders).</>}
+            </div>
+          </div>
+        )}
 
         {/* Search */}
         <div className="mt-3">

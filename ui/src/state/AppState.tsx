@@ -167,13 +167,32 @@ type AppStateContext = {
   // bulk replace (used by "Load Layout" to rehydrate from a saved preset).
   // replaceGrid replaces ONE monitor's cells; replaceGridMulti replaces
   // multiple monitors at once and switches the selector to `switchTo`.
-  replaceGrid: (cells: Record<string, string>, monitorId?: string) => void
-  replaceGridMulti: (cellsByMonitorId: Record<string, Record<string, string>>, switchTo?: string) => void
+  replaceGrid: (
+    cells: Record<string, string>,
+    monitorId?: string,
+    argsOverrides?: Record<string, string>,
+  ) => void
+  replaceGridMulti: (
+    cellsByMonitorId: Record<string, Record<string, string>>,
+    switchTo?: string,
+    argsByMonitorId?: Record<string, Record<string, string>>,
+  ) => void
 
   // multi-monitor read access — the saved-layout flow needs the assignments
   // map for ALL monitors, not just the visible one.
   assignmentsByMonitor: Record<string, Assignments>
   assignedCountTotal: number
+
+  // Per-cell args overrides — parallel map keyed by monitor, then cell.
+  // Lets two regions of the same app (e.g., two File Explorer windows)
+  // differentiate via distinct launch args ("C:\Downloads" vs "D:\Projects").
+  // Empty string / missing entry = use the catalog default.
+  argsOverridesByMonitor: Record<string, Record<string, string>>
+  // The args value currently shared by the selection's cells, or "" if the
+  // selection spans cells with mixed/no overrides. Editable via setArgs.
+  argsForSelection: string
+  hasMixedArgsInSelection: boolean
+  setArgsForSelection: (args: string) => void
 
   // monitors + presets
   monitors: Monitor[]
@@ -216,8 +235,12 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   // Per-monitor assignments: each monitor keeps its own grid configuration.
   // The visible `assignments` derived below is the current monitor's slice.
   const [assignmentsByMonitor, setAssignmentsByMonitor] = useState<Record<string, Assignments>>({})
+  // Parallel per-monitor map for cell args overrides. Sparse: only cells
+  // with a non-default override appear here.
+  const [argsOverridesByMonitor, setArgsOverridesByMonitor] = useState<Record<string, Record<string, string>>>({})
   const [selectedApp, setSelectedApp] = useState<AppId | null>(null)
   const [clipboard, setClipboard] = useState<Assignments | null>(null)
+  const [clipboardArgs, setClipboardArgs] = useState<Record<string, string> | null>(null)
 
   // drag bookkeeping
   const isDraggingRef = useRef(false)
@@ -278,6 +301,9 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   const setCurrentMonitorAssignments = (next: Assignments) => {
     setAssignmentsByMonitor((prev) => ({ ...prev, [currentMonitorId]: next }))
   }
+  const setCurrentMonitorArgs = (next: Record<string, string>) => {
+    setArgsOverridesByMonitor((prev) => ({ ...prev, [currentMonitorId]: next }))
+  }
 
   const assignSelected = () => {
     if (!selectedApp) return
@@ -287,23 +313,42 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   }
   const unassignSelected = () => {
     const next: Assignments = { ...assignments }
-    selection.forEach((k) => { next[k] = null })
+    const nextArgs = { ...(argsOverridesByMonitor[currentMonitorId] ?? {}) }
+    selection.forEach((k) => {
+      next[k] = null
+      delete nextArgs[k]   // unassigning a cell clears its override too
+    })
     setCurrentMonitorAssignments(next)
+    setCurrentMonitorArgs(nextArgs)
   }
 
-  const clearGrid = () => setCurrentMonitorAssignments(makeEmptyAssignments())
-  const copyGrid = () => setClipboard({ ...assignments })
-  const pasteGrid = () => clipboard && setCurrentMonitorAssignments({ ...clipboard })
+  const clearGrid = () => {
+    setCurrentMonitorAssignments(makeEmptyAssignments())
+    setCurrentMonitorArgs({})
+  }
+  const copyGrid = () => {
+    setClipboard({ ...assignments })
+    setClipboardArgs({ ...(argsOverridesByMonitor[currentMonitorId] ?? {}) })
+  }
+  const pasteGrid = () => {
+    if (clipboard) setCurrentMonitorAssignments({ ...clipboard })
+    if (clipboardArgs) setCurrentMonitorArgs({ ...clipboardArgs })
+  }
 
   // Replace ONE monitor's grid. Cells outside the provided map are cleared.
   // If monitorId is given, switch the selector after the write.
-  const replaceGrid = (cells: Record<string, string>, monitorId?: string) => {
+  const replaceGrid = (
+    cells: Record<string, string>,
+    monitorId?: string,
+    argsOverrides?: Record<string, string>,
+  ) => {
     const next = makeEmptyAssignments()
     for (const [k, app] of Object.entries(cells)) {
       if (k in next) next[k] = app as AppId
     }
     const targetId = monitorId ?? currentMonitorId
     setAssignmentsByMonitor((prev) => ({ ...prev, [targetId]: next }))
+    setArgsOverridesByMonitor((prev) => ({ ...prev, [targetId]: { ...(argsOverrides ?? {}) } }))
     setSelection(new Set())
     if (monitorId) setCurrentMonitorId(monitorId)
   }
@@ -314,18 +359,45 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   const replaceGridMulti = (
     cellsByMonitorId: Record<string, Record<string, string>>,
     switchTo?: string,
+    argsByMonitorId?: Record<string, Record<string, string>>,
   ) => {
     const next: Record<string, Assignments> = {}
+    const nextArgs: Record<string, Record<string, string>> = {}
     for (const [monId, cells] of Object.entries(cellsByMonitorId)) {
       const a: Assignments = makeEmptyAssignments()
       for (const [k, app] of Object.entries(cells)) {
         if (k in a) a[k] = app as AppId
       }
       next[monId] = a
+      nextArgs[monId] = { ...((argsByMonitorId ?? {})[monId] ?? {}) }
     }
     setAssignmentsByMonitor(next)
+    setArgsOverridesByMonitor(nextArgs)
     setSelection(new Set())
     if (switchTo) setCurrentMonitorId(switchTo)
+  }
+
+  /* ---------- Per-cell args overrides ---------- */
+  // Derived view: what args string the current selection shares (or "" if
+  // it's empty / mixed). Used by RightPane's args input to show "current".
+  const { argsForSelection, hasMixedArgsInSelection } = useMemo(() => {
+    if (selection.size === 0) return { argsForSelection: '', hasMixedArgsInSelection: false }
+    const overrides = argsOverridesByMonitor[currentMonitorId] ?? {}
+    const values = new Set<string>()
+    selection.forEach((k) => { values.add(overrides[k] ?? '') })
+    if (values.size === 1) return { argsForSelection: values.values().next().value ?? '', hasMixedArgsInSelection: false }
+    return { argsForSelection: '', hasMixedArgsInSelection: true }
+  }, [selection, argsOverridesByMonitor, currentMonitorId])
+
+  const setArgsForSelection = (args: string) => {
+    if (selection.size === 0) return
+    const nextArgs = { ...(argsOverridesByMonitor[currentMonitorId] ?? {}) }
+    const trimmed = args.trim()
+    selection.forEach((k) => {
+      if (trimmed === '') delete nextArgs[k]
+      else nextArgs[k] = trimmed
+    })
+    setCurrentMonitorArgs(nextArgs)
   }
 
   /* ---------- Monitors + presets (state declared above grid ops) ---------- */
@@ -418,6 +490,10 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     replaceGridMulti,
     assignmentsByMonitor,
     assignedCountTotal,
+    argsOverridesByMonitor,
+    argsForSelection,
+    hasMixedArgsInSelection,
+    setArgsForSelection,
 
     // monitors + presets
     monitors,
@@ -443,6 +519,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     setOpenMode,
   }), [
     selection, assignments, assignmentsByMonitor, assignedCountTotal,
+    argsOverridesByMonitor, argsForSelection, hasMixedArgsInSelection,
     selectedApp, clipboard,
     monitors, currentMonitorId, presets, pendingPresetByMonitor,
     urlBuilder, browsers

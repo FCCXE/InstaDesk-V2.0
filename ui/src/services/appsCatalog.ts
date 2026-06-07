@@ -28,6 +28,12 @@ export type AppCatalogEntry = {
 export const APP_CATALOG: AppCatalogEntry[] = [
   { id: "Notepad", category: "Text", dot: "bg-slate-400", fill: "bg-slate-100", ring: "border-slate-400",
     program: "C:\\Windows\\System32\\notepad.exe" },
+  // File Explorer differentiates instances by the target folder path passed
+  // as an argument. Use the per-cell args override (Apps tab) to set e.g.
+  // "C:\Downloads" on one region and "D:\Projects" on another — same app,
+  // two distinct windows that the agent can tile independently.
+  { id: "File Explorer", category: "System", dot: "bg-yellow-500", fill: "bg-yellow-50", ring: "border-yellow-500",
+    program: "C:\\Windows\\explorer.exe" },
   { id: "Outlook", category: "Communication", dot: "bg-emerald-500", fill: "bg-emerald-50", ring: "border-emerald-500",
     program: "%ProgramFiles%\\Microsoft Office\\root\\Office16\\OUTLOOK.EXE", singleInstance: true },
   { id: "Chrome",  category: "Browser",       dot: "bg-sky-500",     fill: "bg-sky-50",     ring: "border-sky-500",
