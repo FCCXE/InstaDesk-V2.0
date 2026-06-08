@@ -179,4 +179,24 @@ export const api = {
     request<{ ok: boolean; deleted: string }>('DELETE', '/quickpresets/delete', { slot }),
   quickPresetsRun: (slot: string) =>
     request<QuickPresetRunResponse>('POST', '/quickpresets/run', { slot }),
+
+  // ---- Quick Snap (Divvy-style ad-hoc) ----
+  // Opens a native overlay popup on the target monitor. The agent finds
+  // the last-focused non-InstaDesk window, the user drags a rectangle on
+  // the popup's grid, and the window snaps. Server request blocks until
+  // user commits or cancels — give it a long timeout.
+  snapPopup: (monitor: number, gridSize = '6x6') =>
+    request<{
+      exitCode: number
+      result: {
+        ok?: boolean
+        cancelled?: boolean
+        targetTitle?: string
+        monitor?: number
+        snapped?: { x: number; y: number; w: number; h: number }
+        error?: string
+      }
+      stdout: string
+      stderr: string
+    }>('POST', '/snap/popup', { monitor, gridSize }),
 }
