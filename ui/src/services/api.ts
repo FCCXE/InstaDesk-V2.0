@@ -194,6 +194,12 @@ export const api = {
         targetTitle?: string
         monitor?: number
         snapped?: { x: number; y: number; w: number; h: number }
+        // True iff the app's final WindowRect matched the requested tile.
+        // False when the app moved itself back after our SetWindowPos —
+        // e.g. Hikvision iVMS-4200, certain CCTV / video apps with their
+        // own placement enforcement.
+        placementVerified?: boolean
+        placementMismatch?: string
         error?: string
       }
       stdout: string

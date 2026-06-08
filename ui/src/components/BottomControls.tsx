@@ -24,6 +24,7 @@ type SnapState =
   | { kind: 'idle' }
   | { kind: 'busy' }
   | { kind: 'ok'; msg: string }
+  | { kind: 'warn'; msg: string }
   | { kind: 'cancelled' }
   | { kind: 'err'; msg: string }
 
@@ -54,6 +55,18 @@ export default function BottomControls() {
       }
       if (r?.ok && r.snapped) {
         const s = r.snapped
+        // placementVerified=false means the agent positioned the window
+        // but the app moved itself back (Hikvision iVMS-4200 et al.).
+        // Surface as warn (amber) so the operator knows the snap didn't
+        // actually take effect even though the request itself succeeded.
+        if (r.placementVerified === false) {
+          setSnapState({
+            kind: 'warn',
+            msg: `"${r.targetTitle ?? '?'}" rejected snap — app enforces own placement. Try closing and relaunching it first.`,
+          })
+          window.setTimeout(() => setSnapState({ kind: 'idle' }), 7000)
+          return
+        }
         setSnapState({
           kind: 'ok',
           msg: `Snapped "${r.targetTitle ?? '?'}" → M${r.monitor ?? currentMonitorIndex} ${s.x},${s.y},${s.w}×${s.h}`,
@@ -75,12 +88,14 @@ export default function BottomControls() {
   const statusText =
     snapState.kind === 'busy' ? 'Pick a region in the popup window…' :
     snapState.kind === 'ok' ? snapState.msg :
+    snapState.kind === 'warn' ? `⚠ ${snapState.msg}` :
     snapState.kind === 'cancelled' ? 'Snap cancelled' :
     snapState.kind === 'err' ? `Snap error: ${snapState.msg}` :
     idleStatus
 
   const statusColor =
     snapState.kind === 'err' ? 'text-red-600' :
+    snapState.kind === 'warn' ? 'text-amber-700 font-medium' :
     snapState.kind === 'ok' ? 'text-emerald-600' :
     snapState.kind === 'cancelled' ? 'text-amber-600' :
     snapState.kind === 'busy' ? 'text-sky-600' :
