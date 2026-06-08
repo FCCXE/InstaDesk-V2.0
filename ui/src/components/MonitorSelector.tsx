@@ -184,27 +184,35 @@ export default function MonitorSelector() {
       {/*  QUICK PRESETS                                       */}
       {/* ---------------------------------------------------- */}
       <div className="mb-6">
-        <div className="mb-2 flex items-center justify-between">
-          <div className="text-[13px] font-semibold text-gray-700">Quick Presets</div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setQpManagerOpen(true)}
-              className="text-[11px] text-sky-600 hover:text-sky-800"
-              title="Compose, rename, and delete Quick Presets"
-            >
-              Manage QPs
-            </button>
-            <span className="text-gray-300">·</span>
-            <button
-              type="button"
-              onClick={onOpenLayoutsTab}
-              className="text-[11px] text-sky-600 hover:text-sky-800"
-              title="Open the Layouts tab"
-            >
-              Layouts
-            </button>
-          </div>
+        {/* Title row — Quick Presets label */}
+        <div className="mb-2 flex items-center">
+          <div className="text-[14px] font-semibold text-gray-800">Quick Presets</div>
+        </div>
+
+        {/* Action buttons row — proper buttons (not tertiary text links).
+            'Manage QPs' is the primary entry point to compose / rename /
+            delete Quick Preset bundles; gets a filled sky-blue pill.
+            'Layouts ↗' is a secondary cross-link to the Layouts tab on
+            the right pane; ghost-styled but still clearly clickable. */}
+        <div className="mb-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setQpManagerOpen(true)}
+            className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-sky-300 bg-sky-50 px-3 text-[12px] font-semibold text-sky-700 shadow-sm hover:bg-sky-100 hover:border-sky-400"
+            title="Compose, rename, and delete Quick Presets (bundles of Layouts)"
+          >
+            <span aria-hidden>⚡</span>
+            Manage QPs
+          </button>
+          <button
+            type="button"
+            onClick={onOpenLayoutsTab}
+            className="flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 text-[12px] font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400"
+            title="Open the Layouts tab on the right pane"
+          >
+            Layouts
+            <span aria-hidden className="text-gray-400">↗</span>
+          </button>
         </div>
 
         <div className="flex items-center gap-2">
