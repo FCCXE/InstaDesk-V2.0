@@ -220,6 +220,18 @@ function AppsAppsPane() {
   const [query, setQuery] = useState("");
   const [editMode, setEditMode] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  // Which URL Group rows are currently expanded to reveal their URL list.
+  // Set of group ids. Local-only UI state — purely ephemeral, fine to lose
+  // on tab switch (App History list is the only place this matters).
+  const [expandedUrlGroups, setExpandedUrlGroups] = useState<Set<string>>(new Set());
+  const toggleUrlGroupExpanded = (groupId: string) => {
+    setExpandedUrlGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  };
 
   /* Seeds (visual) — expanded so you see the scrollbar immediately */
   const SEEDS = useMemo(
@@ -505,53 +517,112 @@ function AppsAppsPane() {
               ? r.favorite!.pathOrUrl
               : (isCustom && r.path ? r.path : undefined);
 
+            const isExpanded = isUrlGroup && expandedUrlGroups.has(r.urlGroup!.id);
+
             return (
               <div
                 key={`${r.category}:${r.id}`}
                 className={[
-                  "flex items-center justify-between rounded-md px-3 py-2 text-left text-sm",
+                  "rounded-md text-left text-sm",
                   active ? "bg-sky-50 text-slate-800 ring-1 ring-sky-200" : "text-slate-700 hover:bg-slate-50",
                 ].join(" ")}
-                title={title}
               >
-                <button
-                  onClick={() => setSelectedApp(active ? null : (r.label as any))}
-                  className="flex w-full items-center justify-between focus:outline-none"
-                  aria-pressed={active}
-                  title={title}
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className={`inline-block h-2 w-2 rounded-full ${r.dot}`} />
-                    {isUrlGroup && <span className="text-[12px]">🔗</span>}
-                    {isFavorite && <span className="text-[12px] text-amber-500">★</span>}
-                    <span className="truncate font-medium">{r.label}</span>
-                  </div>
-                  <div className="ml-2 flex items-center gap-2">
-                    <span className="text-xs text-slate-500">{r.category}</span>
-                    {isCustom && (
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600 ring-1 ring-slate-200">
-                        Custom
-                      </span>
-                    )}
-                    {isUrlGroup && (
-                      <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] text-cyan-700 ring-1 ring-cyan-200">
-                        URL Group
-                      </span>
-                    )}
-                    {isFavorite && (
-                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700 ring-1 ring-amber-200">
-                        Favorite
-                      </span>
-                    )}
-                  </div>
-                </button>
+                <div className="flex items-center justify-between px-3 py-2" title={title}>
+                  <button
+                    onClick={() => setSelectedApp(active ? null : (r.label as any))}
+                    className="flex min-w-0 flex-1 items-center justify-between focus:outline-none"
+                    aria-pressed={active}
+                    title={title}
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className={`inline-block h-2 w-2 rounded-full ${r.dot}`} />
+                      {isUrlGroup && <span className="text-[12px]">🔗</span>}
+                      {isFavorite && <span className="text-[12px] text-amber-500">★</span>}
+                      <span className="truncate font-medium">{r.label}</span>
+                    </div>
+                    <div className="ml-2 flex items-center gap-2">
+                      <span className="text-xs text-slate-500">{r.category}</span>
+                      {isCustom && (
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600 ring-1 ring-slate-200">
+                          Custom
+                        </span>
+                      )}
+                      {isUrlGroup && (
+                        <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] text-cyan-700 ring-1 ring-cyan-200">
+                          {r.urlGroup!.urls.length} URL{r.urlGroup!.urls.length === 1 ? "" : "s"}
+                        </span>
+                      )}
+                      {isFavorite && (
+                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700 ring-1 ring-amber-200">
+                          Favorite
+                        </span>
+                      )}
+                    </div>
+                  </button>
 
-                {editMode && (isCustom || isUrlGroup || isFavorite) ? (
-                  <GhostBtn onClick={() => onDeleteCustom(r)} className="ml-3 h-7 whitespace-nowrap px-2">
-                    🗑 Delete
-                  </GhostBtn>
-                ) : (
-                  <div className="h-7 w-[64px]" />
+                  {/* URL Group expand/collapse chevron — lets the user view
+                      every URL the group will open, so duplicates across
+                      groups can be spotted before assigning. stopPropagation
+                      so the click doesn't toggle the row's selection. */}
+                  {isUrlGroup && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); toggleUrlGroupExpanded(r.urlGroup!.id); }}
+                      className={[
+                        "ml-2 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-xs leading-none transition-transform duration-150",
+                        isExpanded
+                          ? "rotate-90 border-cyan-300 bg-cyan-50 text-cyan-700"
+                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100",
+                      ].join(" ")}
+                      title={isExpanded ? "Hide URLs in this group" : "Show URLs in this group"}
+                      aria-expanded={isExpanded}
+                      aria-label={isExpanded ? "Collapse URLs" : "Expand URLs"}
+                    >
+                      ▸
+                    </button>
+                  )}
+
+                  {editMode && (isCustom || isUrlGroup || isFavorite) ? (
+                    <GhostBtn onClick={() => onDeleteCustom(r)} className="ml-2 h-7 whitespace-nowrap px-2">
+                      🗑 Delete
+                    </GhostBtn>
+                  ) : (
+                    <div className="h-7 w-[64px]" />
+                  )}
+                </div>
+
+                {/* Expanded URL list — shown only when the chevron is open.
+                    Read-only inline view of every URL the group will open,
+                    with the browser name on top. Click a URL to copy. */}
+                {isUrlGroup && isExpanded && (
+                  <div className="border-t border-slate-200 bg-slate-50/60 px-3 py-2">
+                    <div className="mb-1 text-[10px] uppercase tracking-wide text-slate-500">
+                      Browser: <span className="font-mono text-cyan-700">{r.urlGroup!.browser}</span>
+                      <span className="ml-2 text-slate-400">• {r.urlGroup!.urls.length} URL{r.urlGroup!.urls.length === 1 ? "" : "s"}</span>
+                    </div>
+                    {r.urlGroup!.urls.length === 0 ? (
+                      <div className="text-[11px] italic text-slate-400">(empty group)</div>
+                    ) : (
+                      <ol className="space-y-1">
+                        {r.urlGroup!.urls.map((u, i) => (
+                          <li key={`${r.urlGroup!.id}-${i}`} className="flex items-baseline gap-2">
+                            <span className="shrink-0 select-none text-[10px] font-mono text-slate-400">{i + 1}.</span>
+                            <button
+                              type="button"
+                              className="min-w-0 flex-1 truncate text-left text-[11px] text-slate-700 hover:text-cyan-700"
+                              title={`Click to copy: ${u}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                try { navigator.clipboard.writeText(u); } catch {}
+                              }}
+                            >
+                              {u}
+                            </button>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </div>
                 )}
               </div>
             );
