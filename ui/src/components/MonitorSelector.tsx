@@ -33,11 +33,6 @@ export default function MonitorSelector() {
 
   const current = monitors.find((m) => m.id === currentMonitorId)!
   const activeCount = monitors.filter((m) => m.active).length
-  // The agent expects 1-based monitor indices; AppState uses "m{N}" ids.
-  const currentMonitorIndex = React.useMemo(() => {
-    const match = currentMonitorId.match(/^m(\d+)$/)
-    return match ? parseInt(match[1], 10) : 1
-  }, [currentMonitorId])
 
   /* -------------------- Quick Presets + Layouts (real data) -------------------- */
   const [layouts, setLayouts] = useState<PresetListItem[] | null>(null)
@@ -410,81 +405,9 @@ export default function MonitorSelector() {
         <DisplayArray />
       </div>
 
-      {/* ---------------------------------------------------- */}
-      {/*  QUICK SNAP — Divvy-style ad-hoc window snap          */}
-      {/* ---------------------------------------------------- */}
-      <QuickSnapSection currentMonitorIndex={currentMonitorIndex} />
-
       {qpManagerOpen && (
         <QuickPresetsManager onClose={() => setQpManagerOpen(false)} />
       )}
     </aside>
-  )
-}
-
-type SnapState =
-  | { kind: 'idle' }
-  | { kind: 'busy' }
-  | { kind: 'ok'; msg: string }
-  | { kind: 'cancelled' }
-  | { kind: 'err'; msg: string }
-
-function QuickSnapSection({ currentMonitorIndex }: { currentMonitorIndex: number }) {
-  const [state, setState] = React.useState<SnapState>({ kind: 'idle' })
-
-  const onSnap = async () => {
-    setState({ kind: 'busy' })
-    try {
-      const res = await api.snapPopup(currentMonitorIndex, '6x6')
-      const r = res.result
-      if (r?.cancelled) {
-        setState({ kind: 'cancelled' })
-        window.setTimeout(() => setState({ kind: 'idle' }), 3000)
-        return
-      }
-      if (r?.ok && r.snapped) {
-        const s = r.snapped
-        setState({
-          kind: 'ok',
-          msg: `Snapped "${r.targetTitle ?? '?'}" → M${r.monitor ?? currentMonitorIndex} grid ${s.x},${s.y},${s.w}×${s.h}`,
-        })
-        window.setTimeout(() => setState({ kind: 'idle' }), 4000)
-        return
-      }
-      setState({ kind: 'err', msg: r?.error ?? `Exit code ${res.exitCode}` })
-    } catch (e) {
-      setState({ kind: 'err', msg: (e as Error).message })
-    }
-  }
-
-  const busy = state.kind === 'busy'
-  const statusText =
-    state.kind === 'busy' ? 'Pick a region in the popup window…' :
-    state.kind === 'ok' ? state.msg :
-    state.kind === 'cancelled' ? 'Snap cancelled.' :
-    state.kind === 'err' ? `Error: ${state.msg}` :
-    'Snaps the last-focused window to a region of the selected monitor.'
-  const statusColor =
-    state.kind === 'err' ? 'text-red-600' :
-    state.kind === 'ok' ? 'text-emerald-600' :
-    state.kind === 'cancelled' ? 'text-amber-600' :
-    state.kind === 'busy' ? 'text-sky-600' :
-    'text-gray-500'
-
-  return (
-    <div className="mt-4 border-t border-[rgb(var(--id-border))] pt-4">
-      <div className="mb-2 text-[13px] font-semibold text-gray-700">Quick Snap</div>
-      <button
-        type="button"
-        onClick={onSnap}
-        disabled={busy}
-        className="flex h-9 w-full items-center justify-center gap-2 rounded-md border border-violet-300 bg-violet-50 px-3 text-[13px] font-semibold text-violet-700 shadow-sm hover:bg-violet-100 hover:border-violet-400 disabled:cursor-wait disabled:opacity-60"
-        title={`Open a grid popup on Monitor ${currentMonitorIndex}; drag to snap the last-focused window.`}
-      >
-        <span aria-hidden>📌</span>
-        {busy ? 'Pick region in popup…' : `Snap window to Monitor ${currentMonitorIndex}`}
-      </button>
-      <div className={`mt-2 text-[11px] ${statusColor}`}>{statusText}</div>
-    </div>
   )
 }
