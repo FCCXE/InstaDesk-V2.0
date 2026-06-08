@@ -194,6 +194,14 @@ type AppStateContext = {
   hasMixedArgsInSelection: boolean
   setArgsForSelection: (args: string) => void
 
+  // Which Layout the user is currently editing — set when they click Edit
+  // on a Layout card, cleared on Save/Cancel/+New. Lives in global state
+  // (not LayoutsPane local) so it survives Apps/Layouts tab toggles. The
+  // value is the Layout's card id (e.g. "general_B"); LayoutsPane derives
+  // kind+slot from this when saving back to that specific slot.
+  editingLayoutId: string | null
+  setEditingLayoutId: (id: string | null) => void
+
   // monitors + presets
   monitors: Monitor[]
   currentMonitorId: string
@@ -241,6 +249,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   const [selectedApp, setSelectedApp] = useState<AppId | null>(null)
   const [clipboard, setClipboard] = useState<Assignments | null>(null)
   const [clipboardArgs, setClipboardArgs] = useState<Record<string, string> | null>(null)
+  const [editingLayoutId, setEditingLayoutId] = useState<string | null>(null)
 
   // drag bookkeeping
   const isDraggingRef = useRef(false)
@@ -494,6 +503,8 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     argsForSelection,
     hasMixedArgsInSelection,
     setArgsForSelection,
+    editingLayoutId,
+    setEditingLayoutId,
 
     // monitors + presets
     monitors,
@@ -520,6 +531,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   }), [
     selection, assignments, assignmentsByMonitor, assignedCountTotal,
     argsOverridesByMonitor, argsForSelection, hasMixedArgsInSelection,
+    editingLayoutId,
     selectedApp, clipboard,
     monitors, currentMonitorId, presets, pendingPresetByMonitor,
     urlBuilder, browsers

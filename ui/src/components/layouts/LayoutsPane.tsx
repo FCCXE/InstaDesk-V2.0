@@ -51,6 +51,7 @@ export default function LayoutsPane() {
     monitors, replaceGridMulti,
     assignmentsByMonitor, assignedCountTotal,
     argsOverridesByMonitor,
+    editingLayoutId, setEditingLayoutId,
   } = useAppState();
   // Resolve a monitor id ("m{N}") to the agent's 1-based index N.
   const monitorIdToIndex = (id: string) => {
@@ -68,12 +69,10 @@ export default function LayoutsPane() {
   const [savingEdits, setSavingEdits] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
 
-  // Tracks which Layout was most recently loaded via the Edit button. Drives
-  // the inline "Save changes to Layout X" affordance below — one-click
-  // overwrite of that specific slot without re-typing slot letters or
-  // confirming overwrite prompts. Cleared when the user saves OR when they
-  // start a fresh layout via + New Layout.
-  const [editingLayoutId, setEditingLayoutId] = useState<string | null>(null);
+  // editingLayoutId now lives in AppState (lifted from local useState so it
+  // survives Apps↔Layouts tab toggles — RightPane unmounts the inactive
+  // pane on switch, which previously wiped local state on every toggle).
+  // Drives the amber "Save changes to Layout X" banner.
   const editingLayout = useMemo(
     () => (editingLayoutId && layouts) ? layouts.find(l => l.id === editingLayoutId) ?? null : null,
     [editingLayoutId, layouts]
