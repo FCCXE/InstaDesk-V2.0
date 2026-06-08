@@ -104,26 +104,8 @@ export default function BottomControls() {
   return (
     <div className="mt-4 h-12 border-t border-gray-200 bg-white px-3 flex items-center justify-between">
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={clearGrid}
-          disabled={assignedCount === 0}
-          className="px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
-          title={assignedCount > 0 ? `Clear all ${assignedCount} assigned cells` : 'Nothing to clear'}
-        >
-          Clear All
-        </button>
-        {['Copy Grid', 'Fill Grid'].map((label) => (
-          <button
-            key={label}
-            type="button"
-            disabled
-            className="px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-400 cursor-not-allowed"
-            title="Reserved for a future grid-utility action"
-          >
-            {label}
-          </button>
-        ))}
+        {/* Snap moves first — it's the most-used utility action and the
+            operator wanted it at the head of the row for muscle memory. */}
         <button
           type="button"
           onClick={onSnap}
@@ -140,12 +122,24 @@ export default function BottomControls() {
         </button>
         <button
           type="button"
-          disabled
-          className="px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-400 cursor-not-allowed"
-          title="Reserved for a future grid-utility action"
+          onClick={clearGrid}
+          disabled={assignedCount === 0}
+          className="px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+          title={assignedCount > 0 ? `Clear all ${assignedCount} assigned cells` : 'Nothing to clear'}
         >
-          Spacing
+          Clear All
         </button>
+        {['Copy Grid', 'Fill Grid', 'Spacing'].map((label) => (
+          <button
+            key={label}
+            type="button"
+            disabled
+            className="px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-400 cursor-not-allowed"
+            title="Reserved for a future grid-utility action"
+          >
+            {label}
+          </button>
+        ))}
       </div>
       <div className={`text-xs ${statusColor}`}>
         {statusText} <span className="ml-2 text-gray-400">• 1280×820</span>
