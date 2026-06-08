@@ -473,19 +473,26 @@ function LayoutCard({
       <div className="flex items-start gap-3">
         <DragDots />
         <div className="min-w-0 flex-1">
+          {/* Title row — name on its own line (whitespace-nowrap), badges
+              wrap below so a narrow pane + the 'editing' badge can't push
+              the Layout name to a second line awkwardly. */}
           <div className="flex items-center gap-2">
-            <div className="text-base font-semibold text-slate-800">{model.name}</div>
+            <div className="truncate text-base font-semibold text-slate-800" title={model.name}>
+              {model.name}
+            </div>
+            {isEditing && (
+              <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-amber-300 bg-amber-50 px-2 text-[10px] font-semibold text-amber-800">
+                ✎ editing
+              </span>
+            )}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <span className="inline-flex h-5 items-center rounded-full border border-slate-200 bg-slate-50 px-2 text-[10px] font-medium text-slate-600">
               {model.preset.kind}
             </span>
             <span className="inline-flex h-5 items-center rounded-full border border-sky-200 bg-sky-50 px-2 text-[10px] font-medium text-sky-700">
               slot {model.preset.slot.toUpperCase()}
             </span>
-            {isEditing && (
-              <span className="inline-flex h-5 items-center rounded-full border border-amber-300 bg-amber-50 px-2 text-[10px] font-semibold text-amber-800">
-                ✎ editing
-              </span>
-            )}
           </div>
 
           <div className="mt-2 truncate text-xs text-slate-500" title={model.preset.path}>
