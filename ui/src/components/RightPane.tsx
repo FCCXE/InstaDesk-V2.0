@@ -593,10 +593,18 @@ function AppsAppsPane() {
 
                 {/* Expanded URL list — shown only when the chevron is open.
                     Read-only inline view of every URL the group will open,
-                    with the browser name on top. Click a URL to copy. */}
+                    with the group NAME as a prominent header (so users can
+                    tell which group they're looking at when multiple panels
+                    are expanded and the row header has scrolled out of
+                    view), browser name on the next line, then the URLs.
+                    Click a URL to copy. */}
                 {isUrlGroup && isExpanded && (
-                  <div className="border-t border-slate-200 bg-slate-50/60 px-3 py-2">
-                    <div className="mb-1 text-[10px] uppercase tracking-wide text-slate-500">
+                  <div className="border-t border-cyan-200 bg-cyan-50/40 px-3 py-2">
+                    <div className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold text-cyan-900">
+                      <span aria-hidden>🔗</span>
+                      <span className="truncate" title={r.urlGroup!.name}>{r.urlGroup!.name}</span>
+                    </div>
+                    <div className="mb-1.5 text-[10px] uppercase tracking-wide text-slate-500">
                       Browser: <span className="font-mono text-cyan-700">{r.urlGroup!.browser}</span>
                       <span className="ml-2 text-slate-400">• {r.urlGroup!.urls.length} URL{r.urlGroup!.urls.length === 1 ? "" : "s"}</span>
                     </div>
