@@ -28,6 +28,12 @@ import {
   removeUrlGroup,
   type UrlGroup,
 } from "../services/UrlGroupsService";
+import {
+  listHiddenIds,
+  hideId as hideCatalogId,
+  showId as showCatalogId,
+  showAll as showAllCatalogIds,
+} from "../services/HiddenAppsService";
 
 /* Modals */
 import AddFavoriteModal from "./common/AddFavoriteModal";
@@ -171,6 +177,9 @@ type AppsHistoryRow = {
   path?: string;          // for Custom rows
   urlGroup?: UrlGroup;    // for URL Group rows
   favorite?: Favorite;    // for Favorite rows
+  // Catalog seed bookkeeping (only set on seed rows):
+  isHiddenSeed?: boolean; // true when revealHidden is on and the user previously hid this seed
+  seedId?: string;        // the catalog id, used to call hide/show services
 };
 
 function AppsAppsPane() {
@@ -280,6 +289,15 @@ function AppsAppsPane() {
     return () => window.removeEventListener("insta:favorites-changed", onChanged);
   }, []);
 
+  /* Catalog seeds the user has hidden — persistent in localStorage. Catalog
+     seeds are hardcoded in appsCatalog.ts so they can't be truly deleted,
+     but they can be hidden from this list. Restorable via the
+     "Show N hidden" toggle below. */
+  const [hiddenSeedIds, setHiddenSeedIds] = useState<Set<string>>(() => listHiddenIds());
+  // Reveal hidden seeds in the list (read-only) so the user can restore
+  // them in Edit mode. False = hidden seeds excluded from the rows array.
+  const [revealHidden, setRevealHidden] = useState(false);
+
   /* Rows */
   const rows: AppsHistoryRow[] = useMemo(() => {
     const groupRows: AppsHistoryRow[] = urlGroups.map((g) => ({
@@ -303,15 +321,22 @@ function AppsAppsPane() {
       dot: "bg-slate-500",
       path: h.path,
     }));
-    const seedRows: AppsHistoryRow[] = SEEDS.map((s) => ({
-      id: `seed:${s.id}`,
-      label: s.id,
-      category: s.category,
-      dot: s.dot,
-    }));
+    // Apply hidden-seeds filter. When revealHidden is on (e.g., from the
+    // "+ Show N hidden" toggle), include all seeds AND mark which are
+    // hidden so the row UI can show a "Hidden" pill + a "Restore" action.
+    const seedRows: AppsHistoryRow[] = SEEDS
+      .filter((s) => revealHidden || !hiddenSeedIds.has(s.id))
+      .map((s) => ({
+        id: `seed:${s.id}`,
+        label: s.id,
+        category: s.category,
+        dot: s.dot,
+        isHiddenSeed: hiddenSeedIds.has(s.id),
+        seedId: s.id,
+      }));
     // URL groups + Favorites first (most directly user-curated), then custom, then seeds.
     return [...groupRows, ...favRows, ...custom, ...seedRows];
-  }, [SEEDS, history, urlGroups, favorites]);
+  }, [SEEDS, history, urlGroups, favorites, hiddenSeedIds, revealHidden]);
 
   /* Filter */
   const filtered = useMemo(() => {
@@ -342,6 +367,26 @@ function AppsAppsPane() {
     setHistory(listHistory());
     setSelectedApp(null);
   };
+  // Hide a catalog seed from the App History list. Persistent across
+  // sessions via HiddenAppsService. The catalog entry itself is untouched —
+  // the seed can still be referenced by saved Layouts (via resolveAppTarget)
+  // and the user can restore it any time via the "Show N hidden" toggle.
+  const onHideSeed = (row: AppsHistoryRow) => {
+    if (!row.seedId) return;
+    hideCatalogId(row.seedId);
+    setHiddenSeedIds(listHiddenIds());
+    if (selectedApp === (row.label as any)) setSelectedApp(null);
+  };
+  const onShowSeed = (row: AppsHistoryRow) => {
+    if (!row.seedId) return;
+    showCatalogId(row.seedId);
+    setHiddenSeedIds(listHiddenIds());
+  };
+  const onShowAllHiddenSeeds = () => {
+    showAllCatalogIds();
+    setHiddenSeedIds(listHiddenIds());
+  };
+
   const onDeleteCustom = (row: AppsHistoryRow) => {
     // URL group rows — delete from UrlGroupsService.
     if (row.urlGroup) {
@@ -586,6 +631,26 @@ function AppsAppsPane() {
                     <GhostBtn onClick={() => onDeleteCustom(r)} className="ml-2 h-7 whitespace-nowrap px-2">
                       🗑 Delete
                     </GhostBtn>
+                  ) : editMode && r.seedId && !r.isHiddenSeed ? (
+                    <GhostBtn
+                      onClick={() => onHideSeed(r)}
+                      className="ml-2 h-7 whitespace-nowrap px-2"
+                      title={`Hide "${r.label}" from this list. Use "Show N hidden" below to bring it back. The catalog entry is preserved.`}
+                    >
+                      👁 Hide
+                    </GhostBtn>
+                  ) : editMode && r.seedId && r.isHiddenSeed ? (
+                    <GhostBtn
+                      onClick={() => onShowSeed(r)}
+                      className="ml-2 h-7 whitespace-nowrap border-emerald-200 bg-emerald-50 px-2 text-emerald-700 hover:bg-emerald-100"
+                      title={`Restore "${r.label}" to the list.`}
+                    >
+                      ↺ Restore
+                    </GhostBtn>
+                  ) : r.isHiddenSeed ? (
+                    <span className="ml-2 inline-flex h-7 items-center rounded-full bg-slate-200 px-2 text-[10px] italic text-slate-600">
+                      hidden
+                    </span>
                   ) : (
                     <div className="h-7 w-[64px]" />
                   )}
@@ -640,6 +705,37 @@ function AppsAppsPane() {
             <div className="px-3 py-8 text-center text-xs text-slate-500">No apps match your search.</div>
           )}
         </div>
+
+        {/* Hidden-seeds toggle row — visible only when there are hidden
+            catalog apps to manage. Reveals them inline in the list above
+            (with "hidden" pills, and a "Restore" button when Edit is on)
+            so the user can bring back any they want. */}
+        {hiddenSeedIds.size > 0 && (
+          <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-200 px-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setRevealHidden((v) => !v)}
+              className="text-[11px] text-slate-600 hover:text-slate-900"
+              title={revealHidden
+                ? "Hide the hidden-seed entries again — they remain hidden by default."
+                : "Reveal the hidden catalog seeds inline. Turn on Edit to Restore individual ones."}
+            >
+              {revealHidden ? "▾ Hide" : "▸ Show"} {hiddenSeedIds.size} hidden app{hiddenSeedIds.size === 1 ? "" : "s"}
+            </button>
+            {editMode && revealHidden && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!confirm(`Restore all ${hiddenSeedIds.size} hidden apps to the list?`)) return;
+                  onShowAllHiddenSeeds();
+                }}
+                className="text-[11px] font-medium text-emerald-700 hover:text-emerald-900"
+              >
+                ↺ Restore all
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Browse modal */}
