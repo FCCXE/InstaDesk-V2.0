@@ -370,35 +370,7 @@ export default function MonitorSelector() {
           </dl>
         </div>
 
-        <div className="mt-3">
-          <div className="mb-1 text-[11px] text-gray-500">Monitors</div>
-          <div className="flex flex-wrap gap-2">
-            {chipMonitors.map((m, i) => {
-              const label = `M${i + 1}`
-              const isCurrent = m.id === currentMonitorId
-              const active = m.active
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setCurrentMonitor(m.id)}
-                  className={[
-                    'h-6 rounded-full px-2 text-xs font-medium ring-1 transition',
-                    active
-                      ? 'bg-sky-50 text-sky-700 ring-sky-200 hover:bg-sky-100'
-                      : 'bg-white text-gray-500 ring-gray-200 hover:bg-gray-50',
-                    isCurrent ? 'ring-2 ring-offset-1 ring-offset-white' : '',
-                  ].join(' ')}
-                  title={`${m.name}${active ? ' (Active)' : ' (Inactive)'}`}
-                >
-                  {label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        <div className="mt-2 text-[11px] text-[rgb(var(--id-text-muted))]">
+        <div className="mt-3 text-[11px] text-[rgb(var(--id-text-muted))]">
           Active Monitors: {activeCount}/{monitors.length}
         </div>
 
