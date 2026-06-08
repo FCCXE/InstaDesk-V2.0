@@ -157,11 +157,11 @@ export default function BrowseAppModal({
     const t = title.trim();
     const p = path.trim();
     if (!t || !p) return;
+
     // Reject shortcut files. .lnk targets resolve through the Windows shell
-    // (COM IShellLink), which Process.Start in the agent does NOT do — the
-    // shortcut launches in a way that ignores our --args and produces
-    // unpredictable results (e.g., the Quick Launch File Explorer.lnk opens
-    // a window the agent can't tile). Force the user to pick the actual exe.
+    // (COM IShellLink) which Process.Start doesn't do — the shortcut launches
+    // in a way that ignores our --args and produces a window the agent can't
+    // tile (e.g. the Quick Launch File Explorer.lnk).
     if (/\.lnk$/i.test(p)) {
       setErr(
         "Shortcut files (.lnk) aren't supported — pick the underlying .exe instead. " +
@@ -169,10 +169,58 @@ export default function BrowseAppModal({
       );
       return;
     }
-    if (!/\.(exe|bat|cmd)$/i.test(p)) {
-      const proceed = confirm("Path does not end with .exe/.bat/.cmd. Save anyway?");
-      if (!proceed) return;
+
+    // Detect folders vs files. Heuristic: last path segment without an
+    // extension OR a trailing slash → folder. Misidentifies the rare
+    // extensionless exe (engine_next etc.) as a folder, which is a much
+    // safer error than the inverse.
+    const lastSeg = p.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || "";
+    const hasExtension = /\.[^.\\/]+$/.test(lastSeg);
+    const isFolder = !hasExtension || /[\\/]$/.test(p);
+
+    // Reject folders. Folders can't be launched directly — Process.Start on
+    // a directory fails instantly. The user's intent is almost always 'open
+    // this folder in File Explorer'; point them at the correct workflow.
+    if (isFolder) {
+      setErr(
+        `"${lastSeg}" looks like a folder, not an application. To open a folder in a tile:\n\n` +
+        `1) Cancel this dialog.\n` +
+        `2) Pick the catalog 'File Explorer' app (yellow chip, System category) from the App History list.\n` +
+        `3) Select your grid cell(s) and click 'Assign to Selection'.\n` +
+        `4) In the 'Launch args for selection' input, paste the folder path:\n` +
+        `   ${p}\n` +
+        `5) Click Apply. Save your Layout.`
+      );
+      return;
     }
+
+    // Reject non-executable files. They launch via Windows file association
+    // (shell opens with the default app), which is unreliable for tiling —
+    // the agent can't track which window belongs to which launch, and the
+    // file might open in a single-instance app that consolidates into tabs.
+    // Suggest the correct pattern: catalog app + per-cell args.
+    if (!/\.(exe|bat|cmd)$/i.test(p)) {
+      const ext = (lastSeg.match(/\.[^.]+$/) || [""])[0].toLowerCase();
+      const textLike = /^\.(txt|md|json|log|csv|yml|yaml|ini|conf|cfg|xml|html|htm|js|ts|py|sh|sql|rs|go|java|c|cpp|h|hpp)$/.test(ext);
+      const appHint = textLike
+        ? "catalog 'Notepad' app"
+        : "the catalog app that handles this file type (or a Browse-picked .exe)";
+      setErr(
+        `"${lastSeg}" isn't an executable (.exe/.bat/.cmd). Launching a file directly is unreliable — ` +
+        `the agent can't track which window opens, and many apps (Notepad, browsers) collapse multiple file ` +
+        `launches into tabs of one window.\n\n` +
+        `Correct way to open this file in a tile:\n` +
+        `1) Cancel this dialog.\n` +
+        `2) Pick the ${appHint} from App History.\n` +
+        `3) Assign to your grid cell(s).\n` +
+        `4) In 'Launch args for selection', paste:  "${p}"\n` +
+        `   (Include the double-quotes — the path may contain spaces.)\n` +
+        `5) Click Apply, then Save your Layout.`
+      );
+      return;
+    }
+
+    // .exe / .bat / .cmd accepted.
     try {
       setBusy(true);
       const item = addHistory({ title: t, path: p });
@@ -304,32 +352,47 @@ export default function BrowseAppModal({
                 {!browseLoading && entries.length === 0 && !browseErr && (
                   <div className="p-3 text-center text-xs text-slate-500">(empty)</div>
                 )}
-                {!browseLoading && entries.map((e) => (
-                  <button
-                    key={e.name}
-                    type="button"
-                    onClick={() => onPickEntry(e)}
-                    className={[
-                      "flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs",
-                      e.isDir ? "text-slate-800 hover:bg-sky-50" :
-                      e.isExe ? "text-emerald-700 hover:bg-emerald-50" :
-                      "text-slate-500 hover:bg-slate-50",
-                    ].join(" ")}
-                    title={e.isDir ? "Open folder" : "Pick this file"}
-                  >
-                    <span className="w-4 text-center">
-                      {e.isDir ? "📁" : e.isExe ? "⚙️" : "📄"}
-                    </span>
-                    <span className="truncate">{e.name}</span>
-                  </button>
-                ))}
+                {!browseLoading && entries.map((e) => {
+                  // Files that aren't .exe/.bat/.cmd will be rejected at Save
+                  // time. Mark them inline here so the user sees the
+                  // 'pick the .exe instead' guidance before clicking.
+                  const notLaunchable = !e.isDir && !e.isExe;
+                  return (
+                    <button
+                      key={e.name}
+                      type="button"
+                      onClick={() => onPickEntry(e)}
+                      className={[
+                        "flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs",
+                        e.isDir ? "text-slate-800 hover:bg-sky-50" :
+                        e.isExe ? "text-emerald-700 hover:bg-emerald-50" :
+                        "text-slate-500 hover:bg-slate-50",
+                      ].join(" ")}
+                      title={
+                        e.isDir ? "Open folder"
+                          : e.isExe ? "Pick this executable"
+                          : "Not directly launchable — Save will block this. To open this file in a tile, use the catalog app + per-cell Launch args."
+                      }
+                    >
+                      <span className="w-4 text-center">
+                        {e.isDir ? "📁" : e.isExe ? "⚙️" : "📄"}
+                      </span>
+                      <span className="truncate">{e.name}</span>
+                      {notLaunchable && (
+                        <span className="ml-auto shrink-0 rounded-full border border-amber-200 bg-amber-50 px-1.5 text-[9px] uppercase tracking-wide text-amber-700">
+                          not launchable
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
 
           {err && (
-            <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-700">
-              {err}
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 whitespace-pre-line">
+              <span className="mr-1" aria-hidden>⚠</span>{err}
             </div>
           )}
         </div>
