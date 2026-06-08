@@ -65,7 +65,19 @@ export default function LayoutsPane() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [savingNew, setSavingNew] = useState(false);
+  const [savingEdits, setSavingEdits] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
+
+  // Tracks which Layout was most recently loaded via the Edit button. Drives
+  // the inline "Save changes to Layout X" affordance below — one-click
+  // overwrite of that specific slot without re-typing slot letters or
+  // confirming overwrite prompts. Cleared when the user saves OR when they
+  // start a fresh layout via + New Layout.
+  const [editingLayoutId, setEditingLayoutId] = useState<string | null>(null);
+  const editingLayout = useMemo(
+    () => (editingLayoutId && layouts) ? layouts.find(l => l.id === editingLayoutId) ?? null : null,
+    [editingLayoutId, layouts]
+  );
 
   // Total assigned cells across ALL monitors. Drives + New Layout enable.
   const assignedCount = assignedCountTotal;
@@ -120,6 +132,9 @@ export default function LayoutsPane() {
         ? parsed.firstMonitorId
         : undefined;
       replaceGridMulti(parsed.cellsByMonitorId, switchTo, parsed.argsByMonitorId);
+      // Remember which Layout the user is editing so the inline 'Save changes'
+      // button knows which slot to overwrite without re-prompting.
+      setEditingLayoutId(m.id);
       const totalCells = Object.values(parsed.cellsByMonitorId)
         .reduce((sum, c) => sum + Object.keys(c).length, 0);
       const monList = parsed.monitorsUsed.map(n => `M${n}`).join(", ");
@@ -128,7 +143,7 @@ export default function LayoutsPane() {
         : `${monList}`;
       flash({
         kind: "ok",
-        msg: `Loaded "${m.name}" → ${totalCells} cell${totalCells === 1 ? "" : "s"} on ${monMsg}. Switch monitors via the left pane to see each one.`,
+        msg: `Editing "${m.name}" → ${totalCells} cell${totalCells === 1 ? "" : "s"} on ${monMsg}. Make changes in the Apps tab, then click "Save changes to ${m.name}" above.`,
       });
       if (parsed.warnings.length > 0) {
         window.setTimeout(() => flash({ kind: "err", msg: parsed.warnings.join(" ") }), 200);
@@ -138,6 +153,61 @@ export default function LayoutsPane() {
     } finally {
       setBusyId(null);
     }
+  };
+
+  // One-click overwrite for the Layout currently being edited. Same save
+  // pipeline as onNewLayout, but skips the slot-letter prompt and the
+  // overwrite-confirmation dialog because the user already chose this
+  // slot when they clicked Edit. Success clears editingLayoutId so the
+  // UI returns to its idle state (no orange banner).
+  const onSaveEditedLayout = async () => {
+    if (!editingLayout) return;
+    const { kind, slot } = editingLayout.preset;
+    const name = editingLayout.name;
+
+    if (assignedCount === 0) {
+      flash({ kind: "err", msg: `Cannot save "${name}" with an empty grid. Add assignments first or use Delete to remove the layout.` });
+      return;
+    }
+    const cellsByMonitorIdAny = assignmentsByMonitor as Record<string, Record<string, string | null>>;
+    const built = buildSaveAssignmentsMulti(
+      cellsByMonitorIdAny, monitorIdToIndex, monitorIdToLabel, GRID_COLS, GRID_ROWS,
+      argsOverridesByMonitor,
+    );
+    if (built.errors.length > 0) {
+      flash({ kind: "err", msg: built.errors[0] });
+      return;
+    }
+    if (built.assignments.length === 0) {
+      flash({ kind: "err", msg: "Nothing to save after target resolution." });
+      return;
+    }
+    setSavingEdits(true);
+    try {
+      await api.presetsSave(kind, slot, built.assignments);
+      const perMonitor = new Map<number, string[]>();
+      for (const a of built.assignments) {
+        const list = perMonitor.get(a.monitor) ?? [];
+        list.push(a.title ?? "?");
+        perMonitor.set(a.monitor, list);
+      }
+      const summary = [...perMonitor.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([m, titles]) => `M${m}: ${titles.join(", ")}`)
+        .join(" • ");
+      flash({ kind: "ok", msg: `Saved changes to ${name} across ${perMonitor.size} monitor${perMonitor.size === 1 ? "" : "s"} • ${summary}` });
+      setEditingLayoutId(null);
+      window.dispatchEvent(new CustomEvent("insta:presets-changed"));
+    } catch (e) {
+      flash({ kind: "err", msg: (e as Error).message });
+    } finally {
+      setSavingEdits(false);
+    }
+  };
+
+  const onCancelEdit = () => {
+    setEditingLayoutId(null);
+    flash({ kind: "ok", msg: "Edit mode cleared. Grid contents kept; saving now will create a new Layout." });
   };
 
   const onApply = async (m: LayoutCardModel) => {
@@ -202,6 +272,9 @@ export default function LayoutsPane() {
         .map(([m, titles]) => `M${m}: ${titles.join(", ")}`)
         .join(" • ");
       flash({ kind: "ok", msg: `Saved Layout ${slot} across ${perMonitor.size} monitor${perMonitor.size === 1 ? "" : "s"} • ${summary}` });
+      // Saving a NEW layout (via the explicit slot prompt) ends any prior
+      // edit session, since the user has just committed to a different slot.
+      setEditingLayoutId(null);
       window.dispatchEvent(new CustomEvent("insta:presets-changed"));
     } catch (e) {
       flash({ kind: "err", msg: (e as Error).message });
@@ -243,6 +316,52 @@ export default function LayoutsPane() {
           <ScopePill active minW={148}>All Monitors</ScopePill>
           <ScopePill minW={168}>Current Monitor ▾</ScopePill>
         </div>
+
+        {/* Editing banner — visible only after the user clicks Edit on a card.
+            Gives a one-click overwrite affordance for that specific slot
+            (no slot-letter retyping, no overwrite-confirmation prompt). */}
+        {editingLayout && (
+          <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-amber-900">
+                ✎ Editing {editingLayout.name}
+              </span>
+              <span className="text-[11px] text-amber-700">
+                — modify cells in the Apps tab, then save below
+              </span>
+              <div className="flex-1" />
+              <button
+                type="button"
+                onClick={onSaveEditedLayout}
+                disabled={savingEdits || assignedCount === 0}
+                className={[
+                  "h-8 rounded-md px-3 text-xs font-semibold shadow",
+                  assignedCount === 0
+                    ? "cursor-not-allowed bg-amber-200 text-amber-700"
+                    : "bg-amber-600 text-white hover:bg-amber-700",
+                  savingEdits ? "opacity-60 cursor-wait" : "",
+                ].join(" ")}
+                title={
+                  assignedCount === 0
+                    ? "Grid is empty — assign cells first (or click Delete on the card to remove the layout)"
+                    : `Overwrite ${editingLayout.preset.path} with the current grid state across all monitors`
+                }
+              >
+                {savingEdits ? "Saving…" : `💾 Save changes to ${editingLayout.name}`}
+              </button>
+              <button
+                type="button"
+                onClick={onCancelEdit}
+                disabled={savingEdits}
+                className="h-8 rounded-md border border-amber-300 bg-white px-3 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                title="Stop editing this layout. Grid contents are kept; saving from here on will create a NEW layout via the slot prompt below."
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="mt-2 flex items-center gap-3">
           <button
             type="button"
@@ -258,6 +377,8 @@ export default function LayoutsPane() {
             title={
               assignedCount === 0
                 ? "Assign apps to grid cells first (Apps tab); switch monitors to build a multi-monitor layout"
+                : editingLayout
+                ? `Save the current grid as a NEW Layout in a different slot (use 'Save changes to ${editingLayout.name}' above to overwrite this one instead)`
                 : `Save grids from ${monitorsWithAssignments.length} monitor${monitorsWithAssignments.length === 1 ? "" : "s"} (${assignedCount} cells total) as one preset`
             }
           >
@@ -314,6 +435,7 @@ export default function LayoutsPane() {
               key={m.id}
               model={m}
               busy={busyId === m.id}
+              isEditing={editingLayoutId === m.id}
               onApply={() => onApply(m)}
               onDelete={() => onDelete(m)}
               onLoad={() => onLoad(m)}
@@ -328,10 +450,11 @@ export default function LayoutsPane() {
 }
 
 function LayoutCard({
-  model, busy, onApply, onDelete, onLoad,
+  model, busy, isEditing, onApply, onDelete, onLoad,
 }: {
   model: LayoutCardModel;
   busy: boolean;
+  isEditing: boolean;
   onApply: () => void;
   onDelete: () => void;
   onLoad: () => void;
@@ -344,7 +467,10 @@ function LayoutCard({
   }, [model.updatedISO]);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_0_rgba(0,0,0,0.02)]">
+    <div className={[
+      "rounded-2xl border bg-white p-4 shadow-[0_1px_0_rgba(0,0,0,0.02)]",
+      isEditing ? "border-amber-400 ring-1 ring-amber-300" : "border-slate-200",
+    ].join(" ")}>
       <div className="flex items-start gap-3">
         <DragDots />
         <div className="min-w-0 flex-1">
@@ -356,6 +482,11 @@ function LayoutCard({
             <span className="inline-flex h-5 items-center rounded-full border border-sky-200 bg-sky-50 px-2 text-[10px] font-medium text-sky-700">
               slot {model.preset.slot.toUpperCase()}
             </span>
+            {isEditing && (
+              <span className="inline-flex h-5 items-center rounded-full border border-amber-300 bg-amber-50 px-2 text-[10px] font-semibold text-amber-800">
+                ✎ editing
+              </span>
+            )}
           </div>
 
           <div className="mt-2 truncate text-xs text-slate-500" title={model.preset.path}>
@@ -373,7 +504,7 @@ function LayoutCard({
                 className="flex-1 border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
                 onClick={onLoad}
                 disabled={busy}
-                title="Loads this layout into the grid (across all monitors). Modify it in the Apps tab, then click + New Layout above and reuse the same slot to overwrite."
+                title="Loads this layout into the grid across all monitors. Modify cells in the Apps tab, then click 'Save changes to this Layout' in the amber banner at the top of this pane."
               >
                 {busy ? "Loading…" : "Edit"}
               </GhostBtn>
