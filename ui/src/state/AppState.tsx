@@ -26,10 +26,13 @@ export const GRID_SIZE_PRESETS: ReadonlyArray<{ cols: number; rows: number }> = 
 export type GridSize = { cols: number; rows: number }
 export type GridSizeByMonitor = Record<string, GridSize>
 
-// localStorage key for the per-monitor grid sizes map. Sparse: only
-// monitors with an explicit user override appear here. Missing entries
-// fall back to GRID_COLS × GRID_ROWS.
+// localStorage keys.
+//   gridSizeByMonitor — sparse per-monitor override map.
+//   defaultGridSize   — Settings → Default value used as the fallback for
+//                       any monitor without an explicit entry in the
+//                       sparse map above. Initial fallback is 6×6.
 const GRID_SIZE_STORAGE_KEY = 'instadesk:gridSizeByMonitor'
+const DEFAULT_GRID_SIZE_STORAGE_KEY = 'instadesk:defaultGridSize'
 
 function loadGridSizeByMonitor(): GridSizeByMonitor {
   if (typeof window === 'undefined') return {}
@@ -51,6 +54,31 @@ function saveGridSizeByMonitor(value: GridSizeByMonitor) {
   } catch {
     // localStorage can throw under private-mode / quota-exceeded — silently
     // ignore. Settings persistence is a nice-to-have, not load-bearing.
+  }
+}
+
+function loadDefaultGridSize(): GridSize {
+  if (typeof window === 'undefined') return { cols: GRID_COLS, rows: GRID_ROWS }
+  try {
+    const raw = window.localStorage.getItem(DEFAULT_GRID_SIZE_STORAGE_KEY)
+    if (!raw) return { cols: GRID_COLS, rows: GRID_ROWS }
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === 'object'
+        && typeof parsed.cols === 'number' && typeof parsed.rows === 'number') {
+      return { cols: parsed.cols, rows: parsed.rows }
+    }
+    return { cols: GRID_COLS, rows: GRID_ROWS }
+  } catch {
+    return { cols: GRID_COLS, rows: GRID_ROWS }
+  }
+}
+
+function saveDefaultGridSize(value: GridSize) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(DEFAULT_GRID_SIZE_STORAGE_KEY, JSON.stringify(value))
+  } catch {
+    // Same silent fallback as above.
   }
 }
 
@@ -269,6 +297,22 @@ type AppStateContext = {
   currentGridRows: number
   setGridSizeForMonitor: (monitorId: string, size: GridSize) => void
 
+  // Global default grid size — applied to any monitor without an explicit
+  // entry in gridSizeByMonitor. Configurable from Settings → General.
+  // Changing the default does NOT retroactively disturb existing monitors:
+  // setDefaultGridSize auto-pins every currently-discovered monitor that
+  // lacks an explicit override to whatever size it was effectively using
+  // BEFORE the default change, so assignments on those monitors are safe.
+  defaultGridSize: GridSize
+  setDefaultGridSize: (size: GridSize) => void
+
+  // Atomic combined action: set a monitor's grid size AND clear that
+  // monitor's assignments + args + (if it was the Edit-mode target) exit
+  // Edit mode. Used by the bottom-bar picker when the operator confirms a
+  // resize on a monitor with assigned cells. Empty-grid resizes call this
+  // too (clear is a no-op there) so the path is single-source.
+  resizeMonitor: (monitorId: string, size: GridSize) => void
+
   presets: Preset[]
   pendingPresetByMonitor: Record<string, PresetId | null>
   setPendingPreset: (monitorId: string, preset: PresetId | null) => void
@@ -354,20 +398,63 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   const [currentMonitorId, setCurrentMonitorId] = useState<string>('m1')
   const setCurrentMonitor = (id: string) => setCurrentMonitorId(id)
 
-  /* ---------- Per-monitor grid size (Step 1 of the 4-step build) ---------- */
+  /* ---------- Per-monitor grid size (Steps 1+2 of the 4-step build) ---------- */
   const [gridSizeByMonitor, setGridSizeByMonitorState] = useState<GridSizeByMonitor>(loadGridSizeByMonitor)
+  const [defaultGridSize, setDefaultGridSizeState] = useState<GridSize>(loadDefaultGridSize)
 
   // Persist on every change. Sparse map → small writes.
   useEffect(() => {
     saveGridSizeByMonitor(gridSizeByMonitor)
   }, [gridSizeByMonitor])
 
+  useEffect(() => {
+    saveDefaultGridSize(defaultGridSize)
+  }, [defaultGridSize])
+
+  // Active size for the current monitor: per-monitor override → default → 6×6.
   const currentGridSize = gridSizeByMonitor[currentMonitorId]
-  const currentGridCols = currentGridSize?.cols ?? GRID_COLS
-  const currentGridRows = currentGridSize?.rows ?? GRID_ROWS
+  const currentGridCols = currentGridSize?.cols ?? defaultGridSize.cols
+  const currentGridRows = currentGridSize?.rows ?? defaultGridSize.rows
 
   const setGridSizeForMonitor = (monitorId: string, size: GridSize) => {
     setGridSizeByMonitorState((prev) => ({ ...prev, [monitorId]: size }))
+  }
+
+  // Changing the global default must not retroactively change any monitor
+  // that already has user-visible assignments. We "pin" every currently-
+  // discovered monitor that lacks an explicit override to its CURRENT
+  // effective size, THEN update the default. After this, only truly new
+  // monitors plugged in later get the new default value.
+  const setDefaultGridSize = (size: GridSize) => {
+    setGridSizeByMonitorState((prev) => {
+      const next: GridSizeByMonitor = { ...prev }
+      for (const m of monitors) {
+        if (!next[m.id]) {
+          // Pin to the OLD default since that's what this monitor is
+          // currently rendering at.
+          next[m.id] = { cols: defaultGridSize.cols, rows: defaultGridSize.rows }
+        }
+      }
+      return next
+    })
+    setDefaultGridSizeState(size)
+  }
+
+  // Atomic resize: set new size + clear that monitor's assignments + clear
+  // its args overrides + (if it was the Edit-mode target) exit Edit mode.
+  // Centralizes the wipe-on-confirm flow so the bottom-bar picker doesn't
+  // need to coordinate three separate state updates.
+  const resizeMonitor = (monitorId: string, size: GridSize) => {
+    setGridSizeByMonitorState((prev) => ({ ...prev, [monitorId]: size }))
+    setAssignmentsByMonitor((prev) => ({
+      ...prev,
+      [monitorId]: makeEmptyAssignments(size.cols, size.rows),
+    }))
+    setArgsOverridesByMonitor((prev) => ({ ...prev, [monitorId]: {} }))
+    // Exit Edit mode if it was targeting a layout — operator decision Y
+    // (auto-exit on confirm). The picker UI is responsible for surfacing
+    // this fact in its confirm dialog so the user isn't surprised.
+    setEditingLayoutId(null)
   }
 
   // Current monitor's view onto assignmentsByMonitor.
@@ -593,11 +680,14 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     setPendingPreset,
     getPendingPreset,
 
-    // per-monitor grid size (Step 1 of grid-size build)
+    // per-monitor grid size (Steps 1+2 of grid-size build)
     gridSizeByMonitor,
     currentGridCols,
     currentGridRows,
     setGridSizeForMonitor,
+    defaultGridSize,
+    setDefaultGridSize,
+    resizeMonitor,
 
     // URL builder
     urlBuilder,
@@ -618,7 +708,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     editingLayoutId,
     selectedApp, clipboard,
     monitors, currentMonitorId, presets, pendingPresetByMonitor,
-    gridSizeByMonitor, currentGridCols, currentGridRows,
+    gridSizeByMonitor, currentGridCols, currentGridRows, defaultGridSize,
     urlBuilder, browsers
   ])
 

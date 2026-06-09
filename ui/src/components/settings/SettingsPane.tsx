@@ -1,14 +1,21 @@
 import type { ReactNode } from "react";
+import { useAppState, GRID_SIZE_PRESETS } from "../../state/AppState";
 
 /**
- * SettingsPane — visuals only (state-only)
- * Matches the approved v1 mock:
+ * SettingsPane
  * - Tabs exist in RightPane; this component renders only the Settings body.
- * - Three groups: General / Grid & Snapping / Shortcuts
- * - All controls are inert (disabled visuals), consistent Tailwind v4 styling
+ * - General sub-pane: Launch / Theme / Language (placeholders awaiting their
+ *   respective phases) + functional Default grid size picker (Step 2 of
+ *   the 4-step grid-size build, 2026-06-09).
+ * - Grid & Snapping sub-pane: only the Default grid size row.
  */
 
 export default function SettingsPane() {
+  const { defaultGridSize, setDefaultGridSize } = useAppState();
+
+  // Currently-selected preset key, for the <select>'s value prop.
+  const selectedKey = `${defaultGridSize.cols}x${defaultGridSize.rows}`;
+
   return (
     <div className="flex h-full flex-col overflow-hidden p-3">
       {/* Title */}
@@ -35,7 +42,23 @@ export default function SettingsPane() {
           <Section title="Grid &amp; Snapping">
             <Row>
               <Label>Default grid size</Label>
-              <Select value="6 × 6 ▾" />
+              <select
+                value={selectedKey}
+                onChange={(e) => {
+                  const [c, r] = e.target.value.split("x").map((n) => parseInt(n, 10));
+                  if (Number.isFinite(c) && Number.isFinite(r)) {
+                    setDefaultGridSize({ cols: c, rows: r });
+                  }
+                }}
+                className="h-7 min-w-[160px] rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-300"
+                title="The grid size used for monitors InstaDesk hasn't seen before. Currently-configured monitors are auto-pinned to their existing size when this changes, so your assignments are never disturbed."
+              >
+                {GRID_SIZE_PRESETS.map((s) => (
+                  <option key={`${s.cols}x${s.rows}`} value={`${s.cols}x${s.rows}`}>
+                    {s.cols} × {s.rows}
+                  </option>
+                ))}
+              </select>
             </Row>
           </Section>
 

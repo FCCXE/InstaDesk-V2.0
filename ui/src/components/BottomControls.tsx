@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useAppState } from '../state/AppState'
+import { useAppState, GRID_SIZE_PRESETS, type GridSize } from '../state/AppState'
 import { api } from '../services/api'
 
 /**
@@ -28,7 +28,11 @@ type SnapState =
   | { kind: 'err'; msg: string }
 
 export default function BottomControls() {
-  const { selection, assignments, clearGrid, currentMonitorId } = useAppState()
+  const {
+    selection, assignments, clearGrid, currentMonitorId,
+    currentGridCols, currentGridRows, resizeMonitor,
+    setGridSizeForMonitor, editingLayoutId,
+  } = useAppState()
 
   const assignedCount = Object.values(assignments).filter(Boolean).length
   const selCount = selection.size
@@ -38,6 +42,39 @@ export default function BottomControls() {
     const m = currentMonitorId.match(/^m(\d+)$/)
     return m ? parseInt(m[1], 10) : 1
   }, [currentMonitorId])
+
+  // Bottom-bar grid-size picker for the active monitor (Step 2 of the
+  // 4-step grid-size build). Confirms before wiping cells / exiting Edit
+  // mode; reassures the user that saved Layouts and QPs are untouched.
+  const onGridSizeChange = (next: GridSize) => {
+    if (next.cols === currentGridCols && next.rows === currentGridRows) return
+
+    const monitorLabel = `M${currentMonitorIndex}`
+    const fromLabel = `${currentGridCols}×${currentGridRows}`
+    const toLabel = `${next.cols}×${next.rows}`
+
+    if (assignedCount === 0 && !editingLayoutId) {
+      // Empty grid, not editing — apply silently. resizeMonitor handles
+      // the clear (no-op) and the state write atomically.
+      setGridSizeForMonitor(currentMonitorId, next)
+      return
+    }
+
+    const parts: string[] = []
+    parts.push(`Switching ${monitorLabel} from ${fromLabel} to ${toLabel}`)
+    if (assignedCount > 0) {
+      parts.push(`will clear ${assignedCount} cell${assignedCount === 1 ? '' : 's'} on ${monitorLabel}`)
+    }
+    if (editingLayoutId) {
+      parts.push(`and exit Edit mode for the current Layout`)
+    }
+    parts.push(`\n\nSaved Layouts and Quick Presets are not affected.`)
+    parts.push(`\n\nContinue?`)
+
+    if (window.confirm(parts.join(' ').replace(' \n', '\n'))) {
+      resizeMonitor(currentMonitorId, next)
+    }
+  }
 
   const [snapState, setSnapState] = useState<SnapState>({ kind: 'idle' })
   const snapping = snapState.kind === 'busy'
@@ -128,6 +165,30 @@ export default function BottomControls() {
         >
           Clear All
         </button>
+        {/* Per-monitor grid-size picker — operator decision δ (2026-06-09):
+            sits in the bottom bar grouped with Snap and Clear All, both of
+            which are also scoped to the current monitor. Label format
+            "Grid: NxN ▾" is informative on first sight. */}
+        <label className="flex items-center gap-1.5 text-sm text-gray-700">
+          <span className="text-xs text-gray-500">Grid:</span>
+          <select
+            value={`${currentGridCols}x${currentGridRows}`}
+            onChange={(e) => {
+              const [c, r] = e.target.value.split('x').map((n) => parseInt(n, 10))
+              if (Number.isFinite(c) && Number.isFinite(r)) {
+                onGridSizeChange({ cols: c, rows: r })
+              }
+            }}
+            className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-sky-300"
+            title={`Grid size for M${currentMonitorIndex}. Changing this will clear that monitor's cells (saved Layouts are not affected).`}
+          >
+            {GRID_SIZE_PRESETS.map((s) => (
+              <option key={`${s.cols}x${s.rows}`} value={`${s.cols}x${s.rows}`}>
+                {s.cols}×{s.rows}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       <div className={`text-xs ${statusColor}`}>
         {statusText} <span className="ml-2 text-gray-400">• 1280×820</span>
