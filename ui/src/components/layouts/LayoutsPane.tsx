@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import type { MonitorId } from "./EditLayoutDrawer";
 import { api, type PresetListItem } from "../../services/api";
-import { useAppState, GRID_COLS, GRID_ROWS } from "../../state/AppState";
+import { useAppState } from "../../state/AppState";
 import {
   buildSaveAssignmentsMulti,
   nextFreeSlot,
@@ -51,6 +51,11 @@ export default function LayoutsPane() {
     assignmentsByMonitor, assignedCountTotal,
     argsOverridesByMonitor,
     editingLayoutId, setEditingLayoutId,
+    // Per-monitor grid sizes (Step 3 of the grid-size build, 2026-06-09):
+    // save flow captures gridSizeByMonitor into each assignment; load flow
+    // restores per-monitor sizes via setGridSizeForMonitor for each monitor
+    // in the loaded preset.
+    gridSizeByMonitor, defaultGridSize, setGridSizeForMonitor,
   } = useAppState();
   // Resolve a monitor id ("m{N}") to the agent's 1-based index N.
   const monitorIdToIndex = (id: string) => {
@@ -122,7 +127,15 @@ export default function LayoutsPane() {
     setBusyId(m.id);
     try {
       const res = await api.presetsGet(m.preset.kind, m.preset.slot);
-      const parsed = parsePresetIntoCellsMulti(res.preset.assignments, GRID_COLS, GRID_ROWS);
+      const parsed = parsePresetIntoCellsMulti(res.preset.assignments, defaultGridSize);
+      // Restore each monitor's grid size from the saved preset BEFORE
+      // replacing the cells (Step 3 of grid-size build). Without this, the
+      // dashboard would render the loaded assignments against whatever
+      // grid sizes the monitors happened to have at load time, not the
+      // sizes the Layout was authored at.
+      for (const [monitorId, size] of Object.entries(parsed.gridSizeByMonitorId)) {
+        setGridSizeForMonitor(monitorId, size);
+      }
       // Switch the grid to the first monitor that has assignments, so the user
       // immediately sees something. They can navigate to others via the
       // monitor selector — each monitor's assignments are loaded independently.
@@ -169,7 +182,8 @@ export default function LayoutsPane() {
     }
     const cellsByMonitorIdAny = assignmentsByMonitor as Record<string, Record<string, string | null>>;
     const built = buildSaveAssignmentsMulti(
-      cellsByMonitorIdAny, monitorIdToIndex, monitorIdToLabel, GRID_COLS, GRID_ROWS,
+      cellsByMonitorIdAny, monitorIdToIndex, monitorIdToLabel,
+      gridSizeByMonitor, defaultGridSize,
       argsOverridesByMonitor,
     );
     if (built.errors.length > 0) {
@@ -232,7 +246,8 @@ export default function LayoutsPane() {
     }
     const cellsByMonitorIdAny = assignmentsByMonitor as Record<string, Record<string, string | null>>;
     const built = buildSaveAssignmentsMulti(
-      cellsByMonitorIdAny, monitorIdToIndex, monitorIdToLabel, GRID_COLS, GRID_ROWS,
+      cellsByMonitorIdAny, monitorIdToIndex, monitorIdToLabel,
+      gridSizeByMonitor, defaultGridSize,
       argsOverridesByMonitor,
     );
     if (built.errors.length > 0) {
