@@ -586,7 +586,7 @@ function LayoutCard({
 
   return (
     <div className={[
-      "rounded-2xl border bg-white p-4 shadow-[0_1px_0_rgba(0,0,0,0.02)]",
+      "overflow-hidden rounded-2xl border bg-white p-4 shadow-[0_1px_0_rgba(0,0,0,0.02)]",
       isEditing ? "border-amber-400 ring-1 ring-amber-300" : "border-slate-200",
     ].join(" ")}>
       <div className="flex items-start gap-3">
