@@ -3,9 +3,56 @@ import { api, type ApiMonitor } from '../services/api'
 
 /* ============================================================================
    Grid constants
+   ==========================================================================
+   GRID_ROWS / GRID_COLS are the DEFAULT grid dimensions assigned to any
+   monitor that doesn't have an explicit per-monitor override in
+   gridSizeByMonitor (see Provider below). Per-monitor override is the
+   primary user-facing control (bottom-bar picker, Step 2 of this build);
+   these constants are the fallback used for newly-discovered monitors and
+   for any consumer that hasn't been updated to read per-monitor state yet.
    ========================================================================== */
 export const GRID_ROWS = 6
 export const GRID_COLS = 6
+
+// Discrete preset set per 2026-06-09 product decision (validated against
+// Divvy's 6×6 default + ultrawide user data via WebSearch).
+export const GRID_SIZE_PRESETS: ReadonlyArray<{ cols: number; rows: number }> = [
+  { cols: 4, rows: 4 },
+  { cols: 6, rows: 6 },
+  { cols: 8, rows: 8 },
+  { cols: 10, rows: 10 },
+]
+
+export type GridSize = { cols: number; rows: number }
+export type GridSizeByMonitor = Record<string, GridSize>
+
+// localStorage key for the per-monitor grid sizes map. Sparse: only
+// monitors with an explicit user override appear here. Missing entries
+// fall back to GRID_COLS × GRID_ROWS.
+const GRID_SIZE_STORAGE_KEY = 'instadesk:gridSizeByMonitor'
+
+function loadGridSizeByMonitor(): GridSizeByMonitor {
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = window.localStorage.getItem(GRID_SIZE_STORAGE_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === 'object') return parsed as GridSizeByMonitor
+    return {}
+  } catch {
+    return {}
+  }
+}
+
+function saveGridSizeByMonitor(value: GridSizeByMonitor) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(GRID_SIZE_STORAGE_KEY, JSON.stringify(value))
+  } catch {
+    // localStorage can throw under private-mode / quota-exceeded — silently
+    // ignore. Settings persistence is a nice-to-have, not load-bearing.
+  }
+}
 
 export type CellKey = string
 // IMPORTANT: keep comma (compatible with existing WorkspaceGrid.tsx)
@@ -27,10 +74,12 @@ export const APPS: Record<AppId, { id: AppId; category: string }> = {
    Internal helpers for grid selection
    ========================================================================== */
 type Assignments = Record<CellKey, AppId | null>
-const makeEmptyAssignments = (): Assignments => {
+// Per-monitor empty-grid factory. Defaults to GRID_COLS × GRID_ROWS for
+// monitors without an explicit grid-size override, matching legacy behaviour.
+const makeEmptyAssignments = (cols: number = GRID_COLS, rows: number = GRID_ROWS): Assignments => {
   const obj: Assignments = {}
-  for (let r = 0; r < GRID_ROWS; r++) {
-    for (let c = 0; c < GRID_COLS; c++) {
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
       obj[cellKey(r, c)] = null
     }
   }
@@ -207,6 +256,19 @@ type AppStateContext = {
   currentMonitorId: string
   setCurrentMonitor: (id: string) => void
 
+  // Per-monitor grid dimensions (Step 1 of the grid-size build, 2026-06-09).
+  // gridSizeByMonitor is sparse: only monitors with an explicit user
+  // override appear here. currentGridCols/Rows are the derived dimensions
+  // for the active monitor — consumers (WorkspaceGrid, future Snap popup
+  // sizing, future per-layout save/load) should read these instead of
+  // importing the static GRID_COLS/GRID_ROWS constants directly.
+  // setGridSizeForMonitor is the setter the bottom-bar picker (Step 2) and
+  // the per-layout load flow (Step 3) will use.
+  gridSizeByMonitor: GridSizeByMonitor
+  currentGridCols: number
+  currentGridRows: number
+  setGridSizeForMonitor: (monitorId: string, size: GridSize) => void
+
   presets: Preset[]
   pendingPresetByMonitor: Record<string, PresetId | null>
   setPendingPreset: (monitorId: string, preset: PresetId | null) => void
@@ -291,6 +353,22 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   const [monitors, setMonitors] = useState<Monitor[]>(SAMPLE_MONITORS)
   const [currentMonitorId, setCurrentMonitorId] = useState<string>('m1')
   const setCurrentMonitor = (id: string) => setCurrentMonitorId(id)
+
+  /* ---------- Per-monitor grid size (Step 1 of the 4-step build) ---------- */
+  const [gridSizeByMonitor, setGridSizeByMonitorState] = useState<GridSizeByMonitor>(loadGridSizeByMonitor)
+
+  // Persist on every change. Sparse map → small writes.
+  useEffect(() => {
+    saveGridSizeByMonitor(gridSizeByMonitor)
+  }, [gridSizeByMonitor])
+
+  const currentGridSize = gridSizeByMonitor[currentMonitorId]
+  const currentGridCols = currentGridSize?.cols ?? GRID_COLS
+  const currentGridRows = currentGridSize?.rows ?? GRID_ROWS
+
+  const setGridSizeForMonitor = (monitorId: string, size: GridSize) => {
+    setGridSizeByMonitorState((prev) => ({ ...prev, [monitorId]: size }))
+  }
 
   // Current monitor's view onto assignmentsByMonitor.
   const assignments: Assignments = useMemo(
@@ -515,6 +593,12 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     setPendingPreset,
     getPendingPreset,
 
+    // per-monitor grid size (Step 1 of grid-size build)
+    gridSizeByMonitor,
+    currentGridCols,
+    currentGridRows,
+    setGridSizeForMonitor,
+
     // URL builder
     urlBuilder,
     browsers,
@@ -534,6 +618,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     editingLayoutId,
     selectedApp, clipboard,
     monitors, currentMonitorId, presets, pendingPresetByMonitor,
+    gridSizeByMonitor, currentGridCols, currentGridRows,
     urlBuilder, browsers
   ])
 

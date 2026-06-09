@@ -2,18 +2,11 @@ import React, { useEffect, useMemo, useRef } from 'react'
 import {
   useAppState,   // central store
   cellKey,
-  GRID_ROWS,
-  GRID_COLS,
 } from '../state/AppState'
 import { instanceStyleFor } from '../services/appsCatalog'
 import { computeInstanceIndices } from '../services/instanceIndex'
 
-// Build a static GRID_ROWS × GRID_COLS grid
 type Cell = { r: number; c: number }
-const cells: Cell[] = Array.from({ length: GRID_ROWS * GRID_COLS }, (_, i) => ({
-  r: Math.floor(i / GRID_COLS),
-  c: i % GRID_COLS,
-}))
 
 export default function WorkspaceGrid() {
   // Keep your proven “cell mouse handlers + window mouseup” UX
@@ -25,11 +18,24 @@ export default function WorkspaceGrid() {
     assignments,          // Record<"r,c", AppId | null>
     argsOverridesByMonitor,
     currentMonitorId,
+    currentGridCols,      // per-monitor grid size (Step 1 of grid-size build)
+    currentGridRows,
     beginDrag,            // (r, c) => void
     updateDrag,           // (r, c) => void
     endDrag,              // () => void
     clearSelection,       // () => void
   } = useAppState()
+
+  // Build the cell list dynamically from the current monitor's grid size.
+  // Memo keyed on the dimensions so we don't re-allocate on every selection
+  // tick — the array shape only changes when grid size does.
+  const cells = useMemo<Cell[]>(
+    () => Array.from({ length: currentGridRows * currentGridCols }, (_, i) => ({
+      r: Math.floor(i / currentGridCols),
+      c: i % currentGridCols,
+    })),
+    [currentGridCols, currentGridRows],
+  )
 
   // Per-cell instance map for the CURRENT monitor. Used to pick a darker
   // shade + show a "#N" badge when 2+ regions of the same app live on this
@@ -121,8 +127,8 @@ export default function WorkspaceGrid() {
             <div
               className="grid w-full h-full gap-[3px]"
               style={{
-                gridTemplateColumns: `repeat(${GRID_COLS}, 1fr)`,
-                gridTemplateRows: `repeat(${GRID_ROWS}, 1fr)`,
+                gridTemplateColumns: `repeat(${currentGridCols}, 1fr)`,
+                gridTemplateRows: `repeat(${currentGridRows}, 1fr)`,
               }}
             >
               {cells.map(({ r, c }) => {
