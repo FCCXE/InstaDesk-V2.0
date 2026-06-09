@@ -17,7 +17,6 @@ import {
  *            + New Layout reusing the same slot to overwrite).
  * - Delete → DELETE /presets/delete
  * - + New Layout → buildSaveAssignmentsMulti → POST /presets/save (multi-monitor).
- * - Set Preset: deferred (Quick Preset slot promotion, kept disabled).
  */
 
 type LayoutCardModel = {
@@ -488,31 +487,21 @@ function LayoutCard({
 
           <div className="mt-1 text-xs text-slate-500">{updatedStr}</div>
 
-          <div className="mt-3 flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <PrimaryBtn className="flex-1" onClick={onApply} disabled={busy}>
-                {busy ? "Applying…" : "Apply"}
-              </PrimaryBtn>
-              <GhostBtn
-                className="flex-1 border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
-                onClick={onLoad}
-                disabled={busy}
-                title="Loads this layout into the grid across all monitors. Modify cells in the Apps tab, then click 'Save changes to this Layout' in the amber banner at the top of this pane."
-              >
-                {busy ? "Loading…" : "Edit"}
-              </GhostBtn>
-            </div>
-            <div className="flex items-center gap-2">
-              <GhostBtn
-                className="flex-1 cursor-not-allowed opacity-60"
-                title="Coming soon — promotes this layout to the Quick Presets dropdown."
-              >
-                Set Preset
-              </GhostBtn>
-              <GhostBtn className="flex-1" onClick={onDelete} disabled={busy}>
-                {busy ? "Deleting…" : "Delete"}
-              </GhostBtn>
-            </div>
+          <div className="mt-3 flex items-center gap-2">
+            <PrimaryBtn className="flex-1" onClick={onApply} disabled={busy}>
+              {busy ? "Applying…" : "Apply"}
+            </PrimaryBtn>
+            <GhostBtn
+              className="flex-1 border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
+              onClick={onLoad}
+              disabled={busy}
+              title="Loads this layout into the grid across all monitors. Modify cells in the Apps tab, then click 'Save changes to this Layout' in the amber banner at the top of this pane."
+            >
+              {busy ? "Loading…" : "Edit"}
+            </GhostBtn>
+            <GhostBtn className="flex-1" onClick={onDelete} disabled={busy}>
+              {busy ? "Deleting…" : "Delete"}
+            </GhostBtn>
           </div>
         </div>
       </div>
