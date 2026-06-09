@@ -496,8 +496,20 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     setCurrentMonitorArgs(nextArgs)
   }
 
+  // Clear All — operator decision 2026-06-09 (α + i): clears the current
+  // monitor's cells AND removes that monitor's per-monitor grid-size
+  // override so it falls back to the global Settings default going forward.
+  // Removing the override (not pinning) means the monitor follows future
+  // Settings changes — matches the "reset to default" mental model.
   const clearGrid = () => {
-    setCurrentMonitorAssignments(makeEmptyAssignments())
+    setGridSizeByMonitorState((prev) => {
+      if (!(currentMonitorId in prev)) return prev
+      const next = { ...prev }
+      delete next[currentMonitorId]
+      return next
+    })
+    // The cleared grid lives at the global default size from now on.
+    setCurrentMonitorAssignments(makeEmptyAssignments(defaultGridSize.cols, defaultGridSize.rows))
     setCurrentMonitorArgs({})
   }
   const copyGrid = () => {

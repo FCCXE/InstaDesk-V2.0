@@ -16,7 +16,11 @@ import { api } from '../services/api'
  * drags a rectangle in the popup, last-focused non-InstaDesk window
  * snaps into it.
  *
- * "Clear All" is wired to clearGrid().
+ * "Clear All" clears the CURRENT monitor's assigned cells AND resets that
+ * monitor's grid size to the global Settings default (operator decision
+ * 2026-06-09: α + i). Other monitors are not affected. The size reset
+ * removes the per-monitor override entirely so the monitor follows future
+ * changes to the global default going forward.
  */
 
 type SnapState =
@@ -161,7 +165,9 @@ export default function BottomControls() {
           onClick={clearGrid}
           disabled={assignedCount === 0}
           className="px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
-          title={assignedCount > 0 ? `Clear all ${assignedCount} assigned cells` : 'Nothing to clear'}
+          title={assignedCount > 0
+            ? `Clear all ${assignedCount} assigned cells on M${currentMonitorIndex} AND reset its grid size to the global default. Other monitors are not affected.`
+            : 'Nothing to clear'}
         >
           Clear All
         </button>
