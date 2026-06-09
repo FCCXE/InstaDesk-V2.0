@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MonitorId } from "./EditLayoutDrawer";
-import { api, type PresetListItem } from "../../services/api";
-import { useAppState } from "../../state/AppState";
+import { api, type PresetListItem, type Assignment } from "../../services/api";
+import { useAppState, type Monitor } from "../../state/AppState";
 import {
   buildSaveAssignmentsMulti,
   nextFreeSlot,
   parsePresetIntoCellsMulti,
 } from "../../services/layoutBuilder";
 import { exportLayoutAsFile, parseImportedLayout } from "../../services/layoutsIO";
+import LayoutThumbnail from "./LayoutThumbnail";
 
 /**
  * LayoutsPane
@@ -536,6 +537,7 @@ export default function LayoutsPane() {
               model={m}
               busy={busyId === m.id}
               isEditing={editingLayoutId === m.id}
+              monitorsContext={monitors}
               onApply={() => onApply(m)}
               onDelete={() => onDelete(m)}
               onLoad={() => onLoad(m)}
@@ -551,16 +553,30 @@ export default function LayoutsPane() {
 }
 
 function LayoutCard({
-  model, busy, isEditing, onApply, onDelete, onLoad, onExport,
+  model, busy, isEditing, monitorsContext, onApply, onDelete, onLoad, onExport,
 }: {
   model: LayoutCardModel;
   busy: boolean;
   isEditing: boolean;
+  monitorsContext: Monitor[];
   onApply: () => void;
   onDelete: () => void;
   onLoad: () => void;
   onExport: () => void;
 }) {
+  // Fetch the preset's full assignments to render the thumbnail. The
+  // /presets/list endpoint only returns metadata, so each card lazy-
+  // loads its own content. Re-fetches when `updatedISO` changes (after
+  // a Save Edit / Import / etc.) so the thumbnail stays in sync.
+  const [assignments, setAssignments] = useState<Assignment[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    api.presetsGet(model.preset.kind, model.preset.slot)
+      .then((res) => { if (alive) setAssignments(res.preset.assignments); })
+      .catch(() => { if (alive) setAssignments([]); });
+    return () => { alive = false; };
+  }, [model.preset.kind, model.preset.slot, model.updatedISO]);
+
   const updatedStr = useMemo(() => {
     const d = new Date(model.updatedISO);
     if (isNaN(d.getTime())) return `Updated: ${model.updatedISO}`;
@@ -596,6 +612,20 @@ function LayoutCard({
             <span className="inline-flex h-5 items-center rounded-full border border-sky-200 bg-sky-50 px-2 text-[10px] font-medium text-sky-700">
               slot {model.preset.slot.toUpperCase()}
             </span>
+          </div>
+
+          {/* Thumbnail — lazy-loads with the preset's assignments. Soft
+              skeleton placeholder is shown while the fetch resolves so
+              the card height stays stable instead of jumping. */}
+          <div className="mt-2 rounded-md bg-slate-50/60 p-2">
+            {assignments === null ? (
+              <div className="h-[80px] w-full animate-pulse rounded-md bg-slate-100" />
+            ) : (
+              <LayoutThumbnail
+                assignments={assignments}
+                monitorsContext={monitorsContext}
+              />
+            )}
           </div>
 
           <div className="mt-2 truncate text-xs text-slate-500" title={model.preset.path}>
