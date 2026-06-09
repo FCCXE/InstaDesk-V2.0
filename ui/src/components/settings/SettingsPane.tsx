@@ -34,20 +34,8 @@ export default function SettingsPane() {
 
           <Section title="Grid &amp; Snapping">
             <Row>
-              <Label>Snap to grid</Label>
-              <Toggle on />
-            </Row>
-            <Row>
               <Label>Default grid size</Label>
               <Select value="6 × 6 ▾" />
-            </Row>
-            <Row>
-              <Label>Cell spacing</Label>
-              <Select value="4 px ▾" />
-            </Row>
-            <Row>
-              <Label>Show cell outlines</Label>
-              <Toggle on={false} />
             </Row>
           </Section>
 
