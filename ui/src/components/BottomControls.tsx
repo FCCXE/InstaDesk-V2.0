@@ -16,8 +16,7 @@ import { api } from '../services/api'
  * drags a rectangle in the popup, last-focused non-InstaDesk window
  * snaps into it.
  *
- * "Clear All" is wired to clearGrid(); the remaining placeholders
- * (Copy Grid, Fill Grid, Spacing) are reserved for future actions.
+ * "Clear All" is wired to clearGrid().
  */
 
 type SnapState =
@@ -129,17 +128,6 @@ export default function BottomControls() {
         >
           Clear All
         </button>
-        {['Copy Grid', 'Fill Grid', 'Spacing'].map((label) => (
-          <button
-            key={label}
-            type="button"
-            disabled
-            className="px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-400 cursor-not-allowed"
-            title="Reserved for a future grid-utility action"
-          >
-            {label}
-          </button>
-        ))}
       </div>
       <div className={`text-xs ${statusColor}`}>
         {statusText} <span className="ml-2 text-gray-400">• 1280×820</span>
