@@ -23,10 +23,6 @@ export default function SettingsPane() {
               <Toggle on />
             </Row>
             <Row>
-              <Label>Show status line</Label>
-              <Toggle on />
-            </Row>
-            <Row>
               <Label>Theme</Label>
               <Select value="Light ▾" />
             </Row>
