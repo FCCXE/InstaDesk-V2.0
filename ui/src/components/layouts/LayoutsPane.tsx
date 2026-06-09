@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MonitorId } from "./EditLayoutDrawer";
 import { api, type PresetListItem } from "../../services/api";
 import { useAppState } from "../../state/AppState";
@@ -7,6 +7,7 @@ import {
   nextFreeSlot,
   parsePresetIntoCellsMulti,
 } from "../../services/layoutBuilder";
+import { exportLayoutAsFile, parseImportedLayout } from "../../services/layoutsIO";
 
 /**
  * LayoutsPane
@@ -310,6 +311,85 @@ export default function LayoutsPane() {
     }
   };
 
+  // Export — fetch the preset's full content and trigger a browser
+  // download. Adds an _meta header so import can verify origin/format.
+  const onExport = async (m: LayoutCardModel) => {
+    setBusyId(m.id);
+    try {
+      const res = await api.presetsGet(m.preset.kind, m.preset.slot);
+      exportLayoutAsFile(res.preset);
+      flash({
+        kind: "ok",
+        msg: `Exported "${m.name}" → instadesk-layout-${m.preset.kind}-${m.preset.slot}.json (check your Downloads folder).`,
+      });
+    } catch (e) {
+      flash({ kind: "err", msg: (e as Error).message });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  // Import — file picker → parse + validate → slot prompt → save. Uses
+  // a hidden <input type="file"> triggered by the visible Import button
+  // (lets us style the button freely while keeping native file UX).
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const triggerImport = () => fileInputRef.current?.click();
+  const onFileChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset so picking the same file twice still fires onChange.
+    e.target.value = "";
+
+    let text: string;
+    try {
+      text = await file.text();
+    } catch (err) {
+      flash({ kind: "err", msg: `Could not read file: ${(err as Error).message}` });
+      return;
+    }
+
+    const parsed = parseImportedLayout(text);
+    if (!parsed.ok) {
+      flash({ kind: "err", msg: parsed.error });
+      return;
+    }
+
+    // Suggest the file's original slot if free, otherwise the next free
+    // slot for that kind. Same overwrite-confirm pattern as onNewLayout
+    // so the UX vocabulary is consistent across the two save paths.
+    const sameKindSlots = (layouts ?? [])
+      .filter(l => l.preset.kind === parsed.preset.kind)
+      .map(l => l.preset.slot.toUpperCase());
+    const originalSlot = parsed.preset.slot.toUpperCase();
+    const suggested = sameKindSlots.includes(originalSlot)
+      ? nextFreeSlot(sameKindSlots, parsed.preset.kind)
+      : originalSlot;
+    const input = window.prompt(
+      `Import "${file.name}" — save to slot (A–Z). Suggested: ${suggested}`,
+      suggested,
+    );
+    if (input == null) return; // cancelled
+    const slot = input.trim().toUpperCase();
+    if (!/^[A-Z]$/.test(slot)) {
+      flash({ kind: "err", msg: `Invalid slot "${input}". Use a single letter A–Z.` });
+      return;
+    }
+    if (sameKindSlots.includes(slot)) {
+      if (!confirm(`Slot ${slot} already exists. Overwrite?`)) return;
+    }
+
+    try {
+      await api.presetsSave(parsed.preset.kind, slot, parsed.preset.assignments);
+      flash({
+        kind: "ok",
+        msg: `Imported "${file.name}" → ${parsed.preset.kind === "general" ? "Layout" : "Single"} ${slot} (${parsed.preset.assignments.length} assignments).`,
+      });
+      broadcastChanged();
+    } catch (err) {
+      flash({ kind: "err", msg: (err as Error).message });
+    }
+  };
+
   return (
     <div className="flex h-full flex-col overflow-hidden p-3">
       <div className="mb-2">
@@ -384,6 +464,23 @@ export default function LayoutsPane() {
           >
             {savingNew ? "Saving…" : "+ New Layout"}
           </button>
+          {/* Import — hidden native file input triggered by the visible
+              button. Accepts only .json to keep the picker focused. */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={onFileChosen}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={triggerImport}
+            className="h-9 rounded-full px-4 text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+            title="Import a Layout from a previously-exported .json file. You'll be asked which slot (A–Z) to save it to."
+          >
+            Import…
+          </button>
           <span className="text-xs text-slate-500">
             {assignedCount === 0
               ? "Assign apps to enable"
@@ -439,6 +536,7 @@ export default function LayoutsPane() {
               onApply={() => onApply(m)}
               onDelete={() => onDelete(m)}
               onLoad={() => onLoad(m)}
+              onExport={() => onExport(m)}
             />
           ))}
 
@@ -450,7 +548,7 @@ export default function LayoutsPane() {
 }
 
 function LayoutCard({
-  model, busy, isEditing, onApply, onDelete, onLoad,
+  model, busy, isEditing, onApply, onDelete, onLoad, onExport,
 }: {
   model: LayoutCardModel;
   busy: boolean;
@@ -458,6 +556,7 @@ function LayoutCard({
   onApply: () => void;
   onDelete: () => void;
   onLoad: () => void;
+  onExport: () => void;
 }) {
   const updatedStr = useMemo(() => {
     const d = new Date(model.updatedISO);
@@ -513,6 +612,14 @@ function LayoutCard({
               title="Loads this layout into the grid across all monitors. Modify cells in the Apps tab, then click 'Save changes to this Layout' in the amber banner at the top of this pane."
             >
               {busy ? "Loading…" : "Edit"}
+            </GhostBtn>
+            <GhostBtn
+              className="flex-1"
+              onClick={onExport}
+              disabled={busy}
+              title="Download this Layout as a .json file (shareable / backupable)."
+            >
+              Export
             </GhostBtn>
             <GhostBtn className="flex-1" onClick={onDelete} disabled={busy}>
               {busy ? "Deleting…" : "Delete"}
