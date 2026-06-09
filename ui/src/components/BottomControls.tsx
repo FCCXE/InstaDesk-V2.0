@@ -86,7 +86,13 @@ export default function BottomControls() {
   const onSnap = async () => {
     setSnapState({ kind: 'busy' })
     try {
-      const res = await api.snapPopup(currentMonitorIndex, '6x6')
+      // Snap popup uses the active monitor's per-monitor grid size
+      // (Step 4 of the grid-size build, 2026-06-09). Previously hard-coded
+      // to '6x6' regardless of what density the operator had set on the
+      // target monitor, which meant Snap zones never matched the dashboard
+      // grid on monitors customized to 4×4 / 8×8 / 10×10.
+      const gridSize = `${currentGridCols}x${currentGridRows}`
+      const res = await api.snapPopup(currentMonitorIndex, gridSize)
       const r = res.result
       if (r?.cancelled) {
         setSnapState({ kind: 'cancelled' })
