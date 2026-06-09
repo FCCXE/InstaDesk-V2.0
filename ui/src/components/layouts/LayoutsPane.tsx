@@ -298,24 +298,11 @@ export default function LayoutsPane() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden p-3">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2">
         <div className="text-lg font-semibold text-slate-800">Layouts</div>
-        <button
-          type="button"
-          onClick={refresh}
-          className="h-7 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100"
-          title="GET /presets/list"
-        >
-          ↻ Refresh
-        </button>
       </div>
 
       <div className="mb-2">
-        <div className="flex items-center gap-3">
-          <ScopePill active minW={148}>All Monitors</ScopePill>
-          <ScopePill minW={168}>Current Monitor ▾</ScopePill>
-        </div>
-
         {/* Editing banner — visible only after the user clicks Edit on a card.
             Gives a one-click overwrite affordance for that specific slot
             (no slot-letter retyping, no overwrite-confirmation prompt). */}
@@ -530,30 +517,6 @@ function LayoutCard({
         </div>
       </div>
     </div>
-  );
-}
-
-function ScopePill({
-  children,
-  active,
-  minW = 140,
-}: {
-  children: React.ReactNode;
-  active?: boolean;
-  minW?: number;
-}) {
-  return (
-    <button
-      className={[
-        "h-9 rounded-full px-4 text-sm",
-        `min-w-[${minW}px]`,
-        active ? "bg-sky-50 text-sky-700 ring-1 ring-sky-200" : "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
-      ].join(" ")}
-      disabled
-      aria-disabled
-    >
-      {children}
-    </button>
   );
 }
 
