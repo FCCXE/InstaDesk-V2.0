@@ -39,25 +39,6 @@ export default function SettingsPane() {
             </Row>
           </Section>
 
-          <Section title="Shortcuts">
-            <Row>
-              <Label>Open Dashboard</Label>
-              <Select value="Ctrl + Alt + D" />
-            </Row>
-            <Row>
-              <Label>Apply Layout</Label>
-              <Select value="Ctrl + Alt + L" />
-            </Row>
-            <Row>
-              <Label>Toggle Selection</Label>
-              <Select value="Ctrl + Alt + S" />
-            </Row>
-            <Row>
-              <Label>Quick Preset</Label>
-              <Select value="Ctrl + Alt + 1" />
-            </Row>
-          </Section>
-
           <div className="h-4" />
         </div>
       </div>
