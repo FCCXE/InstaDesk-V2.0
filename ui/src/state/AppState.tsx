@@ -23,6 +23,13 @@ export const GRID_SIZE_PRESETS: ReadonlyArray<{ cols: number; rows: number }> = 
   { cols: 10, rows: 10 },
 ]
 
+// Window margin presets (bezel-aware feature, 2026-06-09): pixel padding
+// applied to every monitor's work area. Pulls snapped windows back from
+// monitor edges by `m` pixels uniformly, leaving room for physical bezels
+// and aesthetic breathing room. Adjacent windows on the SAME monitor
+// still touch each other (no internal bezel to compensate for).
+export const WINDOW_MARGIN_PRESETS: ReadonlyArray<number> = [0, 4, 8, 12, 16]
+
 export type GridSize = { cols: number; rows: number }
 export type GridSizeByMonitor = Record<string, GridSize>
 
@@ -79,6 +86,30 @@ function saveDefaultGridSize(value: GridSize) {
     window.localStorage.setItem(DEFAULT_GRID_SIZE_STORAGE_KEY, JSON.stringify(value))
   } catch {
     // Same silent fallback as above.
+  }
+}
+
+const WINDOW_MARGIN_STORAGE_KEY = 'instadesk:windowMargin'
+
+function loadWindowMargin(): number {
+  if (typeof window === 'undefined') return 0
+  try {
+    const raw = window.localStorage.getItem(WINDOW_MARGIN_STORAGE_KEY)
+    if (!raw) return 0
+    const n = parseInt(raw, 10)
+    if (!Number.isFinite(n) || n < 0) return 0
+    return n
+  } catch {
+    return 0
+  }
+}
+
+function saveWindowMargin(value: number) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(WINDOW_MARGIN_STORAGE_KEY, String(value))
+  } catch {
+    // Same silent fallback.
   }
 }
 
@@ -313,6 +344,14 @@ type AppStateContext = {
   // too (clear is a no-op there) so the path is single-source.
   resizeMonitor: (monitorId: string, size: GridSize) => void
 
+  // Bezel-aware window margin (2026-06-09): pixel padding applied to
+  // every monitor's work area before computing cell rects in the agent.
+  // Pulls snapped windows back from monitor edges, leaving room for
+  // physical bezels. Passed via --cell-margin-px to the WinAgent on every
+  // placement call (Snap popup, Layout Apply, single Launch).
+  windowMargin: number
+  setWindowMargin: (px: number) => void
+
   presets: Preset[]
   pendingPresetByMonitor: Record<string, PresetId | null>
   setPendingPreset: (monitorId: string, preset: PresetId | null) => void
@@ -401,6 +440,17 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   /* ---------- Per-monitor grid size (Steps 1+2 of the 4-step build) ---------- */
   const [gridSizeByMonitor, setGridSizeByMonitorState] = useState<GridSizeByMonitor>(loadGridSizeByMonitor)
   const [defaultGridSize, setDefaultGridSizeState] = useState<GridSize>(loadDefaultGridSize)
+
+  /* ---------- Window margin (bezel-aware, 2026-06-09) ---------- */
+  const [windowMargin, setWindowMarginState] = useState<number>(loadWindowMargin)
+
+  useEffect(() => {
+    saveWindowMargin(windowMargin)
+  }, [windowMargin])
+
+  const setWindowMargin = (px: number) => {
+    setWindowMarginState(Math.max(0, Math.floor(px)))
+  }
 
   // Persist on every change. Sparse map → small writes.
   useEffect(() => {
@@ -700,6 +750,9 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     defaultGridSize,
     setDefaultGridSize,
     resizeMonitor,
+    // window margin (bezel-aware)
+    windowMargin,
+    setWindowMargin,
 
     // URL builder
     urlBuilder,
@@ -721,6 +774,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     selectedApp, clipboard,
     monitors, currentMonitorId, presets, pendingPresetByMonitor,
     gridSizeByMonitor, currentGridCols, currentGridRows, defaultGridSize,
+    windowMargin,
     urlBuilder, browsers
   ])
 

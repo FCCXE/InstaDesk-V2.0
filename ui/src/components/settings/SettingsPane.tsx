@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { useAppState, GRID_SIZE_PRESETS } from "../../state/AppState";
+import { useAppState, GRID_SIZE_PRESETS, WINDOW_MARGIN_PRESETS } from "../../state/AppState";
 
 /**
  * SettingsPane
@@ -11,7 +11,7 @@ import { useAppState, GRID_SIZE_PRESETS } from "../../state/AppState";
  */
 
 export default function SettingsPane() {
-  const { defaultGridSize, setDefaultGridSize } = useAppState();
+  const { defaultGridSize, setDefaultGridSize, windowMargin, setWindowMargin } = useAppState();
 
   // Currently-selected preset key, for the <select>'s value prop.
   const selectedKey = `${defaultGridSize.cols}x${defaultGridSize.rows}`;
@@ -56,6 +56,21 @@ export default function SettingsPane() {
                 {GRID_SIZE_PRESETS.map((s) => (
                   <option key={`${s.cols}x${s.rows}`} value={`${s.cols}x${s.rows}`}>
                     {s.cols} × {s.rows}
+                  </option>
+                ))}
+              </select>
+            </Row>
+            <Row>
+              <Label>Window margin</Label>
+              <select
+                value={String(windowMargin)}
+                onChange={(e) => setWindowMargin(parseInt(e.target.value, 10) || 0)}
+                className="h-7 min-w-[160px] rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-300"
+                title="Pixels of padding around each monitor's work area. Pulls snapped windows back from monitor edges to leave room for physical bezels. Adjacent windows on the same monitor still touch each other."
+              >
+                {WINDOW_MARGIN_PRESETS.map((m) => (
+                  <option key={m} value={String(m)}>
+                    {m === 0 ? "Off (0 px)" : `${m} px`}
                   </option>
                 ))}
               </select>

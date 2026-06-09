@@ -31,6 +31,7 @@ export type LaunchRequest = {
   activate?: boolean
   topmost?: boolean
   waitReadyMs?: number
+  marginPx?: number  // window margin (bezel-aware), passed as --cell-margin-px
 }
 
 export type LaunchResponse = {
@@ -161,8 +162,8 @@ export const api = {
       'GET', `/presets/get?kind=${encodeURIComponent(kind)}&slot=${encodeURIComponent(slot)}`),
   presetsSave: (kind: PresetKind, slot: string, assignments: Assignment[]) =>
     request<{ ok: boolean; path: string }>('POST', '/presets/save', { kind, slot, assignments }),
-  presetsRun: (kind: PresetKind, slot: string) =>
-    request<{ ok: boolean; results: LaunchResponse[] }>('POST', '/presets/run', { kind, slot }),
+  presetsRun: (kind: PresetKind, slot: string, marginPx?: number) =>
+    request<{ ok: boolean; results: LaunchResponse[] }>('POST', '/presets/run', { kind, slot, marginPx }),
   presetsDelete: (kind: PresetKind, slot: string) =>
     request<{ ok: boolean; deleted: string }>('DELETE', '/presets/delete', { kind, slot }),
 
@@ -177,15 +178,15 @@ export const api = {
       'POST', '/quickpresets/save', { slot, name, layouts }),
   quickPresetsDelete: (slot: string) =>
     request<{ ok: boolean; deleted: string }>('DELETE', '/quickpresets/delete', { slot }),
-  quickPresetsRun: (slot: string) =>
-    request<QuickPresetRunResponse>('POST', '/quickpresets/run', { slot }),
+  quickPresetsRun: (slot: string, marginPx?: number) =>
+    request<QuickPresetRunResponse>('POST', '/quickpresets/run', { slot, marginPx }),
 
   // ---- Quick Snap (Divvy-style ad-hoc) ----
   // Opens a native overlay popup on the target monitor. The agent finds
   // the last-focused non-InstaDesk window, the user drags a rectangle on
   // the popup's grid, and the window snaps. Server request blocks until
   // user commits or cancels — give it a long timeout.
-  snapPopup: (monitor: number, gridSize = '6x6') =>
+  snapPopup: (monitor: number, gridSize = '6x6', marginPx?: number) =>
     request<{
       exitCode: number
       result: {
@@ -204,5 +205,5 @@ export const api = {
       }
       stdout: string
       stderr: string
-    }>('POST', '/snap/popup', { monitor, gridSize }),
+    }>('POST', '/snap/popup', { monitor, gridSize, marginPx }),
 }

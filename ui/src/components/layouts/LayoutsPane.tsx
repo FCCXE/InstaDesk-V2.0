@@ -57,6 +57,9 @@ export default function LayoutsPane() {
     // restores per-monitor sizes via setGridSizeForMonitor for each monitor
     // in the loaded preset.
     gridSizeByMonitor, defaultGridSize, setGridSizeForMonitor,
+    // Window margin (bezel-aware): passed to presetsRun so every Layout
+    // Apply honors the operator's edge-padding preference.
+    windowMargin,
   } = useAppState();
   // Resolve a monitor id ("m{N}") to the agent's 1-based index N.
   const monitorIdToIndex = (id: string) => {
@@ -226,7 +229,7 @@ export default function LayoutsPane() {
   const onApply = async (m: LayoutCardModel) => {
     setBusyId(m.id);
     try {
-      const res = await api.presetsRun(m.preset.kind, m.preset.slot);
+      const res = await api.presetsRun(m.preset.kind, m.preset.slot, windowMargin);
       const failures = res.results.filter(r => r.exitCode !== 0);
       if (failures.length === 0) {
         flash({ kind: "ok", msg: `Applied "${m.name}" • ${res.results.length} window${res.results.length === 1 ? "" : "s"}` });

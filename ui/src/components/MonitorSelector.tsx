@@ -29,7 +29,7 @@ function entryLabel(e: DropdownEntry): string {
 }
 
 export default function MonitorSelector() {
-  const { monitors, currentMonitorId, setCurrentMonitor } = useAppState()
+  const { monitors, currentMonitorId, setCurrentMonitor, windowMargin } = useAppState()
 
   const current = monitors.find((m) => m.id === currentMonitorId)!
   const activeCount = monitors.filter((m) => m.active).length
@@ -100,7 +100,7 @@ export default function MonitorSelector() {
     flash({ kind: 'busy' })
     try {
       if (selected.type === 'layout') {
-        const r = await api.presetsRun(selected.layout.kind, selected.layout.slot)
+        const r = await api.presetsRun(selected.layout.kind, selected.layout.slot, windowMargin)
         const failures = r.results.filter((x) => x.exitCode !== 0)
         if (failures.length === 0) {
           flash({
@@ -114,7 +114,7 @@ export default function MonitorSelector() {
       }
 
       // Quick Preset: sequential Layouts on the server.
-      const r = await api.quickPresetsRun(selected.slot)
+      const r = await api.quickPresetsRun(selected.slot, windowMargin)
       const okCount = r.layouts.filter((x) => x.ok).length
       const totalWindows = r.layouts.reduce(
         (sum, x) => sum + (x.results?.length ?? 0),

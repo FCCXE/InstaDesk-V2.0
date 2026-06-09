@@ -36,6 +36,7 @@ export default function BottomControls() {
     selection, assignments, clearGrid, currentMonitorId,
     currentGridCols, currentGridRows, resizeMonitor,
     setGridSizeForMonitor, editingLayoutId,
+    windowMargin,
   } = useAppState()
 
   const assignedCount = Object.values(assignments).filter(Boolean).length
@@ -87,12 +88,12 @@ export default function BottomControls() {
     setSnapState({ kind: 'busy' })
     try {
       // Snap popup uses the active monitor's per-monitor grid size
-      // (Step 4 of the grid-size build, 2026-06-09). Previously hard-coded
-      // to '6x6' regardless of what density the operator had set on the
-      // target monitor, which meant Snap zones never matched the dashboard
-      // grid on monitors customized to 4×4 / 8×8 / 10×10.
+      // (Step 4 of the grid-size build, 2026-06-09). Also passes the
+      // user-configured window margin (bezel-aware feature) so the popup
+      // overlay grid AND the final snapped window honor the same edge
+      // padding the operator set in Settings.
       const gridSize = `${currentGridCols}x${currentGridRows}`
-      const res = await api.snapPopup(currentMonitorIndex, gridSize)
+      const res = await api.snapPopup(currentMonitorIndex, gridSize, windowMargin)
       const r = res.result
       if (r?.cancelled) {
         setSnapState({ kind: 'cancelled' })
