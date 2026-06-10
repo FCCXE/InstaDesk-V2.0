@@ -198,7 +198,7 @@ export default function MonitorSelector() {
           <button
             type="button"
             onClick={() => setQpManagerOpen(true)}
-            className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-sky-300 bg-sky-50 px-3 text-[12px] font-semibold text-sky-700 shadow-sm hover:bg-sky-100 hover:border-sky-400"
+            className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-sky-300 bg-sky-50 px-3 text-[12px] font-semibold text-sky-700 shadow-sm hover:bg-sky-100 hover:border-sky-400"
             title="Compose, rename, and delete Quick Presets (bundles of Layouts)"
           >
             <span aria-hidden>⚡</span>
@@ -207,7 +207,7 @@ export default function MonitorSelector() {
           <button
             type="button"
             onClick={onOpenLayoutsTab}
-            className="flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 text-[12px] font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400"
+            className="flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 text-[12px] font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400"
             title="Open the Layouts tab on the right pane"
           >
             Layouts
@@ -301,7 +301,7 @@ export default function MonitorSelector() {
             type="button"
             onClick={onApply}
             disabled={!selected || isApplying}
-            className="shrink-0 rounded-md bg-sky-600 px-3 py-2 text-xs font-semibold text-white shadow hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="shrink-0 rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white shadow hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
             title={
               selected
                 ? selected.type === 'qp'

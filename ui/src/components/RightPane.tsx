@@ -614,7 +614,7 @@ function AppsAppsPane() {
                       type="button"
                       onClick={(e) => { e.stopPropagation(); toggleUrlGroupExpanded(r.urlGroup!.id); }}
                       className={[
-                        "ml-2 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-xs leading-none transition-transform duration-150",
+                        "ml-2 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs leading-none transition-transform duration-150",
                         isExpanded
                           ? "rotate-90 border-cyan-300 bg-cyan-50 text-cyan-700"
                           : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100",
@@ -1067,7 +1067,7 @@ function PrimaryBtn({
       onClick={onClick}
       disabled={disabled}
       className={[
-        "rounded-md bg-sky-600 px-3 text-xs font-medium text-white shadow hover:bg-sky-700 disabled:cursor-not-allowed",
+        "rounded-lg bg-sky-600 px-3 text-xs font-medium text-white shadow hover:bg-sky-700 disabled:cursor-not-allowed",
         "flex items-center justify-center whitespace-nowrap",
         className,
       ].join(" ")}
@@ -1097,7 +1097,7 @@ function GhostBtn({
       disabled={disabled}
       title={title}
       className={[
-        "h-7 rounded-md border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed",
+        "h-7 rounded-lg border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed",
         "px-3 whitespace-nowrap",
         className,
       ].join(" ")}
