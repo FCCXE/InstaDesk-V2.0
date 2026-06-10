@@ -149,8 +149,17 @@ export default function BottomControls() {
     'text-gray-500'
 
   return (
-    <div className="mt-4 h-12 border-t border-gray-200 bg-white px-3 flex items-center justify-between">
-      <div className="flex items-center gap-2">
+    <div className="mt-4 h-12 border-t border-gray-200 bg-white grid grid-cols-[284px_1fr_320px] gap-3 items-center">
+      {/* Left column (under the left pane) — kept empty so the controls
+          center under the CENTER grid column, not the whole bar. The
+          column template mirrors App.tsx's dashboard grid exactly, so the
+          buttons land precisely under the main grid (whose center sits
+          ~18px left of the bar midpoint because the left pane is narrower
+          than the right). */}
+      <div />
+
+      {/* Center column — Snap / Clear All / Grid, centered under the grid. */}
+      <div className="flex items-center justify-center gap-2">
         {/* Snap moves first — it's the most-used utility action and the
             operator wanted it at the head of the row for muscle memory. */}
         <button
@@ -203,8 +212,12 @@ export default function BottomControls() {
           </select>
         </label>
       </div>
-      <div className={`text-xs ${statusColor}`}>
-        {statusText} <span className="ml-2 text-gray-400">• 1280×820</span>
+      {/* Right column (under the right pane) — status, right-aligned.
+          Truncates long transient snap messages (full text on hover). */}
+      <div className="flex min-w-0 items-center justify-end">
+        <span className={`truncate text-xs ${statusColor}`} title={statusText}>
+          {statusText} <span className="ml-2 text-gray-400">• 1280×820</span>
+        </span>
       </div>
     </div>
   )
