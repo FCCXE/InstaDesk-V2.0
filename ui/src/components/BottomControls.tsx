@@ -146,10 +146,10 @@ export default function BottomControls() {
     snapState.kind === 'ok' ? 'text-emerald-600' :
     snapState.kind === 'cancelled' ? 'text-amber-600' :
     snapState.kind === 'busy' ? 'text-sky-600' :
-    'text-gray-500'
+    'text-muted'
 
   return (
-    <div className="mt-4 h-12 border-t border-gray-200 bg-white grid grid-cols-[284px_1fr_320px] gap-3 items-center">
+    <div className="mt-4 h-12 border-t border-line bg-surface grid grid-cols-[284px_1fr_320px] gap-3 items-center">
       {/* Left column (under the left pane) — kept empty so the controls
           center under the CENTER grid column, not the whole bar. The
           column template mirrors App.tsx's dashboard grid exactly, so the
@@ -168,9 +168,11 @@ export default function BottomControls() {
           disabled={snapping}
           className={[
             'px-3 py-1.5 rounded-lg text-sm font-semibold border shadow-sm transition-colors',
+            // Snap is the accent action: violet in light, electric-cyan
+            // with a soft glow in dark (per the dark mockup).
             snapping
-              ? 'border-violet-200 bg-violet-100 text-violet-500 cursor-wait'
-              : 'border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100 hover:border-violet-400',
+              ? 'border-violet-200 bg-violet-100 text-violet-500 cursor-wait dark:border-cyan-400/30 dark:bg-cyan-400/10 dark:text-cyan-400/60'
+              : 'border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100 hover:border-violet-400 dark:border-cyan-400/40 dark:bg-cyan-400/10 dark:text-cyan-300 dark:shadow-[0_0_12px_rgba(34,211,238,0.25)] dark:hover:bg-cyan-400/20 dark:hover:border-cyan-300',
           ].join(' ')}
           title={`Divvy-style snap — opens a grid popup on M${currentMonitorIndex} and snaps the last-focused window into the selected region.`}
         >
@@ -180,7 +182,7 @@ export default function BottomControls() {
           type="button"
           onClick={clearGrid}
           disabled={assignedCount === 0}
-          className="px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+          className="px-3 py-1.5 rounded-lg border border-line bg-raised text-sm text-fg hover:bg-line/60 disabled:cursor-not-allowed disabled:opacity-60"
           title={assignedCount > 0
             ? `Clear all ${assignedCount} assigned cells on M${currentMonitorIndex} AND reset its grid size to the global default. Other monitors are not affected.`
             : 'Nothing to clear'}
@@ -191,8 +193,8 @@ export default function BottomControls() {
             sits in the bottom bar grouped with Snap and Clear All, both of
             which are also scoped to the current monitor. Label format
             "Grid: NxN ▾" is informative on first sight. */}
-        <label className="flex items-center gap-1.5 text-sm text-gray-700">
-          <span className="text-xs text-gray-500">Grid:</span>
+        <label className="flex items-center gap-1.5 text-sm text-fg">
+          <span className="text-xs text-muted">Grid:</span>
           <select
             value={`${currentGridCols}x${currentGridRows}`}
             onChange={(e) => {
@@ -201,7 +203,7 @@ export default function BottomControls() {
                 onGridSizeChange({ cols: c, rows: r })
               }
             }}
-            className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-sky-300"
+            className="rounded-lg border border-line bg-raised px-2 py-1.5 text-sm text-fg hover:bg-line/60 focus:outline-none focus:ring-2 focus:ring-ring"
             title={`Grid size for M${currentMonitorIndex}. Changing this will clear that monitor's cells (saved Layouts are not affected).`}
           >
             {GRID_SIZE_PRESETS.map((s) => (
@@ -216,7 +218,7 @@ export default function BottomControls() {
           Truncates long transient snap messages (full text on hover). */}
       <div className="flex min-w-0 items-center justify-end">
         <span className={`truncate text-xs ${statusColor}`} title={statusText}>
-          {statusText} <span className="ml-2 text-gray-400">• 1280×820</span>
+          {statusText} <span className="ml-2 text-muted">• 1280×820</span>
         </span>
       </div>
     </div>
