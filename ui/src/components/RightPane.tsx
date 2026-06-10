@@ -463,20 +463,20 @@ function AppsAppsPane() {
           )}
         </div>
 
-        {/* Selection label (left) + Assign/Unassign stack (right, narrower) */}
-        <div className="mt-3 flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1 text-xs text-slate-700">
-            <span className="truncate">Selection Grid : {selCount > 0 ? selCount : "none"}</span>
-          </div>
+        {/* Selection label on its own row, then full-width Assign / Unassign
+            stacked beneath it (matches the aesthetic-redesign mockup's
+            vertical distribution — the buttons span the full pane width). */}
+        <div className="mt-3 text-xs text-slate-700">
+          Selection Grid : {selCount > 0 ? selCount : "none"}
+        </div>
 
-          <div className="flex flex-col items-end gap-2">
-            <PrimaryBtn onClick={onAssign} disabled={!canAssign} className="h-8 w-[132px]">
-              Assign to Selection
-            </PrimaryBtn>
-            <GhostBtn onClick={onUnassign} disabled={!canUnassign} className="h-8 w-[132px]">
-              Unassign Selection
-            </GhostBtn>
-          </div>
+        <div className="mt-2 flex flex-col gap-2">
+          <PrimaryBtn onClick={onAssign} disabled={!canAssign} className="h-9 w-full">
+            Assign to Selection
+          </PrimaryBtn>
+          <GhostBtn onClick={onUnassign} disabled={!canUnassign} className="h-9 w-full">
+            Unassign Selection
+          </GhostBtn>
         </div>
 
         {/* Per-cell args override — only shown when there's a selection.
