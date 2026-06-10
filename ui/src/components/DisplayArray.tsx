@@ -1,4 +1,5 @@
 import { useAppState } from '../state/AppState'
+import { useTheme } from '../state/ThemeProvider'
 
 /**
  * DisplayArray
@@ -8,14 +9,16 @@ import { useAppState } from '../state/AppState'
  */
 export default function DisplayArray() {
   const { monitors, currentMonitorId, setCurrentMonitor } = useAppState()
+  const { resolved } = useTheme()
+  const dark = resolved === 'dark'
 
   // SVG viewBox space (normalized to match SAMPLE_MONITORS coords)
   const VBW = 1000
   const VBH = 360
 
   return (
-    <div className="mt-3 rounded-xl border border-[rgb(var(--id-border))] bg-white p-3 shadow-sm">
-      <div className="mb-2 text-[12px] font-semibold text-gray-700">Display Array</div>
+    <div className="mt-3 rounded-xl border border-line bg-raised p-3 shadow-sm">
+      <div className="mb-2 text-[12px] font-semibold text-fg">Display Array</div>
       <div className="w-full">
         <svg
           viewBox={`0 0 ${VBW} ${VBH}`}
@@ -23,13 +26,13 @@ export default function DisplayArray() {
           role="img"
           aria-label="Display arrangement"
         >
-          <rect x="0" y="0" width={VBW} height={VBH} fill="rgb(246,247,249)" />
+          <rect x="0" y="0" width={VBW} height={VBH} fill={dark ? '#141d30' : 'rgb(246,247,249)'} />
           {monitors.map((m, idx) => {
             const isCurrent = m.id === currentMonitorId
             const isActive = m.active
-            const fill = isCurrent ? '#0A84FF' : '#DDE1E6'
-            const stroke = '#4A4A4A'
-            const textFill = isCurrent ? '#FFFFFF' : '#333333'
+            const fill = isCurrent ? '#0A84FF' : (dark ? '#243049' : '#DDE1E6')
+            const stroke = dark ? '#475569' : '#4A4A4A'
+            const textFill = isCurrent ? '#FFFFFF' : (dark ? '#cbd5e1' : '#333333')
             const number = labelFromName(m.name, idx)
 
             return (

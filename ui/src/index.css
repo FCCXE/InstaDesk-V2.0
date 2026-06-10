@@ -52,29 +52,11 @@
 }
 
 /* ------------------------------------------------------------------
-   Legacy --id-* scaffold — still consumed by MonitorSelector +
-   DisplayArray until the left-pane sweep (Step 6) migrates them onto the
-   semantic tokens above and removes this block. Kept light-only for now.
+   Base element styling (semantic-token driven).
+   (The legacy --id-* scaffold was retired in Step 6 once MonitorSelector
+   + DisplayArray migrated onto the tokens above.)
 -------------------------------------------------------------------*/
 @layer base {
-  :root {
-    --id-bg:            245 245 247;
-    --id-surface:       255 255 255;
-    --id-border:        229 231 235;
-    --id-border-hover:  209 213 219;
-    --id-text:          17 24 39;
-    --id-text-muted:    107 114 128;
-    --id-primary:       37 99 235;
-    --id-primary-weak:  191 219 254;
-    --id-ring:          59 130 246;
-
-    --id-radius-sm: .5rem;
-    --id-radius-md: .75rem;
-
-    --id-shadow: 0 1px 2px 0 rgb(0 0 0 / .06),
-                 0 1px 3px 0 rgb(0 0 0 / .06);
-  }
-
   html, body, #root {
     height: 100%;
   }

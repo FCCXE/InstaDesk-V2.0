@@ -176,17 +176,17 @@ export default function MonitorSelector() {
     applyState.kind === 'err' ? 'text-red-600' :
     applyState.kind === 'ok' ? 'text-emerald-600' :
     applyState.kind === 'busy' ? 'text-sky-600' :
-    'text-gray-500'
+    'text-muted'
 
   return (
-    <aside className="h-full rounded-2xl border border-[rgb(var(--id-border))] bg-[rgb(var(--id-surface))] p-4 shadow-[var(--id-shadow)]">
+    <aside className="h-full rounded-2xl border border-line bg-surface p-4 shadow-sm">
       {/* ---------------------------------------------------- */}
       {/*  QUICK PRESETS                                       */}
       {/* ---------------------------------------------------- */}
       <div className="mb-6">
         {/* Title row — Quick Presets label */}
         <div className="mb-2 flex items-center">
-          <div className="text-[14px] font-semibold text-gray-800">Quick Presets</div>
+          <div className="text-[14px] font-semibold text-fg">Quick Presets</div>
         </div>
 
         {/* Action buttons row — proper buttons (not tertiary text links).
@@ -198,7 +198,7 @@ export default function MonitorSelector() {
           <button
             type="button"
             onClick={() => setQpManagerOpen(true)}
-            className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-sky-300 bg-sky-50 px-3 text-[12px] font-semibold text-sky-700 shadow-sm hover:bg-sky-100 hover:border-sky-400"
+            className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-sky-300 bg-sky-50 px-3 text-[12px] font-semibold text-sky-700 shadow-sm hover:bg-sky-100 hover:border-sky-400 dark:border-primary/40 dark:bg-primary/10 dark:text-sky-300 dark:hover:bg-primary/20 dark:hover:border-primary/60"
             title="Compose, rename, and delete Quick Presets (bundles of Layouts)"
           >
             <span aria-hidden>⚡</span>
@@ -207,11 +207,11 @@ export default function MonitorSelector() {
           <button
             type="button"
             onClick={onOpenLayoutsTab}
-            className="flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 text-[12px] font-medium text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-400"
+            className="flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-line bg-raised px-3 text-[12px] font-medium text-fg shadow-sm hover:bg-line/60 hover:border-line-strong"
             title="Open the Layouts tab on the right pane"
           >
             Layouts
-            <span aria-hidden className="text-gray-400">↗</span>
+            <span aria-hidden className="text-muted">↗</span>
           </button>
         </div>
 
@@ -221,7 +221,7 @@ export default function MonitorSelector() {
               type="button"
               onClick={() => setOpen((v) => !v)}
               disabled={!loading && !hasAny}
-              className="flex w-full items-center justify-between rounded-lg border border-[rgb(var(--id-border))] bg-white px-3 py-2 text-sm shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-between rounded-lg border border-line bg-raised px-3 py-2 text-sm shadow-sm hover:bg-line/60 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span className="truncate">
                 {selected ? entryLabel(selected) : 'Choose a Quick Preset or Layout'}
@@ -231,12 +231,12 @@ export default function MonitorSelector() {
 
             {open && hasAny && (
               <div
-                className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white p-1 shadow-lg ring-1 ring-gray-200 max-h-64 overflow-y-auto"
+                className="absolute z-10 mt-1 w-full rounded-lg border border-line bg-surface p-1 shadow-lg ring-1 ring-line max-h-64 overflow-y-auto"
                 role="menu"
               >
                 {quickpresets && quickpresets.length > 0 && (
                   <>
-                    <div className="px-2 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                    <div className="px-2 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
                       Quick Presets
                     </div>
                     {quickpresets.map((q) => {
@@ -248,7 +248,7 @@ export default function MonitorSelector() {
                           key={entryKey(e)}
                           type="button"
                           onClick={() => handleChoose(e)}
-                          className="flex w-full items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-gray-50 text-gray-800"
+                          className="flex w-full items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-line/60 text-fg"
                           role="menuitem"
                           title={q.path}
                         >
@@ -256,7 +256,7 @@ export default function MonitorSelector() {
                             <span aria-hidden className="text-purple-500">⚡</span>
                             <span className="truncate">{q.name}</span>
                           </span>
-                          <span className="ml-2 shrink-0 text-[10px] uppercase tracking-wide text-gray-400">
+                          <span className="ml-2 shrink-0 text-[10px] uppercase tracking-wide text-muted">
                             {q.layoutCount} layout{q.layoutCount === 1 ? '' : 's'}
                           </span>
                         </button>
@@ -268,9 +268,9 @@ export default function MonitorSelector() {
                 {layouts && layouts.length > 0 && (
                   <>
                     {quickpresets && quickpresets.length > 0 && (
-                      <div className="my-1 h-px bg-gray-100" />
+                      <div className="my-1 h-px bg-line" />
                     )}
-                    <div className="px-2 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                    <div className="px-2 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
                       Layouts
                     </div>
                     {layouts.map((p) => {
@@ -280,12 +280,12 @@ export default function MonitorSelector() {
                           key={entryKey(e)}
                           type="button"
                           onClick={() => handleChoose(e)}
-                          className="flex w-full items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-gray-50 text-gray-800"
+                          className="flex w-full items-center justify-between rounded-md px-2 py-2 text-sm hover:bg-line/60 text-fg"
                           role="menuitem"
                           title={p.path}
                         >
                           <span>{entryLabel(e)}</span>
-                          <span className="ml-2 text-[10px] uppercase tracking-wide text-gray-400">
+                          <span className="ml-2 text-[10px] uppercase tracking-wide text-muted">
                             slot {p.slot}
                           </span>
                         </button>
@@ -301,7 +301,7 @@ export default function MonitorSelector() {
             type="button"
             onClick={onApply}
             disabled={!selected || isApplying}
-            className="shrink-0 rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white shadow hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary shadow hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
             title={
               selected
                 ? selected.type === 'qp'
@@ -321,13 +321,13 @@ export default function MonitorSelector() {
       {/*  MONITOR SELECTION (UNCHANGED)                       */}
       {/* ---------------------------------------------------- */}
       <div>
-        <div className="mb-2 text-[13px] font-semibold text-gray-700">Monitor Selection</div>
+        <div className="mb-2 text-[13px] font-semibold text-fg">Monitor Selection</div>
 
         <div className="mb-2">
           <select
             value={currentMonitorId}
             onChange={(e) => setCurrentMonitor(e.target.value)}
-            className="w-full rounded-lg border border-[rgb(var(--id-border))] bg-white px-3 py-2 text-sm shadow-sm"
+            className="w-full rounded-lg border border-line bg-raised px-3 py-2 text-sm shadow-sm"
           >
             {chipMonitors.map((m) => (
               <option key={m.id} value={m.id}>
@@ -337,11 +337,11 @@ export default function MonitorSelector() {
           </select>
         </div>
 
-        <div className="text-[12px] text-[rgb(var(--id-text-muted))]">
+        <div className="text-[12px] text-muted">
           {current.resolution} {current.role}
         </div>
 
-        <div className="mt-3 rounded-xl border border-[rgb(var(--id-border))] bg-white p-3 shadow-sm">
+        <div className="mt-3 rounded-xl border border-line bg-raised p-3 shadow-sm">
           <div className="flex items-center justify-between text-[13px]">
             <div className="flex items-center gap-2">
               <span className={`inline-block size-2 rounded-full ${current.active ? 'bg-emerald-500' : 'bg-gray-300'}`} />
@@ -350,15 +350,15 @@ export default function MonitorSelector() {
             <span
               className={`rounded-full px-2 py-0.5 text-[11px] ${
                 current.active
-                  ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-                  : 'bg-gray-100 text-gray-600'
+                  ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/30'
+                  : 'bg-raised text-muted'
               }`}
             >
               {current.active ? 'Active' : 'Inactive'}
             </span>
           </div>
 
-          <dl className="mt-3 space-y-1 text-[12px] text-[rgb(var(--id-text-muted))]">
+          <dl className="mt-3 space-y-1 text-[12px] text-muted">
             <div className="flex justify-between">
               <dt>Role:</dt>
               <dd>{current.role}</dd>
@@ -370,7 +370,7 @@ export default function MonitorSelector() {
           </dl>
         </div>
 
-        <div className="mt-3 text-[11px] text-[rgb(var(--id-text-muted))]">
+        <div className="mt-3 text-[11px] text-muted">
           Active Monitors: {activeCount}/{monitors.length}
         </div>
 
