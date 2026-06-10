@@ -11,9 +11,9 @@ import { AppStateProvider } from './state/AppState'
 export default function App() {
   return (
     <AppStateProvider>
-      <div className="min-h-dvh min-w-full bg-neutral-100 flex items-center justify-center">
+      <div className="min-h-dvh min-w-full bg-bg flex items-center justify-center">
         {/* Fixed 1280×820 centered app surface */}
-        <div className="w-[1280px] h-[820px] bg-neutral-50 shadow ring-1 ring-black/5 overflow-hidden flex flex-col">
+        <div className="w-[1280px] h-[820px] bg-bg shadow ring-1 ring-black/5 dark:ring-white/10 overflow-hidden flex flex-col">
           {/* Top chrome */}
           <TopChrome />
 

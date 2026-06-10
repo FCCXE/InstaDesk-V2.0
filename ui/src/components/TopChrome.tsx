@@ -31,7 +31,7 @@ export default function TopChrome() {
     { color: 'bg-red-500', label: `Server unreachable (${api.base}) — ${status.reason}` }
 
   return (
-    <header className="h-14 border-b border-gray-200 bg-white grid grid-cols-3 items-center px-4">
+    <header className="h-14 border-b border-line bg-surface grid grid-cols-3 items-center px-4">
       {/* Left: InstaDesk logo */}
       <div className="flex items-center min-w-0">
         <img
@@ -46,8 +46,8 @@ export default function TopChrome() {
       <div className="flex items-center justify-center">
         <button
           type="button"
-          className="px-5 py-2 text-[0.95rem] font-semibold text-white
-                     bg-[#199CFF] hover:bg-[#1380CC]
+          className="px-5 py-2 text-[0.95rem] font-semibold text-on-primary
+                     bg-primary hover:bg-primary-hover
                      rounded-lg shadow-md transition-colors
                      scale-110"
         >
@@ -56,14 +56,14 @@ export default function TopChrome() {
       </div>
 
       {/* Right: server status dot + version + FcXe logo */}
-      <div className="flex items-center justify-end gap-2 text-xs text-gray-500">
+      <div className="flex items-center justify-end gap-2 text-xs text-muted">
         <span
           className={`inline-block h-2.5 w-2.5 rounded-full ${dot.color}`}
           title={dot.label}
           aria-label={dot.label}
         />
         <span>v0.1 • {status.kind === 'ok' && status.data.agentExists ? 'live' : 'static'}</span>
-        <span className="text-gray-400">by</span>
+        <span className="text-muted">by</span>
         <img
           src="/brand/fcxe.png"
           alt="FcXe Studios"
