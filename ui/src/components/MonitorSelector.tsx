@@ -179,7 +179,7 @@ export default function MonitorSelector() {
     'text-gray-500'
 
   return (
-    <aside className="rounded-2xl border border-[rgb(var(--id-border))] bg-[rgb(var(--id-surface))] p-4 shadow-[var(--id-shadow)]">
+    <aside className="h-full rounded-2xl border border-[rgb(var(--id-border))] bg-[rgb(var(--id-surface))] p-4 shadow-[var(--id-shadow)]">
       {/* ---------------------------------------------------- */}
       {/*  QUICK PRESETS                                       */}
       {/* ---------------------------------------------------- */}

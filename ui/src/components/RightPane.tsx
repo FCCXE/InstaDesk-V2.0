@@ -114,7 +114,7 @@ function TopTab({
 function AppsPane() {
   const [sub, setSub] = useState<AppsSubTab>("Apps");
   return (
-    <div className="flex h-full flex-col overflow-hidden p-3">
+    <div className="flex h-full flex-col overflow-hidden px-3 pt-3">
       {/* Sub-tabs */}
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <SubTab label="URL's" active={sub === "URLs"} onClick={() => setSub("URLs")} />
