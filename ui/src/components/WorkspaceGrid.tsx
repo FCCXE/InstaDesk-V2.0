@@ -119,7 +119,7 @@ export default function WorkspaceGrid() {
   const isHighlighted = (r: number, c: number) => selection.has(cellKey(r, c))
 
   return (
-    <section className="h-full w-full bg-white rounded-xl border border-gray-200 shadow-sm p-3 flex flex-col">
+    <section className="h-full w-full bg-surface rounded-xl border border-line shadow-sm p-3 flex flex-col">
       <div className="flex-1 min-h-0 flex items-center justify-center">
         <div className="w-full h-full max-w-full max-h-full aspect-square">
           <div className="relative w-full h-full select-none">
@@ -143,7 +143,7 @@ export default function WorkspaceGrid() {
                 const baseClasses = 'border rounded transition-colors flex items-center justify-center text-[10px] font-medium overflow-hidden'
                 const classes = style
                   ? `${baseClasses} ${style.fill} ${style.ring} text-slate-700`
-                  : `${baseClasses} ${highlighted ? 'border-blue-300' : 'border-gray-200'} text-slate-400`
+                  : `${baseClasses} ${highlighted ? 'border-blue-300' : 'border-line'} text-muted`
 
                 // Tooltip: when there are multiple instances of this app,
                 // surface the args so the user can identify each region
@@ -186,7 +186,7 @@ export default function WorkspaceGrid() {
         </div>
       </div>
 
-      <div className="mt-3 text-[11px] text-gray-500">{status}</div>
+      <div className="mt-3 text-[11px] text-muted">{status}</div>
     </section>
   )
 }
