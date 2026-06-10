@@ -430,7 +430,7 @@ function AppsAppsPane() {
 
   // Compact button sizing (uniform)
   const smallBtnH = editMode ? "h-9" : "h-8"; // slightly taller in edit mode for two-line Clear/Custom
-  const smallBtnCommon = `shrink-0 ${smallBtnH} px-2 text-[11px]`;
+  const smallBtnCommon = `flex-1 ${smallBtnH} px-2 text-[11px] text-center`;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -441,8 +441,10 @@ function AppsAppsPane() {
           Select Cells and Pick an App to enable assign
         </div>
 
-        {/* Button row: compact sizing + extra right padding; never hits card edge */}
-        <div className="mt-3 flex items-center gap-1 pr-4">
+        {/* Button row: three equal-width (flex-1) buttons spanning the full
+            pane width — same total width as the Assign button below — with
+            centered labels and the existing small gaps preserved. */}
+        <div className="mt-3 flex items-center gap-1">
           <GhostBtn className={smallBtnCommon} onClick={onBrowse}>
             Browse
           </GhostBtn>
