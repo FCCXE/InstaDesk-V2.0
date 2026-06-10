@@ -260,11 +260,9 @@ function MonitorPanel({
 }) {
   const { idx, assignments, cols, rows, aspect } = monitor;
 
-  // Normalized viewBox: aspect drives width vs. height. preserveAspectRatio
-  // + max-w-full + max-h-full on the SVG element lets the browser scale
-  // the SVG to fit the grid cell while keeping the aspect ratio intact.
-  // Font sizes / strokes are in viewBox units, so they auto-scale with
-  // however big the cell ends up rendering.
+  // Normalized viewBox — aspect drives width vs. height. Font sizes /
+  // strokes inside the SVG are in viewBox units, so they auto-scale
+  // with however big the cell ends up rendering.
   const VB_H = 1000;
   const VB_W = aspect * VB_H;
 
@@ -273,14 +271,22 @@ function MonitorPanel({
 
   return (
     <div className="flex min-w-0 min-h-0 flex-col items-center gap-1 overflow-hidden">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+      <div className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
         M{idx}
       </div>
-      <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
+      {/* Responsive-SVG pattern: the wrapping div is `relative` and
+          fills the remaining cell height. The SVG is absolute-positioned
+          to fill the wrapper EXACTLY (width: 100%, height: 100%), and
+          preserveAspectRatio="xMidYMid meet" letterboxes the content
+          inside that fixed-size SVG. This guarantees the SVG never
+          pushes the cell taller than its grid allocation — which was
+          the bug in the previous version (intrinsic SVG sizing from
+          viewBox aspect overflowed the 1fr row). */}
+      <div className="relative min-h-0 w-full flex-1">
         <svg
+          className="absolute inset-0 h-full w-full rounded-md bg-white shadow ring-1 ring-slate-300"
           viewBox={`0 0 ${VB_W} ${VB_H}`}
           preserveAspectRatio="xMidYMid meet"
-          className="block max-h-full max-w-full rounded-md bg-white shadow ring-1 ring-slate-300"
         >
           {/* Grid lines — subtle but visible at large size. */}
           {Array.from({ length: cols - 1 }, (_, i) => i + 1).map((i) => (
