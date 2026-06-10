@@ -62,7 +62,7 @@ export default function RightPane() {
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
       {/* Top Tabs */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
         <TopTab label="Apps" active={tab === "Apps"} onClick={() => setTab("Apps")} />
         <TopTab label="Layouts" active={tab === "Layouts"} onClick={() => setTab("Layouts")} />
         <TopTab label="Settings" active={tab === "Settings"} onClick={() => setTab("Settings")} />
@@ -98,8 +98,8 @@ function TopTab({
       className={[
         "h-8 flex-1 rounded-lg px-3 text-sm text-center ring-inset",
         active
-          ? "bg-sky-50 text-sky-700 ring-1 ring-sky-200"
-          : "bg-slate-100 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200",
+          ? "bg-sky-50 text-sky-700 ring-1 ring-sky-200 dark:bg-primary/15 dark:text-sky-300 dark:ring-primary/50"
+          : "bg-slate-100 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200 dark:bg-transparent dark:text-muted dark:ring-line dark:hover:bg-raised",
       ].join(" ")}
     >
       {label}
@@ -158,8 +158,8 @@ function SubTab({
       className={[
         "h-8 flex-1 rounded-lg px-3 text-sm text-center ring-inset",
         active
-          ? "bg-sky-50 text-sky-700 ring-1 ring-sky-200"
-          : "bg-slate-100 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200",
+          ? "bg-sky-50 text-sky-700 ring-1 ring-sky-200 dark:bg-primary/15 dark:text-sky-300 dark:ring-primary/50"
+          : "bg-slate-100 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200 dark:bg-transparent dark:text-muted dark:ring-line dark:hover:bg-raised",
       ].join(" ")}
     >
       {label}
