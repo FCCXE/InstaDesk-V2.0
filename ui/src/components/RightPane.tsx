@@ -828,12 +828,12 @@ function UrlsBuilderPane() {
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
         <div className="mb-2 text-base font-semibold text-slate-800">URL Builder</div>
 
-        <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="mb-3 flex items-center gap-2">
           <Label>Browser</Label>
           <select
             value={urlBuilder.browser ?? ""}
             onChange={(e) => setUrlBrowser(e.target.value || null)}
-            className="h-7 min-w-[140px] rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-300"
+            className="h-7 min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-300"
           >
             <option value="">Choose…</option>
             {browsers.map((b) => (
@@ -842,8 +842,12 @@ function UrlsBuilderPane() {
               </option>
             ))}
           </select>
+        </div>
 
+        {/* Add Browser / Add Tab Group — same line, justified to equal width */}
+        <div className="mb-3 flex items-center gap-2">
           <GhostBtn
+            className="flex-1 text-center"
             onClick={() => {
               const name = prompt("Add browser (e.g., Brave):");
               if (name && name.trim()) addBrowser(name.trim());
@@ -851,7 +855,7 @@ function UrlsBuilderPane() {
           >
             + Add Browser
           </GhostBtn>
-          <GhostBtn onClick={() => addTabGroup()}>+ Add Tab Group</GhostBtn>
+          <GhostBtn className="flex-1 text-center" onClick={() => addTabGroup()}>+ Add Tab Group</GhostBtn>
         </div>
 
         {urlBuilder.tabGroups.map((g) => (
@@ -871,7 +875,7 @@ function UrlsBuilderPane() {
               ))}
             </div>
             <div className="mt-2">
-              <GhostBtn onClick={() => addUrlLine(g.id)}>+ Add URL</GhostBtn>
+              <GhostBtn className="w-full text-center" onClick={() => addUrlLine(g.id)}>+ Add URL</GhostBtn>
             </div>
           </div>
         ))}
@@ -900,10 +904,12 @@ function UrlsBuilderPane() {
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <PrimaryBtn onClick={onSave}>Save</PrimaryBtn>
-          <GhostBtn onClick={onPreview}>Preview</GhostBtn>
-          <GhostBtn onClick={onReset}>Reset</GhostBtn>
+        {/* Save / Preview / Reset — standardized size (h-8 + flex-1), justified
+            across the line; Save keeps the blue PrimaryBtn styling. */}
+        <div className="mt-3 flex items-center gap-2">
+          <PrimaryBtn className="h-8 flex-1" onClick={onSave}>Save</PrimaryBtn>
+          <GhostBtn className="h-8 flex-1" onClick={onPreview}>Preview</GhostBtn>
+          <GhostBtn className="h-8 flex-1" onClick={onReset}>Reset</GhostBtn>
         </div>
 
         {flash && (
