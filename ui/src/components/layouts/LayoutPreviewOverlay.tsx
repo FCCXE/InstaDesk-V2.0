@@ -150,6 +150,18 @@ export default function LayoutPreviewOverlay() {
 
 /* ---------------------------------------------------------------------- */
 
+/** Pick a grid arrangement that maximizes visibility while keeping every
+ *  monitor on-screen simultaneously (no scrolling required). */
+function chooseGrid(n: number): { cols: number; rows: number } {
+  if (n <= 1) return { cols: 1, rows: 1 };
+  if (n === 2) return { cols: 2, rows: 1 };
+  if (n === 3) return { cols: 3, rows: 1 };
+  if (n === 4) return { cols: 2, rows: 2 };
+  if (n <= 6) return { cols: 3, rows: 2 };
+  const cols = Math.ceil(Math.sqrt(n));
+  return { cols, rows: Math.ceil(n / cols) };
+}
+
 function PreviewBody({ preset, monitors }: { preset: SavedPreset; monitors: Monitor[] }) {
   const layout = useMemo(() => {
     const byMonitor = new Map<number, Assignment[]>();
@@ -182,18 +194,30 @@ function PreviewBody({ preset, monitors }: { preset: SavedPreset; monitors: Moni
     );
   }
 
+  const grid = chooseGrid(layout.length);
+
   return (
-    <div className="flex flex-col gap-4">
-      {/* Monitors row — wrap if total width exceeds container. Each card
-          contains its monitor at proper aspect ratio. */}
-      <div className="flex flex-wrap items-start justify-center gap-4">
+    <div className="flex h-full flex-col gap-3">
+      {/* Monitors arranged in an adaptive CSS grid. 4 monitors → 2×2,
+          3 → 3×1, etc. Each cell uses minmax(0, 1fr) so SVGs don't push
+          rows wider than their share. This is what makes ALL monitors
+          visible without scrolling — flex-wrap couldn't constrain the
+          row count, so 4 mixed-aspect monitors overflowed downward. */}
+      <div
+        className="grid min-h-0 flex-1 gap-3"
+        style={{
+          gridTemplateColumns: `repeat(${grid.cols}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${grid.rows}, minmax(0, 1fr))`,
+        }}
+      >
         {layout.map((m) => (
           <MonitorPanel key={m.idx} monitor={m} />
         ))}
       </div>
 
-      {/* Footer: per-monitor resolution + role metadata. */}
-      <div className="border-t border-slate-200 pt-3 text-[11px] text-slate-600">
+      {/* Footer: per-monitor resolution + role metadata. Compact so the
+          monitors get all available vertical space. */}
+      <div className="shrink-0 border-t border-slate-200 pt-2 text-[11px] text-slate-600">
         <div className="flex flex-wrap gap-x-5 gap-y-1">
           {layout.map((m) => (
             <span key={m.idx} className="whitespace-nowrap">
@@ -222,8 +246,6 @@ function PreviewBody({ preset, monitors }: { preset: SavedPreset; monitors: Moni
 
 /* ---------------------------------------------------------------------- */
 
-const MONITOR_HEIGHT_PX = 220; // large enough to show app names clearly
-
 function MonitorPanel({
   monitor,
 }: {
@@ -237,110 +259,134 @@ function MonitorPanel({
   };
 }) {
   const { idx, assignments, cols, rows, aspect } = monitor;
-  const w = Math.round(MONITOR_HEIGHT_PX * aspect);
-  const h = MONITOR_HEIGHT_PX;
+
+  // Normalized viewBox: aspect drives width vs. height. preserveAspectRatio
+  // + max-w-full + max-h-full on the SVG element lets the browser scale
+  // the SVG to fit the grid cell while keeping the aspect ratio intact.
+  // Font sizes / strokes are in viewBox units, so they auto-scale with
+  // however big the cell ends up rendering.
+  const VB_H = 1000;
+  const VB_W = aspect * VB_H;
+
+  const cellW = VB_W / cols;
+  const cellH = VB_H / rows;
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex min-w-0 min-h-0 flex-col items-center gap-1 overflow-hidden">
       <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-600">
         M{idx}
       </div>
-      <svg
-        width={w}
-        height={h}
-        viewBox={`0 0 ${w} ${h}`}
-        className="rounded-md bg-white shadow ring-1 ring-slate-300"
-      >
-        {/* Grid lines — visible at large size, subtle. */}
-        {Array.from({ length: cols - 1 }, (_, i) => i + 1).map((i) => (
-          <line
-            key={`vl-${i}`}
-            x1={(w * i) / cols}
-            y1={0}
-            x2={(w * i) / cols}
-            y2={h}
-            stroke="#e2e8f0" /* slate-200 */
-            strokeWidth={1}
-          />
-        ))}
-        {Array.from({ length: rows - 1 }, (_, i) => i + 1).map((i) => (
-          <line
-            key={`hl-${i}`}
-            x1={0}
-            y1={(h * i) / rows}
-            x2={w}
-            y2={(h * i) / rows}
-            stroke="#e2e8f0"
-            strokeWidth={1}
-          />
-        ))}
+      <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
+        <svg
+          viewBox={`0 0 ${VB_W} ${VB_H}`}
+          preserveAspectRatio="xMidYMid meet"
+          className="block max-h-full max-w-full rounded-md bg-white shadow ring-1 ring-slate-300"
+        >
+          {/* Grid lines — subtle but visible at large size. */}
+          {Array.from({ length: cols - 1 }, (_, i) => i + 1).map((i) => (
+            <line
+              key={`vl-${i}`}
+              x1={(VB_W * i) / cols}
+              y1={0}
+              x2={(VB_W * i) / cols}
+              y2={VB_H}
+              stroke="#e2e8f0" /* slate-200 */
+              strokeWidth={1.5}
+            />
+          ))}
+          {Array.from({ length: rows - 1 }, (_, i) => i + 1).map((i) => (
+            <line
+              key={`hl-${i}`}
+              x1={0}
+              y1={(VB_H * i) / rows}
+              x2={VB_W}
+              y2={(VB_H * i) / rows}
+              stroke="#e2e8f0"
+              strokeWidth={1.5}
+            />
+          ))}
 
-        {/* Each assignment: filled rect with title + optional args label. */}
-        {assignments.map((a, ai) => {
-          const parts = (a.grid || "").split(",").map((s) => parseInt(s.trim(), 10));
-          if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n) || n <= 0)) {
-            return null;
-          }
-          const [gx, gy, gw, gh] = parts;
-          const cellW = w / cols;
-          const cellH = h / rows;
-          const ax = (gx - 1) * cellW;
-          const ay = (gy - 1) * cellH;
-          const aw = gw * cellW;
-          const ah = gh * cellH;
+          {/* Filled regions with title + optional args label. */}
+          {assignments.map((a, ai) => {
+            const parts = (a.grid || "")
+              .split(",")
+              .map((s) => parseInt(s.trim(), 10));
+            if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n) || n <= 0)) {
+              return null;
+            }
+            const [gx, gy, gw, gh] = parts;
+            const ax = (gx - 1) * cellW;
+            const ay = (gy - 1) * cellH;
+            const aw = gw * cellW;
+            const ah = gh * cellH;
 
-          const title = a.title ?? "?";
-          // Truncate args to keep the label readable. Show only if the
-          // region is tall enough for a two-line label (avoid overlap).
-          const args = (a.args ?? "").trim();
-          const canShowArgs = ah >= 50 && args.length > 0;
+            const title = a.title ?? "?";
+            const args = (a.args ?? "").trim();
 
-          return (
-            <g key={ai}>
-              <rect
-                x={ax + 1}
-                y={ay + 1}
-                width={Math.max(0, aw - 2)}
-                height={Math.max(0, ah - 2)}
-                rx={3}
-                ry={3}
-                fill="#bae6fd" /* sky-200 */
-                stroke="#0284c7" /* sky-600 */
-                strokeWidth={1.4}
-              />
-              {/* App title centered. */}
-              <text
-                x={ax + aw / 2}
-                y={canShowArgs ? ay + ah / 2 - 4 : ay + ah / 2 + 4}
-                fontSize={Math.min(14, Math.max(9, Math.min(aw, ah) * 0.18))}
-                fill="#0c4a6e" /* sky-900 */
-                textAnchor="middle"
-                style={{
-                  fontFamily: "system-ui, -apple-system, sans-serif",
-                  fontWeight: 600,
-                }}
-              >
-                {truncate(title, Math.max(6, Math.floor(aw / 7)))}
-              </text>
-              {canShowArgs && (
+            // Font sizes scale with the region's smaller dimension.
+            // Bounds keep them legible at small regions and not absurd at
+            // large ones.
+            const minDim = Math.min(aw, ah);
+            const titleFont = Math.max(28, Math.min(70, minDim * 0.16));
+            const argsFont = titleFont * 0.7;
+            // Show args only if the region is tall enough to host two
+            // lines without overlap.
+            const canShowArgs = ah >= titleFont * 3.2 && args.length > 0;
+
+            // Crude char-width estimate (each char ~= 0.55 * fontSize).
+            const titleMaxChars = Math.max(6, Math.floor(aw / (titleFont * 0.55)));
+            const argsMaxChars = Math.max(6, Math.floor(aw / (argsFont * 0.55)));
+
+            return (
+              <g key={ai}>
+                <rect
+                  x={ax + 4}
+                  y={ay + 4}
+                  width={Math.max(0, aw - 8)}
+                  height={Math.max(0, ah - 8)}
+                  rx={8}
+                  ry={8}
+                  fill="#bae6fd" /* sky-200 */
+                  stroke="#0284c7" /* sky-600 */
+                  strokeWidth={2}
+                />
                 <text
                   x={ax + aw / 2}
-                  y={ay + ah / 2 + 12}
-                  fontSize={Math.min(11, Math.max(8, Math.min(aw, ah) * 0.13))}
-                  fill="#075985" /* sky-800 */
+                  y={
+                    canShowArgs
+                      ? ay + ah / 2 - argsFont * 0.2
+                      : ay + ah / 2 + titleFont / 3
+                  }
+                  fontSize={titleFont}
+                  fill="#0c4a6e" /* sky-900 */
                   textAnchor="middle"
                   style={{
                     fontFamily: "system-ui, -apple-system, sans-serif",
-                    fontWeight: 400,
+                    fontWeight: 600,
                   }}
                 >
-                  {truncate(args, Math.max(8, Math.floor(aw / 6)))}
+                  {truncate(title, titleMaxChars)}
                 </text>
-              )}
-            </g>
-          );
-        })}
-      </svg>
+                {canShowArgs && (
+                  <text
+                    x={ax + aw / 2}
+                    y={ay + ah / 2 + titleFont * 0.95}
+                    fontSize={argsFont}
+                    fill="#075985" /* sky-800 */
+                    textAnchor="middle"
+                    style={{
+                      fontFamily: "system-ui, -apple-system, sans-serif",
+                      fontWeight: 400,
+                    }}
+                  >
+                    {truncate(args, argsMaxChars)}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
     </div>
   );
 }

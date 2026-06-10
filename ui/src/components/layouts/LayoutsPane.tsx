@@ -636,12 +636,18 @@ function LayoutCard({
 
           <div className="mt-1 text-xs text-slate-500">{updatedStr}</div>
 
-          <div className="mt-3 flex items-center gap-2">
-            <PrimaryBtn className="flex-1" onClick={onApply} disabled={busy}>
+          {/* 2×2 button grid — 4 buttons in a single row crammed the
+              text on narrow cards even at px-2 (operator screenshot
+              showed "Del" instead of "Delete"). 2×2 gives each button
+              ~50% width, plenty of room for full labels. Visual order:
+              top row = common actions (Apply, Edit), bottom row =
+              utility actions (Export, Delete). */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <PrimaryBtn onClick={onApply} disabled={busy}>
               {busy ? "Applying…" : "Apply"}
             </PrimaryBtn>
             <GhostBtn
-              className="flex-1 border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
+              className="border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
               onClick={onLoad}
               disabled={busy}
               title="Loads this layout into the grid across all monitors. Modify cells in the Apps tab, then click 'Save changes to this Layout' in the amber banner at the top of this pane."
@@ -649,14 +655,13 @@ function LayoutCard({
               {busy ? "Loading…" : "Edit"}
             </GhostBtn>
             <GhostBtn
-              className="flex-1"
               onClick={onExport}
               disabled={busy}
               title="Download this Layout as a .json file (shareable / backupable)."
             >
               Export
             </GhostBtn>
-            <GhostBtn className="flex-1" onClick={onDelete} disabled={busy}>
+            <GhostBtn onClick={onDelete} disabled={busy}>
               {busy ? "Deleting…" : "Delete"}
             </GhostBtn>
           </div>
