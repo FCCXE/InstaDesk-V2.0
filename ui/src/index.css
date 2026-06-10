@@ -1,48 +1,93 @@
-﻿/* C:\FcXe Studios\Instadesk\instadesk-tauri\ui\src\index.css */
+/* C:\FcXe Studios\Instadesk\instadesk-tauri\ui\src\index.css */
 
 /* Tailwind v4 entry */
 @import "tailwindcss";
 
 /* ------------------------------------------------------------------
-   InstaDesk Theme (v0 scaffold) – tokens only (no @apply)
+   Dark mode — driven by <html data-theme="dark"> (set by ThemeProvider,
+   Step 2). `dark:` utilities apply to the element and any descendant
+   under a [data-theme="dark"] ancestor. :where() keeps specificity at 0.
+-------------------------------------------------------------------*/
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ------------------------------------------------------------------
+   Semantic design tokens — LIGHT defaults. Each generates Tailwind
+   utilities (bg-surface, text-fg, border-line, bg-primary, …). The same
+   variables are overridden with the dark-mockup values in the
+   [data-theme="dark"] block below, so one attribute flip re-themes the
+   whole app. Components are migrated onto these tokens incrementally
+   (see the dark-theme build plan). Tailwind's default palette
+   (slate/sky/white/…) still works for not-yet-swept components.
+-------------------------------------------------------------------*/
+@theme {
+  --color-bg:            #f5f5f7;  /* page background             */
+  --color-surface:       #ffffff;  /* cards, panels               */
+  --color-raised:        #f8fafc;  /* inputs, inner cards         */
+  --color-line:          #e5e7eb;  /* default border (slate-200)  */
+  --color-line-strong:   #d1d5db;  /* hover border  (slate-300)   */
+  --color-fg:            #111827;  /* primary text  (slate-900)   */
+  --color-muted:         #6b7280;  /* secondary text(slate-500)   */
+  --color-primary:       #199cff;  /* brand blue                  */
+  --color-primary-hover: #1380cc;
+  --color-on-primary:    #ffffff;  /* text/icon on primary        */
+  --color-accent:        #7c3aed;  /* Snap accent (violet, light) */
+  --color-ring:          #3b82f6;  /* focus ring                  */
+}
+
+/* DARK palette — same tokens, mockup values (near-black navy panels,
+   white-90 text, brighter blue, electric-cyan Snap accent). */
+[data-theme="dark"] {
+  --color-bg:            #0a0f1a;
+  --color-surface:       #0f1626;
+  --color-raised:        #141d30;
+  --color-line:          #1e293b;
+  --color-line-strong:   #334155;
+  --color-fg:            #f1f5f9;  /* ~white-90 */
+  --color-muted:         #94a3b8;
+  --color-primary:       #2a9dff;
+  --color-primary-hover: #4aabff;
+  --color-on-primary:    #ffffff;
+  --color-accent:        #22d3ee;  /* electric cyan */
+  --color-ring:          #38bdf8;
+}
+
+/* ------------------------------------------------------------------
+   Legacy --id-* scaffold — still consumed by MonitorSelector +
+   DisplayArray until the left-pane sweep (Step 6) migrates them onto the
+   semantic tokens above and removes this block. Kept light-only for now.
 -------------------------------------------------------------------*/
 @layer base {
   :root {
-    /* Colors */
-    --id-bg:            245 245 247;  /* page background */
-    --id-surface:       255 255 255;  /* cards, panes */
-    --id-border:        229 231 235;  /* neutral-200 */
-    --id-border-hover:  209 213 219;  /* neutral-300 */
-    --id-text:          17 24 39;     /* neutral-900 */
-    --id-text-muted:    107 114 128;  /* neutral-500 */
-    --id-primary:       37 99 235;    /* blue-600 */
-    --id-primary-weak:  191 219 254;  /* blue-200 */
-    --id-ring:          59 130 246;   /* blue-500 */
+    --id-bg:            245 245 247;
+    --id-surface:       255 255 255;
+    --id-border:        229 231 235;
+    --id-border-hover:  209 213 219;
+    --id-text:          17 24 39;
+    --id-text-muted:    107 114 128;
+    --id-primary:       37 99 235;
+    --id-primary-weak:  191 219 254;
+    --id-ring:          59 130 246;
 
-    /* Radii */
-    --id-radius-sm: .5rem;  /* 8px */
-    --id-radius-md: .75rem; /* 12px */
+    --id-radius-sm: .5rem;
+    --id-radius-md: .75rem;
 
-    /* Shadow */
     --id-shadow: 0 1px 2px 0 rgb(0 0 0 / .06),
                  0 1px 3px 0 rgb(0 0 0 / .06);
   }
 
-  /* Base element styling without @apply (to avoid v4 warning) */
   html, body, #root {
     height: 100%;
   }
   body {
     margin: 0;
     min-height: 100vh;
-    background-color: rgb(var(--id-bg));
-    color: rgb(var(--id-text));
+    background-color: var(--color-bg);
+    color: var(--color-fg);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Ring color default (nice focus outline) */
   :focus {
-    outline-color: rgb(var(--id-ring));
+    outline-color: var(--color-ring);
   }
 }
