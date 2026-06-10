@@ -129,6 +129,8 @@ function AppsPane() {
         className={
           sub === "URLs"
             ? "min-h-0 flex-1 overflow-y-auto pr-2"
+            : sub === "Apps"
+            ? "flex min-h-0 flex-1 flex-col overflow-hidden pr-2"
             : "min-h-0 flex-1 overflow-visible pr-2"
         }
       >
@@ -431,7 +433,7 @@ function AppsAppsPane() {
   const smallBtnCommon = `shrink-0 ${smallBtnH} px-2 text-[11px]`;
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       {/* Controls card — exact layout */}
       <div className="rounded-2xl border border-slate-200 bg-white p-4">
         {/* Title */}
@@ -546,11 +548,14 @@ function AppsAppsPane() {
         </div>
       </div>
 
-      {/* App History list (internal vertical scroll) */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-2">
+      {/* App History list — flexes to fill the remaining right-pane height so
+          the card is a fully-closed, bounded rounded rectangle (border + bottom
+          corners always visible) with the scroll happening INSIDE the card,
+          never clipped by an ancestor overflow-hidden. */}
+      <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-slate-200 bg-white p-2">
         <div className="px-2 py-1 text-sm font-medium text-slate-700">App History</div>
 
-        <div className="max-h-[360px] overflow-y-auto pr-1">
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
           {filtered.map((r) => {
             const active = selectedApp === (r.label as any);
             const isCustom = r.category === "Custom";
