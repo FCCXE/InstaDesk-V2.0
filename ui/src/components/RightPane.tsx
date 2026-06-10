@@ -844,29 +844,20 @@ function UrlsBuilderPane() {
           </select>
         </div>
 
-        {/* Add Browser / Add Tab Group — same line, equal-width columns.
-            grid-cols-2 uses minmax(0,1fr), whose columns CAN shrink below
-            content width (unlike flex-1, where min-width:auto let the long
-            "Add Tab Group" label push the row past the card edges). px-2
-            keeps the longer label fully visible at the narrower width. */}
-        <div className="mb-3 grid grid-cols-2 gap-2">
-          <button
-            type="button"
+        {/* Add Browser / Add Tab Group — one full-width button per line,
+            stacked vertically, centered (avoids cramming two long labels
+            into one narrow row). */}
+        <div className="mb-3 flex flex-col gap-2">
+          <GhostBtn
+            className="w-full text-center"
             onClick={() => {
               const name = prompt("Add browser (e.g., Brave):");
               if (name && name.trim()) addBrowser(name.trim());
             }}
-            className="h-7 truncate rounded-lg border border-slate-200 bg-slate-50 px-2 text-center text-xs font-medium text-slate-700 hover:bg-slate-100"
           >
             + Add Browser
-          </button>
-          <button
-            type="button"
-            onClick={() => addTabGroup()}
-            className="h-7 truncate rounded-lg border border-slate-200 bg-slate-50 px-2 text-center text-xs font-medium text-slate-700 hover:bg-slate-100"
-          >
-            + Add Tab Group
-          </button>
+          </GhostBtn>
+          <GhostBtn className="w-full text-center" onClick={() => addTabGroup()}>+ Add Tab Group</GhostBtn>
         </div>
 
         {urlBuilder.tabGroups.map((g) => (
