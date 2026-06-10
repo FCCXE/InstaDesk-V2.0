@@ -516,25 +516,30 @@ export default function LayoutsPane() {
         </div>
       )}
 
-      <div
-        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-3"
-        style={{ scrollbarGutter: "stable both-edges" as any }}
-      >
-        <div className="flex flex-col gap-3">
+      {/* Back plane — one bounded card framing the scrolling Layout cards
+          (the App History pattern): the list reads as a closed, contained
+          pane instead of loose cards that crop on scroll. Full-width so it
+          aligns with the header buttons; flex-1 reaches the grid bottom.
+          The old `scrollbarGutter: stable both-edges` reserved gutter space
+          on BOTH sides, which is what made the cards look inset vs the
+          buttons — gone now that the scroll lives inside the plane. */}
+      <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-slate-200 bg-white p-2">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
+          <div className="flex flex-col gap-3">
           {layouts === null && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
               Loading saved layouts…
             </div>
           )}
 
           {error && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               Could not reach server: {error}
             </div>
           )}
 
           {layouts && layouts.length === 0 && !error && (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+            <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
               No saved layouts yet. Build a grid in the Apps tab and click <span className="font-medium text-slate-700">+ New Layout</span> above to save your first one.
             </div>
           )}
@@ -554,7 +559,7 @@ export default function LayoutsPane() {
             />
           ))}
 
-          <div className="h-10" />
+          </div>
         </div>
       </div>
     </div>
@@ -583,7 +588,7 @@ function LayoutCard({
 
   return (
     <div className={[
-      "rounded-2xl border bg-white p-4 shadow-[0_1px_0_rgba(0,0,0,0.02)]",
+      "rounded-xl border bg-white p-3",
       isEditing ? "border-amber-400 ring-1 ring-amber-300" : "border-slate-200",
     ].join(" ")}>
       <div className="flex items-start gap-3">
