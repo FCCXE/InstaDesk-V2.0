@@ -398,7 +398,7 @@ export default function LayoutsPane() {
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden p-3">
+    <div className="flex h-full flex-col overflow-hidden px-3 pt-3">
       <div className="mb-2">
         <div className="text-lg font-semibold text-slate-800">Layouts</div>
       </div>
