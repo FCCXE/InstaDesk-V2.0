@@ -449,45 +449,50 @@ export default function LayoutsPane() {
           </div>
         )}
 
-        <div className="mt-2 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onNewLayout}
-            disabled={savingNew || assignedCount === 0}
-            className={[
-              "h-9 min-w-[160px] rounded-lg px-4 text-sm font-medium",
-              assignedCount === 0
-                ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
-                : "border border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100",
-              savingNew ? "opacity-60 cursor-wait" : "",
-            ].join(" ")}
-            title={
-              assignedCount === 0
-                ? "Assign apps to grid cells first (Apps tab); switch monitors to build a multi-monitor layout"
-                : editingLayout
-                ? `Save the current grid as a NEW Layout in a different slot (use 'Save changes to ${editingLayout.name}' above to overwrite this one instead)`
-                : `Save grids from ${monitorsWithAssignments.length} monitor${monitorsWithAssignments.length === 1 ? "" : "s"} (${assignedCount} cells total) as one preset`
-            }
-          >
-            {savingNew ? "Saving…" : "+ New Layout"}
-          </button>
-          {/* Import — hidden native file input triggered by the visible
-              button. Accepts only .json to keep the picker focused. */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json,.json"
-            onChange={onFileChosen}
-            className="hidden"
-          />
-          <button
-            type="button"
-            onClick={triggerImport}
-            className="h-9 rounded-lg px-4 text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-            title="Import a Layout from a previously-exported .json file. You'll be asked which slot (A–Z) to save it to."
-          >
-            Import…
-          </button>
+        {/* New Layout / Import — two equal-width buttons justified on one
+            row, with the contextual status text on its OWN line below (it
+            used to share the row and wrap into a cramped vertical stack). */}
+        <div className="mt-2 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onNewLayout}
+              disabled={savingNew || assignedCount === 0}
+              className={[
+                "h-9 flex-1 rounded-lg px-4 text-sm font-medium",
+                assignedCount === 0
+                  ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
+                  : "border border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100",
+                savingNew ? "opacity-60 cursor-wait" : "",
+              ].join(" ")}
+              title={
+                assignedCount === 0
+                  ? "Assign apps to grid cells first (Apps tab); switch monitors to build a multi-monitor layout"
+                  : editingLayout
+                  ? `Save the current grid as a NEW Layout in a different slot (use 'Save changes to ${editingLayout.name}' above to overwrite this one instead)`
+                  : `Save grids from ${monitorsWithAssignments.length} monitor${monitorsWithAssignments.length === 1 ? "" : "s"} (${assignedCount} cells total) as one preset`
+              }
+            >
+              {savingNew ? "Saving…" : "+ New Layout"}
+            </button>
+            {/* Import — hidden native file input triggered by the visible
+                button. Accepts only .json to keep the picker focused. */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              onChange={onFileChosen}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={triggerImport}
+              className="h-9 flex-1 rounded-lg px-4 text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+              title="Import a Layout from a previously-exported .json file. You'll be asked which slot (A–Z) to save it to."
+            >
+              Import…
+            </button>
+          </div>
           <span className="text-xs text-slate-500">
             {assignedCount === 0
               ? "Assign apps to enable"
