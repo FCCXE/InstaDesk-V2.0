@@ -130,7 +130,7 @@ function AppsPane() {
           sub === "URLs"
             ? "min-h-0 flex-1 overflow-y-auto pr-2"
             : sub === "Apps"
-            ? "flex min-h-0 flex-1 flex-col overflow-hidden pr-2"
+            ? "flex min-h-0 flex-1 flex-col overflow-hidden"
             : "min-h-0 flex-1 overflow-visible pr-2"
         }
       >
