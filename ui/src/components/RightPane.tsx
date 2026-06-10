@@ -99,7 +99,7 @@ function TopTab({
         "h-8 flex-1 rounded-lg px-3 text-sm text-center ring-inset",
         active
           ? "bg-sky-50 text-sky-700 ring-1 ring-sky-200 dark:bg-primary/15 dark:text-sky-300 dark:ring-primary/50"
-          : "bg-slate-100 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200 dark:bg-transparent dark:text-muted dark:ring-line dark:hover:bg-raised",
+          : "bg-raised text-fg ring-1 ring-line hover:bg-line dark:bg-transparent dark:text-muted dark:ring-line dark:hover:bg-raised",
       ].join(" ")}
     >
       {label}
@@ -159,7 +159,7 @@ function SubTab({
         "h-8 flex-1 rounded-lg px-3 text-sm text-center ring-inset",
         active
           ? "bg-sky-50 text-sky-700 ring-1 ring-sky-200 dark:bg-primary/15 dark:text-sky-300 dark:ring-primary/50"
-          : "bg-slate-100 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200 dark:bg-transparent dark:text-muted dark:ring-line dark:hover:bg-raised",
+          : "bg-raised text-fg ring-1 ring-line hover:bg-line dark:bg-transparent dark:text-muted dark:ring-line dark:hover:bg-raised",
       ].join(" ")}
     >
       {label}
@@ -320,7 +320,7 @@ function AppsAppsPane() {
       id: h.id,
       label: h.title || h.path,
       category: "Custom",
-      dot: "bg-slate-500",
+      dot: "bg-raised0",
       path: h.path,
     }));
     // Apply hidden-seeds filter. When revealHidden is on (e.g., from the
@@ -435,9 +435,9 @@ function AppsAppsPane() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       {/* Controls card — exact layout */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="rounded-2xl border border-line bg-surface p-4">
         {/* Title */}
-        <div className="text-[13px] font-medium text-slate-600">
+        <div className="text-[13px] font-medium text-muted">
           Select Cells and Pick an App to enable assign
         </div>
 
@@ -470,7 +470,7 @@ function AppsAppsPane() {
         {/* Selection label on its own row, then full-width Assign / Unassign
             stacked beneath it (matches the aesthetic-redesign mockup's
             vertical distribution — the buttons span the full pane width). */}
-        <div className="mt-3 text-xs text-slate-700">
+        <div className="mt-3 text-xs text-fg">
           Selection Grid : {selCount > 0 ? selCount : "none"}
         </div>
 
@@ -487,9 +487,9 @@ function AppsAppsPane() {
             Lets two regions of the same app launch with different args
             (e.g., two File Explorer windows pointed at different folders). */}
         {selCount > 0 && (
-          <div className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-2">
+          <div className="mt-3 rounded-md border border-line bg-raised p-2">
             <div className="mb-1 flex items-center justify-between">
-              <label className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+              <label className="text-[11px] font-medium uppercase tracking-wide text-muted">
                 Launch args for selection
                 {hasMixedArgsInSelection && (
                   <span className="ml-1 normal-case tracking-normal text-amber-600">
@@ -501,7 +501,7 @@ function AppsAppsPane() {
                 <button
                   type="button"
                   onClick={onArgsClear}
-                  className="text-[10px] text-slate-500 hover:text-red-600"
+                  className="text-[10px] text-muted hover:text-red-600"
                   title="Clear override → revert these cells to the app's default args"
                 >
                   Reset
@@ -519,7 +519,7 @@ function AppsAppsPane() {
                     ? "Mixed — type to overwrite all selected cells"
                     : 'e.g. "C:\\Downloads" for File Explorer'
                 }
-                className="h-7 flex-1 rounded-md border border-slate-200 bg-white px-2 text-[11px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-300"
+                className="h-7 flex-1 rounded-md border border-line bg-raised px-2 text-[11px] text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <PrimaryBtn
                 onClick={onArgsApply}
@@ -529,9 +529,9 @@ function AppsAppsPane() {
                 Apply
               </PrimaryBtn>
             </div>
-            <div className="mt-1 text-[10px] text-slate-500">
+            <div className="mt-1 text-[10px] text-muted">
               {hintApp && hintCatalogArgs
-                ? <>Replaces app default <code className="rounded bg-slate-200 px-1">{hintCatalogArgs}</code>. Include it in your override if you still need it.</>
+                ? <>Replaces app default <code className="rounded bg-line px-1">{hintCatalogArgs}</code>. Include it in your override if you still need it.</>
                 : hintApp
                   ? <>App default is empty. Whatever you type here is appended to the launch command.</>
                   : <>Differentiates two regions of the same app (e.g. two File Explorer windows on distinct folders).</>}
@@ -545,7 +545,7 @@ function AppsAppsPane() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search applications from App History ..."
-            className="h-8 w-full rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-300"
+            className="h-8 w-full rounded-md border border-line bg-raised px-3 text-xs text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
       </div>
@@ -554,8 +554,8 @@ function AppsAppsPane() {
           the card is a fully-closed, bounded rounded rectangle (border + bottom
           corners always visible) with the scroll happening INSIDE the card,
           never clipped by an ancestor overflow-hidden. */}
-      <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-slate-200 bg-white p-2">
-        <div className="px-2 py-1 text-sm font-medium text-slate-700">App History</div>
+      <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-line bg-surface p-2">
+        <div className="px-2 py-1 text-sm font-medium text-fg">App History</div>
 
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
           {filtered.map((r) => {
@@ -576,7 +576,7 @@ function AppsAppsPane() {
                 key={`${r.category}:${r.id}`}
                 className={[
                   "rounded-md text-left text-sm",
-                  active ? "bg-sky-50 text-slate-800 ring-1 ring-sky-200" : "text-slate-700 hover:bg-slate-50",
+                  active ? "bg-sky-50 text-fg ring-1 ring-sky-200 dark:bg-primary/15 dark:ring-primary/40" : "text-fg hover:bg-raised",
                 ].join(" ")}
               >
                 <div className="flex items-center justify-between px-3 py-2" title={title}>
@@ -593,19 +593,19 @@ function AppsAppsPane() {
                       <span className="truncate font-medium">{r.label}</span>
                     </div>
                     <div className="ml-2 flex items-center gap-2">
-                      <span className="text-xs text-slate-500">{r.category}</span>
+                      <span className="text-xs text-muted">{r.category}</span>
                       {isCustom && (
-                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600 ring-1 ring-slate-200">
+                        <span className="rounded-full bg-raised px-2 py-0.5 text-[10px] text-muted ring-1 ring-line">
                           Custom
                         </span>
                       )}
                       {isUrlGroup && (
-                        <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] text-cyan-700 ring-1 ring-cyan-200">
+                        <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] text-cyan-700 ring-1 ring-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-300 dark:ring-cyan-500/30">
                           {r.urlGroup!.urls.length} URL{r.urlGroup!.urls.length === 1 ? "" : "s"}
                         </span>
                       )}
                       {isFavorite && (
-                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700 ring-1 ring-amber-200">
+                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-500/30">
                           Favorite
                         </span>
                       )}
@@ -623,8 +623,8 @@ function AppsAppsPane() {
                       className={[
                         "ml-2 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs leading-none transition-transform duration-150",
                         isExpanded
-                          ? "rotate-90 border-cyan-300 bg-cyan-50 text-cyan-700"
-                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100",
+                          ? "rotate-90 border-cyan-300 bg-cyan-50 text-cyan-700 dark:border-cyan-500/40 dark:bg-cyan-500/15 dark:text-cyan-300"
+                          : "border-line bg-raised text-muted hover:bg-raised",
                       ].join(" ")}
                       title={isExpanded ? "Hide URLs in this group" : "Show URLs in this group"}
                       aria-expanded={isExpanded}
@@ -655,7 +655,7 @@ function AppsAppsPane() {
                       ↺ Restore
                     </GhostBtn>
                   ) : r.isHiddenSeed ? (
-                    <span className="ml-2 inline-flex h-7 items-center rounded-full bg-slate-200 px-2 text-[10px] italic text-slate-600">
+                    <span className="ml-2 inline-flex h-7 items-center rounded-full bg-line px-2 text-[10px] italic text-muted">
                       hidden
                     </span>
                   ) : null}
@@ -669,25 +669,25 @@ function AppsAppsPane() {
                     view), browser name on the next line, then the URLs.
                     Click a URL to copy. */}
                 {isUrlGroup && isExpanded && (
-                  <div className="border-t border-cyan-200 bg-cyan-50/40 px-3 py-2">
-                    <div className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold text-cyan-900">
+                  <div className="border-t border-cyan-200 bg-cyan-50/40 px-3 py-2 dark:border-cyan-500/20 dark:bg-cyan-500/10">
+                    <div className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold text-cyan-900 dark:text-cyan-300">
                       <span aria-hidden>🔗</span>
                       <span className="truncate" title={r.urlGroup!.name}>{r.urlGroup!.name}</span>
                     </div>
-                    <div className="mb-1.5 text-[10px] uppercase tracking-wide text-slate-500">
+                    <div className="mb-1.5 text-[10px] uppercase tracking-wide text-muted">
                       Browser: <span className="font-mono text-cyan-700">{r.urlGroup!.browser}</span>
-                      <span className="ml-2 text-slate-400">• {r.urlGroup!.urls.length} URL{r.urlGroup!.urls.length === 1 ? "" : "s"}</span>
+                      <span className="ml-2 text-muted">• {r.urlGroup!.urls.length} URL{r.urlGroup!.urls.length === 1 ? "" : "s"}</span>
                     </div>
                     {r.urlGroup!.urls.length === 0 ? (
-                      <div className="text-[11px] italic text-slate-400">(empty group)</div>
+                      <div className="text-[11px] italic text-muted">(empty group)</div>
                     ) : (
                       <ol className="space-y-1">
                         {r.urlGroup!.urls.map((u, i) => (
                           <li key={`${r.urlGroup!.id}-${i}`} className="flex items-baseline gap-2">
-                            <span className="shrink-0 select-none text-[10px] font-mono text-slate-400">{i + 1}.</span>
+                            <span className="shrink-0 select-none text-[10px] font-mono text-muted">{i + 1}.</span>
                             <button
                               type="button"
-                              className="min-w-0 flex-1 truncate text-left text-[11px] text-slate-700 hover:text-cyan-700"
+                              className="min-w-0 flex-1 truncate text-left text-[11px] text-fg hover:text-cyan-700"
                               title={`Click to copy: ${u}`}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -707,7 +707,7 @@ function AppsAppsPane() {
           })}
 
           {filtered.length === 0 && (
-            <div className="px-3 py-8 text-center text-xs text-slate-500">No apps match your search.</div>
+            <div className="px-3 py-8 text-center text-xs text-muted">No apps match your search.</div>
           )}
         </div>
 
@@ -716,11 +716,11 @@ function AppsAppsPane() {
             (with "hidden" pills, and a "Restore" button when Edit is on)
             so the user can bring back any they want. */}
         {hiddenSeedIds.size > 0 && (
-          <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-200 px-2 pt-2">
+          <div className="mt-2 flex items-center justify-between gap-2 border-t border-line px-2 pt-2">
             <button
               type="button"
               onClick={() => setRevealHidden((v) => !v)}
-              className="text-[11px] text-slate-600 hover:text-slate-900"
+              className="text-[11px] text-muted hover:text-fg"
               title={revealHidden
                 ? "Hide the hidden-seed entries again — they remain hidden by default."
                 : "Reveal the hidden catalog seeds inline. Turn on Edit to Restore individual ones."}
@@ -825,15 +825,15 @@ function UrlsBuilderPane() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="mb-2 text-base font-semibold text-slate-800">URL Builder</div>
+      <div className="rounded-2xl border border-line bg-surface p-4">
+        <div className="mb-2 text-base font-semibold text-fg">URL Builder</div>
 
         <div className="mb-3 flex items-center gap-2">
           <Label>Browser</Label>
           <select
             value={urlBuilder.browser ?? ""}
             onChange={(e) => setUrlBrowser(e.target.value || null)}
-            className="h-7 min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-300"
+            className="h-7 min-w-0 flex-1 rounded-md border border-line bg-raised px-2 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="">Choose…</option>
             {browsers.map((b) => (
@@ -861,7 +861,7 @@ function UrlsBuilderPane() {
         </div>
 
         {urlBuilder.tabGroups.map((g) => (
-          <div key={g.id} className="mb-3 rounded-xl border border-slate-200 p-3">
+          <div key={g.id} className="mb-3 rounded-xl border border-line p-3">
             <div className="mb-2 flex items-center gap-2">
               <Label>Tab Title</Label>
               <Input value={g.title} onChange={(v) => setTabTitle(g.id, v)} placeholder="e.g., Research" />
@@ -883,7 +883,7 @@ function UrlsBuilderPane() {
         ))}
 
         <div className="mt-3">
-          <div className="mb-2 text-sm font-medium text-slate-700">Open behavior</div>
+          <div className="mb-2 text-sm font-medium text-fg">Open behavior</div>
           <div className="flex flex-wrap items-center gap-2">
             <Radio
               name="open"
@@ -915,7 +915,7 @@ function UrlsBuilderPane() {
         </div>
 
         {flash && (
-          <div className="mt-2 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-xs text-sky-700">
+          <div className="mt-2 rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-xs text-sky-700 dark:border-primary/30 dark:bg-primary/10 dark:text-sky-300">
             {flash}
           </div>
         )}
@@ -951,9 +951,9 @@ function FavoritesPane() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="rounded-2xl border border-line bg-surface p-4">
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-base font-semibold text-slate-800">Favorites</div>
+          <div className="text-base font-semibold text-fg">Favorites</div>
           <div className="flex items-center gap-2">
             <GhostBtn onClick={() => setEditMode((v) => !v)}>{editMode ? "Done" : "Edit"}</GhostBtn>
             <GhostBtn onClick={() => setShowAdd(true)}>+ Add Favorite</GhostBtn>
@@ -962,10 +962,10 @@ function FavoritesPane() {
 
         <div className="grid grid-cols-1 gap-2">
           {favorites.map((f) => (
-            <div key={f.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2">
+            <div key={f.id} className="flex items-center justify-between rounded-xl border border-line bg-raised px-3 py-2">
               <div className="flex min-w-0 items-center gap-2">
                 <span className="text-base">{f.icon ?? "⭐"}</span>
-                <TruncateText maxWidthClass="max-w-[520px]" className="text-sm font-medium text-slate-800">
+                <TruncateText maxWidthClass="max-w-[520px]" className="text-sm font-medium text-fg">
                   {f.title}
                 </TruncateText>
                 <span className="ml-1 text-amber-500">★</span>
@@ -974,7 +974,7 @@ function FavoritesPane() {
             </div>
           ))}
           {favorites.length === 0 && (
-            <div className="rounded-md border border-dashed border-slate-200 p-3 text-center text-xs text-slate-500">
+            <div className="rounded-md border border-dashed border-line p-3 text-center text-xs text-muted">
               No favorites yet. Click “+ Add Favorite” to add an App or a URL.
             </div>
           )}
@@ -982,7 +982,7 @@ function FavoritesPane() {
 
         <div className="mt-3">
           <button
-            className="h-8 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100"
+            className="h-8 w-full rounded-md border border-line bg-raised px-3 text-xs font-medium text-fg hover:bg-raised"
             onClick={() => setShowAdd(true)}
           >
             + Add Custom App/URL
@@ -1002,9 +1002,9 @@ function FavoritesPane() {
 function HelpPane() {
   return (
     <div className="flex h-full flex-col overflow-hidden p-3">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4">
-        <div className="text-base font-semibold text-slate-800">Help</div>
-        <div className="mt-2 text-sm text-slate-600">
+      <div className="rounded-2xl border border-line bg-surface p-4">
+        <div className="text-base font-semibold text-fg">Help</div>
+        <div className="mt-2 text-sm text-muted">
           This is a visuals-only shell for Phase A. No OS actions are performed. Use the tabs above
           to preview Apps, Layouts, and Settings UI. For support, open the project README.
         </div>
@@ -1018,7 +1018,7 @@ function HelpPane() {
 /* -------------------------------------------------------------------------- */
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <div className="text-sm text-slate-700">{children}</div>;
+  return <div className="text-sm text-fg">{children}</div>;
 }
 
 function Input({
@@ -1038,8 +1038,8 @@ function Input({
       onChange={(e) => onChange?.(e.target.value)}
       placeholder={placeholder}
       className={[
-        "h-8 w-full rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-800 placeholder:text-slate-400",
-        "focus:outline-none focus:ring-2 focus:ring-sky-300",
+        "h-8 w-full rounded-md border border-line bg-raised px-3 text-xs text-fg placeholder:text-muted",
+        "focus:outline-none focus:ring-2 focus:ring-ring",
         className,
       ].join(" ")}
     />
@@ -1058,7 +1058,7 @@ function Radio({
   onChange?: () => void;
 }) {
   return (
-    <label className="flex items-center gap-2 text-xs text-slate-700">
+    <label className="flex items-center gap-2 text-xs text-fg">
       <input type="radio" name={name} className="h-3 w-3" checked={!!checked} onChange={onChange} />
       <span>{label}</span>
     </label>
@@ -1082,7 +1082,7 @@ function PrimaryBtn({
       onClick={onClick}
       disabled={disabled}
       className={[
-        "rounded-lg bg-sky-600 px-3 text-xs font-medium text-white shadow hover:bg-sky-700 disabled:cursor-not-allowed",
+        "rounded-lg bg-primary px-3 text-xs font-medium text-on-primary shadow hover:bg-primary-hover disabled:cursor-not-allowed",
         "flex items-center justify-center whitespace-nowrap",
         className,
       ].join(" ")}
@@ -1112,7 +1112,7 @@ function GhostBtn({
       disabled={disabled}
       title={title}
       className={[
-        "h-7 rounded-lg border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed",
+        "h-7 rounded-lg border border-line bg-raised text-xs font-medium text-fg hover:bg-raised disabled:cursor-not-allowed",
         "px-3 whitespace-nowrap",
         className,
       ].join(" ")}
