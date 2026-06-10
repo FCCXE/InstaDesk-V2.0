@@ -400,7 +400,7 @@ export default function LayoutsPane() {
   return (
     <div className="flex h-full flex-col overflow-hidden px-3 pt-3">
       <div className="mb-2">
-        <div className="text-lg font-semibold text-slate-800">Layouts</div>
+        <div className="text-lg font-semibold text-fg">Layouts</div>
       </div>
 
       <div className="mb-2">
@@ -408,9 +408,9 @@ export default function LayoutsPane() {
             Gives a one-click overwrite affordance for that specific slot
             (no slot-letter retyping, no overwrite-confirmation prompt). */}
         {editingLayout && (
-          <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-2.5">
+          <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-2.5 dark:border-amber-500/40 dark:bg-amber-500/10">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium text-amber-900">
+              <span className="text-sm font-medium text-amber-900 dark:text-amber-200">
                 ✎ Editing {editingLayout.name}
               </span>
               <span className="text-[11px] text-amber-700">
@@ -440,7 +440,7 @@ export default function LayoutsPane() {
                 type="button"
                 onClick={onCancelEdit}
                 disabled={savingEdits}
-                className="h-8 rounded-lg border border-amber-300 bg-white px-3 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                className="h-8 rounded-lg border border-amber-300 bg-raised px-3 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-500/40 dark:text-amber-200 dark:hover:bg-amber-500/15"
                 title="Stop editing this layout. Grid contents are kept; saving from here on will create a NEW layout via the slot prompt below."
               >
                 Cancel
@@ -461,8 +461,8 @@ export default function LayoutsPane() {
               className={[
                 "h-9 flex-1 rounded-lg px-4 text-sm font-medium",
                 assignedCount === 0
-                  ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
-                  : "border border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100",
+                  ? "cursor-not-allowed border border-line bg-raised text-muted"
+                  : "border border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100 dark:border-primary/40 dark:bg-primary/10 dark:text-sky-300 dark:hover:bg-primary/20",
                 savingNew ? "opacity-60 cursor-wait" : "",
               ].join(" ")}
               title={
@@ -487,13 +487,13 @@ export default function LayoutsPane() {
             <button
               type="button"
               onClick={triggerImport}
-              className="h-9 flex-1 rounded-lg px-4 text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+              className="h-9 flex-1 rounded-lg px-4 text-sm font-medium border border-line bg-raised text-fg hover:bg-raised"
               title="Import a Layout from a previously-exported .json file. You'll be asked which slot (A–Z) to save it to."
             >
               Import…
             </button>
           </div>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-muted">
             {assignedCount === 0
               ? "Assign apps to enable"
               : monitorsWithAssignments.length === 1
@@ -503,14 +503,14 @@ export default function LayoutsPane() {
         </div>
       </div>
 
-      <div className="mb-3 h-px w-full bg-slate-200/80" />
+      <div className="mb-3 h-px w-full bg-line/80" />
 
       {toast && (
         <div className={[
           "mb-2 rounded-md px-3 py-1.5 text-xs",
           toast.kind === "ok"
-            ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
-            : "bg-red-50 text-red-700 ring-1 ring-red-200",
+            ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/30"
+            : "bg-red-50 text-red-700 ring-1 ring-red-200 dark:bg-red-500/15 dark:text-red-300 dark:ring-red-500/30",
         ].join(" ")}>
           {toast.msg}
         </div>
@@ -523,24 +523,24 @@ export default function LayoutsPane() {
           The old `scrollbarGutter: stable both-edges` reserved gutter space
           on BOTH sides, which is what made the cards look inset vs the
           buttons — gone now that the scroll lives inside the plane. */}
-      <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-slate-200 bg-white p-2">
+      <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-line bg-surface p-2">
         <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
           <div className="flex flex-col gap-3">
           {layouts === null && (
-            <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
+            <div className="rounded-xl border border-line bg-surface p-4 text-sm text-muted">
               Loading saved layouts…
             </div>
           )}
 
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-300">
               Could not reach server: {error}
             </div>
           )}
 
           {layouts && layouts.length === 0 && !error && (
-            <div className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
-              No saved layouts yet. Build a grid in the Apps tab and click <span className="font-medium text-slate-700">+ New Layout</span> above to save your first one.
+            <div className="rounded-xl border border-dashed border-line bg-surface p-6 text-center text-sm text-muted">
+              No saved layouts yet. Build a grid in the Apps tab and click <span className="font-medium text-fg">+ New Layout</span> above to save your first one.
             </div>
           )}
 
@@ -588,8 +588,8 @@ function LayoutCard({
 
   return (
     <div className={[
-      "rounded-xl border bg-white p-3",
-      isEditing ? "border-amber-400 ring-1 ring-amber-300" : "border-slate-200",
+      "rounded-xl border bg-surface p-3",
+      isEditing ? "border-amber-400 ring-1 ring-amber-300" : "border-line",
     ].join(" ")}>
       <div className="flex items-start gap-3">
         <DragDots />
@@ -598,20 +598,20 @@ function LayoutCard({
               wrap below so a narrow pane + the 'editing' badge can't push
               the Layout name to a second line awkwardly. */}
           <div className="flex items-center gap-2">
-            <div className="truncate text-base font-semibold text-slate-800" title={model.name}>
+            <div className="truncate text-base font-semibold text-fg" title={model.name}>
               {model.name}
             </div>
             {isEditing && (
-              <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-amber-300 bg-amber-50 px-2 text-[10px] font-semibold text-amber-800">
+              <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-amber-300 bg-amber-50 px-2 text-[10px] font-semibold text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-200">
                 ✎ editing
               </span>
             )}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex h-5 items-center rounded-full border border-slate-200 bg-slate-50 px-2 text-[10px] font-medium text-slate-600">
+            <span className="inline-flex h-5 items-center rounded-full border border-line bg-raised px-2 text-[10px] font-medium text-muted">
               {model.preset.kind}
             </span>
-            <span className="inline-flex h-5 items-center rounded-full border border-sky-200 bg-sky-50 px-2 text-[10px] font-medium text-sky-700">
+            <span className="inline-flex h-5 items-center rounded-full border border-sky-200 bg-sky-50 px-2 text-[10px] font-medium text-sky-700 dark:border-primary/40 dark:bg-primary/10 dark:text-sky-300">
               slot {model.preset.slot.toUpperCase()}
             </span>
           </div>
@@ -628,8 +628,8 @@ function LayoutCard({
               className={[
                 "inline-flex h-7 items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors",
                 isPreviewed
-                  ? "border-sky-300 bg-sky-100 text-sky-800 hover:bg-sky-200"
-                  : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100",
+                  ? "border-sky-300 bg-sky-100 text-sky-800 hover:bg-sky-200 dark:border-primary/50 dark:bg-primary/20 dark:text-sky-200 dark:hover:bg-primary/30"
+                  : "border-line bg-raised text-fg hover:bg-raised",
               ].join(" ")}
               title={isPreviewed
                 ? "Hide the layout content overlay over the central grid"
@@ -640,11 +640,11 @@ function LayoutCard({
             </button>
           </div>
 
-          <div className="mt-2 truncate text-xs text-slate-500" title={model.preset.path}>
+          <div className="mt-2 truncate text-xs text-muted" title={model.preset.path}>
             {model.preset.path}
           </div>
 
-          <div className="mt-1 text-xs text-slate-500">{updatedStr}</div>
+          <div className="mt-1 text-xs text-muted">{updatedStr}</div>
 
           {/* 2×2 button grid — 4 buttons in a single row crammed the
               text on narrow cards even at px-2 (operator screenshot
@@ -657,7 +657,7 @@ function LayoutCard({
               {busy ? "Applying…" : "Apply"}
             </PrimaryBtn>
             <GhostBtn
-              className="border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
+              className="border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 dark:border-primary/40 dark:bg-primary/10 dark:text-sky-300 dark:hover:bg-primary/20"
               onClick={onLoad}
               disabled={busy}
               title="Loads this layout into the grid across all monitors. Modify cells in the Apps tab, then click 'Save changes to this Layout' in the amber banner at the top of this pane."
@@ -695,7 +695,7 @@ function PrimaryBtn({
         // px-2 (was px-3) — narrower padding lets all 4 action buttons
         // (Apply / Edit / Export / Delete) fit in the card's tight
         // content area without clipping Delete off the right edge.
-        "h-8 rounded-lg bg-sky-600 px-2 text-xs font-medium text-white shadow hover:bg-sky-700",
+        "h-8 rounded-lg bg-primary px-2 text-xs font-medium text-on-primary shadow hover:bg-primary-hover",
         "disabled:cursor-not-allowed disabled:opacity-60",
         className,
       ].join(" ")}
@@ -718,7 +718,7 @@ function GhostBtn({
       title={title}
       className={[
         // px-2 (was px-3) — see PrimaryBtn comment.
-        "h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs font-medium text-slate-700 hover:bg-slate-100",
+        "h-8 rounded-lg border border-line bg-raised px-2 text-xs font-medium text-fg hover:bg-raised",
         "disabled:cursor-not-allowed",
         className,
       ].join(" ")}
