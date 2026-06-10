@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useAppState, GRID_SIZE_PRESETS, WINDOW_MARGIN_PRESETS } from "../../state/AppState";
+import { useTheme, type ThemeSetting } from "../../state/ThemeProvider";
 
 /**
  * SettingsPane
@@ -12,6 +13,7 @@ import { useAppState, GRID_SIZE_PRESETS, WINDOW_MARGIN_PRESETS } from "../../sta
 
 export default function SettingsPane() {
   const { defaultGridSize, setDefaultGridSize, windowMargin, setWindowMargin } = useAppState();
+  const { theme, setTheme } = useTheme();
 
   // Currently-selected preset key, for the <select>'s value prop.
   const selectedKey = `${defaultGridSize.cols}x${defaultGridSize.rows}`;
@@ -31,7 +33,16 @@ export default function SettingsPane() {
             </Row>
             <Row>
               <Label>Theme</Label>
-              <Select value="Light ▾" />
+              <select
+                value={theme}
+                onChange={(e) => setTheme(e.target.value as ThemeSetting)}
+                className="h-7 min-w-[160px] rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-300"
+                title="Light, Dark, or follow the operating system (System). Dark theme is still being built out, pane by pane."
+              >
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="system">System</option>
+              </select>
             </Row>
             <Row>
               <Label>Language</Label>
