@@ -96,7 +96,7 @@ function TopTab({
       type="button"
       onClick={onClick}
       className={[
-        "h-8 rounded-full px-3 text-sm",
+        "h-8 rounded-lg px-3 text-sm",
         active
           ? "bg-sky-50 text-sky-700 ring-1 ring-sky-200"
           : "bg-slate-100 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200",
@@ -154,7 +154,7 @@ function SubTab({
       type="button"
       onClick={onClick}
       className={[
-        "h-8 rounded-full px-3 text-sm",
+        "h-8 rounded-lg px-3 text-sm",
         active
           ? "bg-sky-50 text-sky-700 ring-1 ring-sky-200"
           : "bg-slate-100 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200",
