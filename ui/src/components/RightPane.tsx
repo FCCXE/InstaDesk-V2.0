@@ -548,7 +548,7 @@ function AppsAppsPane() {
 
       {/* App History list (internal vertical scroll) */}
       <div className="rounded-2xl border border-slate-200 bg-white p-2">
-        <div className="px-2 py-1 text-sm font-medium text-slate-700">App History :</div>
+        <div className="px-2 py-1 text-sm font-medium text-slate-700">App History</div>
 
         <div className="max-h-[360px] overflow-y-auto pr-1">
           {filtered.map((r) => {
@@ -651,9 +651,7 @@ function AppsAppsPane() {
                     <span className="ml-2 inline-flex h-7 items-center rounded-full bg-slate-200 px-2 text-[10px] italic text-slate-600">
                       hidden
                     </span>
-                  ) : (
-                    <div className="h-7 w-[64px]" />
-                  )}
+                  ) : null}
                 </div>
 
                 {/* Expanded URL list — shown only when the chevron is open.
