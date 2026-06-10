@@ -1,14 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MonitorId } from "./EditLayoutDrawer";
-import { api, type PresetListItem, type Assignment } from "../../services/api";
-import { useAppState, type Monitor } from "../../state/AppState";
+import { api, type PresetListItem } from "../../services/api";
+import { useAppState } from "../../state/AppState";
 import {
   buildSaveAssignmentsMulti,
   nextFreeSlot,
   parsePresetIntoCellsMulti,
 } from "../../services/layoutBuilder";
 import { exportLayoutAsFile, parseImportedLayout } from "../../services/layoutsIO";
-import LayoutThumbnail from "./LayoutThumbnail";
 
 /**
  * LayoutsPane
@@ -61,6 +60,10 @@ export default function LayoutsPane() {
     // Window margin (bezel-aware): passed to presetsRun so every Layout
     // Apply honors the operator's edge-padding preference.
     windowMargin,
+    // Layout content preview overlay (2026-06-09 redesign): operator
+    // toggles via the Show/Hide content button on each card; overlay
+    // mounted in App.tsx (sibling of WorkspaceGrid) reads this state.
+    previewedLayoutId, setPreviewedLayout,
   } = useAppState();
   // Resolve a monitor id ("m{N}") to the agent's 1-based index N.
   const monitorIdToIndex = (id: string) => {
@@ -537,11 +540,12 @@ export default function LayoutsPane() {
               model={m}
               busy={busyId === m.id}
               isEditing={editingLayoutId === m.id}
-              monitorsContext={monitors}
+              isPreviewed={previewedLayoutId === m.id}
               onApply={() => onApply(m)}
               onDelete={() => onDelete(m)}
               onLoad={() => onLoad(m)}
               onExport={() => onExport(m)}
+              onTogglePreview={() => setPreviewedLayout(previewedLayoutId === m.id ? null : m.id)}
             />
           ))}
 
@@ -553,30 +557,18 @@ export default function LayoutsPane() {
 }
 
 function LayoutCard({
-  model, busy, isEditing, monitorsContext, onApply, onDelete, onLoad, onExport,
+  model, busy, isEditing, isPreviewed, onApply, onDelete, onLoad, onExport, onTogglePreview,
 }: {
   model: LayoutCardModel;
   busy: boolean;
   isEditing: boolean;
-  monitorsContext: Monitor[];
+  isPreviewed: boolean;
   onApply: () => void;
   onDelete: () => void;
   onLoad: () => void;
   onExport: () => void;
+  onTogglePreview: () => void;
 }) {
-  // Fetch the preset's full assignments to render the thumbnail. The
-  // /presets/list endpoint only returns metadata, so each card lazy-
-  // loads its own content. Re-fetches when `updatedISO` changes (after
-  // a Save Edit / Import / etc.) so the thumbnail stays in sync.
-  const [assignments, setAssignments] = useState<Assignment[] | null>(null);
-  useEffect(() => {
-    let alive = true;
-    api.presetsGet(model.preset.kind, model.preset.slot)
-      .then((res) => { if (alive) setAssignments(res.preset.assignments); })
-      .catch(() => { if (alive) setAssignments([]); });
-    return () => { alive = false; };
-  }, [model.preset.kind, model.preset.slot, model.updatedISO]);
-
   const updatedStr = useMemo(() => {
     const d = new Date(model.updatedISO);
     if (isNaN(d.getTime())) return `Updated: ${model.updatedISO}`;
@@ -586,7 +578,7 @@ function LayoutCard({
 
   return (
     <div className={[
-      "overflow-hidden rounded-2xl border bg-white p-4 shadow-[0_1px_0_rgba(0,0,0,0.02)]",
+      "rounded-2xl border bg-white p-4 shadow-[0_1px_0_rgba(0,0,0,0.02)]",
       isEditing ? "border-amber-400 ring-1 ring-amber-300" : "border-slate-200",
     ].join(" ")}>
       <div className="flex items-start gap-3">
@@ -614,18 +606,28 @@ function LayoutCard({
             </span>
           </div>
 
-          {/* Thumbnail — lazy-loads with the preset's assignments. Soft
-              skeleton placeholder is shown while the fetch resolves so
-              the card height stays stable instead of jumping. */}
-          <div className="mt-2 rounded-md bg-slate-50/60 p-2">
-            {assignments === null ? (
-              <div className="h-[80px] w-full animate-pulse rounded-md bg-slate-100" />
-            ) : (
-              <LayoutThumbnail
-                assignments={assignments}
-                monitorsContext={monitorsContext}
-              />
-            )}
+          {/* Show / Hide content toggle — opens the LayoutPreviewOverlay
+              over the central pane. Operator decision 2026-06-09:
+              replaces the embedded mini-thumbnail with on-demand large
+              previews that actually clearly show what each Layout
+              contains. */}
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={onTogglePreview}
+              className={[
+                "inline-flex h-7 items-center gap-1 rounded-md border px-2.5 text-xs font-medium transition-colors",
+                isPreviewed
+                  ? "border-sky-300 bg-sky-100 text-sky-800 hover:bg-sky-200"
+                  : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100",
+              ].join(" ")}
+              title={isPreviewed
+                ? "Hide the layout content overlay over the central grid"
+                : "Show the layout content as a large overlay over the central grid"}
+            >
+              <span aria-hidden>{isPreviewed ? "✕" : "👁"}</span>
+              <span>{isPreviewed ? "Hide content" : "Show content"}</span>
+            </button>
           </div>
 
           <div className="mt-2 truncate text-xs text-slate-500" title={model.preset.path}>
@@ -675,7 +677,10 @@ function PrimaryBtn({
       onClick={onClick}
       disabled={disabled}
       className={[
-        "h-8 rounded-md bg-sky-600 px-3 text-xs font-medium text-white shadow hover:bg-sky-700",
+        // px-2 (was px-3) — narrower padding lets all 4 action buttons
+        // (Apply / Edit / Export / Delete) fit in the card's tight
+        // content area without clipping Delete off the right edge.
+        "h-8 rounded-md bg-sky-600 px-2 text-xs font-medium text-white shadow hover:bg-sky-700",
         "disabled:cursor-not-allowed disabled:opacity-60",
         className,
       ].join(" ")}
@@ -697,7 +702,8 @@ function GhostBtn({
       disabled={disabled}
       title={title}
       className={[
-        "h-8 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100",
+        // px-2 (was px-3) — see PrimaryBtn comment.
+        "h-8 rounded-md border border-slate-200 bg-slate-50 px-2 text-xs font-medium text-slate-700 hover:bg-slate-100",
         "disabled:cursor-not-allowed",
         className,
       ].join(" ")}

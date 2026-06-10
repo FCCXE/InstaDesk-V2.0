@@ -352,6 +352,14 @@ type AppStateContext = {
   windowMargin: number
   setWindowMargin: (px: number) => void
 
+  // Layout content preview (2026-06-09): id of the Layout currently
+  // being shown in the central-pane overlay (LayoutPreviewOverlay), or
+  // null when no preview is open. Toggled by the "Show content" /
+  // "Hide content" button on each Layout card. Only one preview can be
+  // visible at a time.
+  previewedLayoutId: string | null
+  setPreviewedLayout: (id: string | null) => void
+
   presets: Preset[]
   pendingPresetByMonitor: Record<string, PresetId | null>
   setPendingPreset: (monitorId: string, preset: PresetId | null) => void
@@ -451,6 +459,10 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   const setWindowMargin = (px: number) => {
     setWindowMarginState(Math.max(0, Math.floor(px)))
   }
+
+  /* ---------- Layout content preview (2026-06-09) ---------- */
+  const [previewedLayoutId, setPreviewedLayoutIdState] = useState<string | null>(null)
+  const setPreviewedLayout = (id: string | null) => setPreviewedLayoutIdState(id)
 
   // Persist on every change. Sparse map → small writes.
   useEffect(() => {
@@ -753,6 +765,9 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     // window margin (bezel-aware)
     windowMargin,
     setWindowMargin,
+    // layout preview overlay
+    previewedLayoutId,
+    setPreviewedLayout,
 
     // URL builder
     urlBuilder,
@@ -774,7 +789,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     selectedApp, clipboard,
     monitors, currentMonitorId, presets, pendingPresetByMonitor,
     gridSizeByMonitor, currentGridCols, currentGridRows, defaultGridSize,
-    windowMargin,
+    windowMargin, previewedLayoutId,
     urlBuilder, browsers
   ])
 

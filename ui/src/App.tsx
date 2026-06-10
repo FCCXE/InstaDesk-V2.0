@@ -3,6 +3,7 @@ import MonitorSelector from './components/MonitorSelector'
 import WorkspaceGrid from './components/WorkspaceGrid'
 import RightPane from './components/RightPane'
 import BottomControls from './components/BottomControls'
+import LayoutPreviewOverlay from './components/layouts/LayoutPreviewOverlay'
 
 // ✅ central state wrapper
 import { AppStateProvider } from './state/AppState'
@@ -23,9 +24,12 @@ export default function App() {
               <MonitorSelector />
             </div>
 
-            {/* Center column (grid) */}
-            <div className="min-h-0 overflow-hidden">
+            {/* Center column (grid). Position relative so the
+                LayoutPreviewOverlay can absolute-position over the
+                WorkspaceGrid without escaping the column. */}
+            <div className="relative min-h-0 overflow-hidden">
               <WorkspaceGrid />
+              <LayoutPreviewOverlay />
             </div>
 
             {/* Right column */}
