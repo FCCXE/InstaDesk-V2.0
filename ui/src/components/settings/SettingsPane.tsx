@@ -21,7 +21,7 @@ export default function SettingsPane() {
   return (
     <div className="flex h-full flex-col overflow-hidden p-3">
       {/* Title */}
-      <div className="mb-2 text-lg font-semibold text-slate-800">Settings</div>
+      <div className="mb-2 text-lg font-semibold text-fg">Settings</div>
 
       {/* Scrollable content */}
       <div className="min-h-0 flex-1 overflow-y-auto pr-2">
@@ -36,7 +36,7 @@ export default function SettingsPane() {
               <select
                 value={theme}
                 onChange={(e) => setTheme(e.target.value as ThemeSetting)}
-                className="h-7 min-w-[160px] rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-300"
+                className="h-7 min-w-[160px] rounded-md border border-line bg-raised px-3 text-xs font-medium text-fg hover:bg-raised focus:outline-none focus:ring-2 focus:ring-ring"
                 title="Light, Dark, or follow the operating system (System). Dark theme is still being built out, pane by pane."
               >
                 <option value="light">Light</option>
@@ -61,7 +61,7 @@ export default function SettingsPane() {
                     setDefaultGridSize({ cols: c, rows: r });
                   }
                 }}
-                className="h-7 min-w-[160px] rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-300"
+                className="h-7 min-w-[160px] rounded-md border border-line bg-raised px-3 text-xs font-medium text-fg hover:bg-raised focus:outline-none focus:ring-2 focus:ring-ring"
                 title="The grid size used for monitors InstaDesk hasn't seen before. Currently-configured monitors are auto-pinned to their existing size when this changes, so your assignments are never disturbed."
               >
                 {GRID_SIZE_PRESETS.map((s) => (
@@ -76,7 +76,7 @@ export default function SettingsPane() {
               <select
                 value={String(windowMargin)}
                 onChange={(e) => setWindowMargin(parseInt(e.target.value, 10) || 0)}
-                className="h-7 min-w-[160px] rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-300"
+                className="h-7 min-w-[160px] rounded-md border border-line bg-raised px-3 text-xs font-medium text-fg hover:bg-raised focus:outline-none focus:ring-2 focus:ring-ring"
                 title="Pixels of padding around each monitor's work area. Pulls snapped windows back from monitor edges to leave room for physical bezels. Adjacent windows on the same monitor still touch each other."
               >
                 {WINDOW_MARGIN_PRESETS.map((m) => (
@@ -105,9 +105,9 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_0_rgba(0,0,0,0.02)]">
-      <div className="mb-3 text-base font-semibold text-slate-800">{title}</div>
-      <div className="flex flex-col divide-y divide-slate-100/80">{children}</div>
+    <div className="rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_0_rgba(0,0,0,0.02)]">
+      <div className="mb-3 text-base font-semibold text-fg">{title}</div>
+      <div className="flex flex-col divide-y divide-line">{children}</div>
     </div>
   );
 }
@@ -121,7 +121,7 @@ function Row({ children }: { children: ReactNode }) {
 }
 
 function Label({ children }: { children: ReactNode }) {
-  return <div className="text-sm text-slate-700">{children}</div>;
+  return <div className="text-sm text-fg">{children}</div>;
 }
 
 function Toggle({ on = true }: { on?: boolean }) {
@@ -129,14 +129,14 @@ function Toggle({ on = true }: { on?: boolean }) {
     <div
       className={[
         "relative h-6 w-[46px] cursor-not-allowed rounded-full border",
-        on ? "border-sky-200 bg-sky-100" : "border-slate-200 bg-slate-100",
+        on ? "border-sky-200 bg-sky-100 dark:border-primary/50 dark:bg-primary/40" : "border-line bg-raised",
       ].join(" ")}
       aria-disabled
     >
       <div
         className={[
           "absolute top-[2px] h-[20px] w-[22px] rounded-full border bg-white transition-all",
-          on ? "right-[2px] border-sky-200" : "left-[2px] border-slate-200",
+          on ? "right-[2px] border-sky-200" : "left-[2px] border-line",
         ].join(" ")}
       />
     </div>
@@ -146,7 +146,7 @@ function Toggle({ on = true }: { on?: boolean }) {
 function Select({ value }: { value: string }) {
   return (
     <button
-      className="h-7 min-w-[160px] cursor-not-allowed rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-700 hover:bg-slate-100"
+      className="h-7 min-w-[160px] cursor-not-allowed rounded-md border border-line bg-raised px-3 text-xs font-medium text-fg hover:bg-raised"
       disabled
       aria-disabled
     >
