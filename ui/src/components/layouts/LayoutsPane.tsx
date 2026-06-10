@@ -422,7 +422,7 @@ export default function LayoutsPane() {
                 onClick={onSaveEditedLayout}
                 disabled={savingEdits || assignedCount === 0}
                 className={[
-                  "h-8 rounded-md px-3 text-xs font-semibold shadow",
+                  "h-8 rounded-lg px-3 text-xs font-semibold shadow",
                   assignedCount === 0
                     ? "cursor-not-allowed bg-amber-200 text-amber-700"
                     : "bg-amber-600 text-white hover:bg-amber-700",
@@ -440,7 +440,7 @@ export default function LayoutsPane() {
                 type="button"
                 onClick={onCancelEdit}
                 disabled={savingEdits}
-                className="h-8 rounded-md border border-amber-300 bg-white px-3 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                className="h-8 rounded-lg border border-amber-300 bg-white px-3 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50"
                 title="Stop editing this layout. Grid contents are kept; saving from here on will create a NEW layout via the slot prompt below."
               >
                 Cancel
@@ -455,7 +455,7 @@ export default function LayoutsPane() {
             onClick={onNewLayout}
             disabled={savingNew || assignedCount === 0}
             className={[
-              "h-9 min-w-[160px] rounded-full px-4 text-sm font-medium",
+              "h-9 min-w-[160px] rounded-lg px-4 text-sm font-medium",
               assignedCount === 0
                 ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400"
                 : "border border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100",
@@ -483,7 +483,7 @@ export default function LayoutsPane() {
           <button
             type="button"
             onClick={triggerImport}
-            className="h-9 rounded-full px-4 text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+            className="h-9 rounded-lg px-4 text-sm font-medium border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
             title="Import a Layout from a previously-exported .json file. You'll be asked which slot (A–Z) to save it to."
           >
             Import…
@@ -616,7 +616,7 @@ function LayoutCard({
               type="button"
               onClick={onTogglePreview}
               className={[
-                "inline-flex h-7 items-center gap-1 rounded-md border px-2.5 text-xs font-medium transition-colors",
+                "inline-flex h-7 items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors",
                 isPreviewed
                   ? "border-sky-300 bg-sky-100 text-sky-800 hover:bg-sky-200"
                   : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100",
@@ -685,7 +685,7 @@ function PrimaryBtn({
         // px-2 (was px-3) — narrower padding lets all 4 action buttons
         // (Apply / Edit / Export / Delete) fit in the card's tight
         // content area without clipping Delete off the right edge.
-        "h-8 rounded-md bg-sky-600 px-2 text-xs font-medium text-white shadow hover:bg-sky-700",
+        "h-8 rounded-lg bg-sky-600 px-2 text-xs font-medium text-white shadow hover:bg-sky-700",
         "disabled:cursor-not-allowed disabled:opacity-60",
         className,
       ].join(" ")}
@@ -708,7 +708,7 @@ function GhostBtn({
       title={title}
       className={[
         // px-2 (was px-3) — see PrimaryBtn comment.
-        "h-8 rounded-md border border-slate-200 bg-slate-50 px-2 text-xs font-medium text-slate-700 hover:bg-slate-100",
+        "h-8 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs font-medium text-slate-700 hover:bg-slate-100",
         "disabled:cursor-not-allowed",
         className,
       ].join(" ")}
