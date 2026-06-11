@@ -20,6 +20,7 @@ export default function WorkspaceGrid() {
     assignments,          // Record<"r,c", AppId | null>
     argsOverridesByMonitor,
     currentMonitorId,
+    monitors,             // for the selected monitor's real aspect ratio
     currentGridCols,      // per-monitor grid size (Step 1 of grid-size build)
     currentGridRows,
     beginDrag,            // (r, c) => void
@@ -120,19 +121,37 @@ export default function WorkspaceGrid() {
 
   const isHighlighted = (r: number, c: number) => selection.has(cellKey(r, c))
 
+  // Lock the grid to the SELECTED monitor's real aspect ratio. `w`/`h` already
+  // reflect physical orientation (a portrait monitor reads as tall), so the
+  // cells mirror the monitor's true proportions instead of stretching to
+  // InstaDesk's own window shape.
+  const monAspect = useMemo(() => {
+    const m = monitors.find((mm) => mm.id === currentMonitorId)
+    return m && m.w > 0 && m.h > 0 ? m.w / m.h : 16 / 9
+  }, [monitors, currentMonitorId])
+
   return (
     <section className="h-full w-full bg-surface rounded-xl border border-line shadow-sm p-3 flex flex-col">
-      <div className="flex-1 min-h-0 flex items-center justify-center">
-        <div className="w-full h-full max-w-full max-h-full aspect-square">
-          <div className="relative w-full h-full select-none">
-            {/* Grid */}
-            <div
-              className="grid w-full h-full gap-[3px]"
-              style={{
-                gridTemplateColumns: `repeat(${currentGridCols}, 1fr)`,
-                gridTemplateRows: `repeat(${currentGridRows}, 1fr)`,
-              }}
-            >
+      <div
+        className="flex-1 min-h-0 flex items-center justify-center"
+        style={{ containerType: 'size' } as React.CSSProperties}
+      >
+        {/* Grid box locked to the selected monitor's aspect ratio, fit-contained
+            (letterboxed) + centered — so the cells always reflect the monitor's
+            true proportions regardless of InstaDesk's own window shape. width =
+            the largest contained size: min(container width, AR × container height). */}
+        <div
+          className="relative select-none"
+          style={{ aspectRatio: String(monAspect), width: `min(100cqw, calc(${monAspect} * 100cqh))` }}
+        >
+          {/* Grid */}
+          <div
+            className="grid h-full w-full gap-[3px]"
+            style={{
+              gridTemplateColumns: `repeat(${currentGridCols}, 1fr)`,
+              gridTemplateRows: `repeat(${currentGridRows}, 1fr)`,
+            }}
+          >
               {cells.map(({ r, c }) => {
                 const highlighted = isHighlighted(r, c)
                 const k = cellKey(r, c)
@@ -183,7 +202,6 @@ export default function WorkspaceGrid() {
                   </div>
                 )
               })}
-            </div>
           </div>
         </div>
       </div>
