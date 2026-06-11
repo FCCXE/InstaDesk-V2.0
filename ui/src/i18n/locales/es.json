@@ -26,5 +26,39 @@
     "windowMarginHint": "Píxeles de relleno alrededor del área de trabajo de cada monitor. Aleja las ventanas ajustadas de los bordes del monitor para dejar espacio a los marcos físicos. Las ventanas adyacentes en el mismo monitor se siguen tocando.",
     "marginOff": "Desactivado (0 px)",
     "marginPx": "{{n}} px"
+  },
+  "bottomBar": {
+    "snap": "Ajustar → {{monitor}}",
+    "snapping": "Ajustando…",
+    "clearAll": "Borrar todo",
+    "grid": "Cuadrícula:",
+    "ready": "Listo",
+    "pickRegion": "Selecciona una región en la ventana emergente…",
+    "snapCancelled": "Ajuste cancelado",
+    "snapError": "Error de ajuste: {{msg}}",
+    "snapped": "Ajustada \"{{title}}\" → M{{monitor}} {{geom}}",
+    "rejected": "⚠ \"{{title}}\" rechazó el ajuste — la app impone su propia ubicación. Prueba a cerrarla y reabrirla primero.",
+    "cellsSelected_one": "{{count}} celda seleccionada",
+    "cellsSelected_other": "{{count}} celdas seleccionadas",
+    "alsoAssigned": ", {{count}} asignadas",
+    "cellsAssigned_one": "{{count}} celda asignada",
+    "cellsAssigned_other": "{{count}} celdas asignadas",
+    "snapTitle": "Ajuste estilo Divvy — abre una cuadrícula emergente en M{{monitor}} y ajusta la última ventana enfocada en la región seleccionada.",
+    "clearAllTitle": "Borra las {{count}} celdas asignadas en M{{monitor}} Y restablece su tamaño de cuadrícula al predeterminado global. Otros monitores no se ven afectados.",
+    "clearAllNothing": "Nada que borrar",
+    "gridSelectTitle": "Tamaño de cuadrícula para M{{monitor}}. Cambiarlo borrará las celdas de ese monitor (los Diseños guardados no se ven afectados).",
+    "confirmSwitch": "Cambiando {{monitor}} de {{from}} a {{to}}",
+    "confirmWillClear_one": "se borrará {{count}} celda en {{monitor}}",
+    "confirmWillClear_other": "se borrarán {{count}} celdas en {{monitor}}",
+    "confirmExitEdit": "y se saldrá del modo de edición del Diseño actual",
+    "confirmUnaffected": "Los Diseños y Preajustes rápidos guardados no se ven afectados.",
+    "confirmContinue": "¿Continuar?"
+  },
+  "grid": {
+    "noSelection": "Sin selección",
+    "noSelectionAssigned_one": "Sin selección • {{count}} celda asignada",
+    "noSelectionAssigned_other": "Sin selección • {{count}} celdas asignadas",
+    "selected_one": "Seleccionado: {{range}} • {{count}} celda",
+    "selected_other": "Seleccionado: {{range}} • {{count}} celdas"
   }
 }

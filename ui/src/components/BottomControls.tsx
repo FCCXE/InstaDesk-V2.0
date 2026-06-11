@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAppState, GRID_SIZE_PRESETS, type GridSize } from '../state/AppState'
 import { api } from '../services/api'
 
@@ -39,6 +40,7 @@ export default function BottomControls() {
     windowMargin,
   } = useAppState()
 
+  const { t } = useTranslation()
   const assignedCount = Object.values(assignments).filter(Boolean).length
   const selCount = selection.size
 
@@ -66,15 +68,15 @@ export default function BottomControls() {
     }
 
     const parts: string[] = []
-    parts.push(`Switching ${monitorLabel} from ${fromLabel} to ${toLabel}`)
+    parts.push(t('bottomBar.confirmSwitch', { monitor: monitorLabel, from: fromLabel, to: toLabel }))
     if (assignedCount > 0) {
-      parts.push(`will clear ${assignedCount} cell${assignedCount === 1 ? '' : 's'} on ${monitorLabel}`)
+      parts.push(t('bottomBar.confirmWillClear', { count: assignedCount, monitor: monitorLabel }))
     }
     if (editingLayoutId) {
-      parts.push(`and exit Edit mode for the current Layout`)
+      parts.push(t('bottomBar.confirmExitEdit'))
     }
-    parts.push(`\n\nSaved Layouts and Quick Presets are not affected.`)
-    parts.push(`\n\nContinue?`)
+    parts.push(`\n\n${t('bottomBar.confirmUnaffected')}`)
+    parts.push(`\n\n${t('bottomBar.confirmContinue')}`)
 
     if (window.confirm(parts.join(' ').replace(' \n', '\n'))) {
       resizeMonitor(currentMonitorId, next)
@@ -109,14 +111,18 @@ export default function BottomControls() {
         if (r.placementVerified === false) {
           setSnapState({
             kind: 'warn',
-            msg: `"${r.targetTitle ?? '?'}" rejected snap — app enforces own placement. Try closing and relaunching it first.`,
+            msg: t('bottomBar.rejected', { title: r.targetTitle ?? '?' }),
           })
           window.setTimeout(() => setSnapState({ kind: 'idle' }), 7000)
           return
         }
         setSnapState({
           kind: 'ok',
-          msg: `Snapped "${r.targetTitle ?? '?'}" → M${r.monitor ?? currentMonitorIndex} ${s.x},${s.y},${s.w}×${s.h}`,
+          msg: t('bottomBar.snapped', {
+            title: r.targetTitle ?? '?',
+            monitor: r.monitor ?? currentMonitorIndex,
+            geom: `${s.x},${s.y},${s.w}×${s.h}`,
+          }),
         })
         window.setTimeout(() => setSnapState({ kind: 'idle' }), 4000)
         return
@@ -128,16 +134,18 @@ export default function BottomControls() {
   }
 
   const idleStatus =
-    assignedCount === 0 && selCount === 0 ? 'Ready' :
-    selCount > 0 ? `${selCount} cell${selCount === 1 ? '' : 's'} selected${assignedCount > 0 ? `, ${assignedCount} assigned` : ''}` :
-    `${assignedCount} cell${assignedCount === 1 ? '' : 's'} assigned`
+    assignedCount === 0 && selCount === 0 ? t('bottomBar.ready') :
+    selCount > 0
+      ? t('bottomBar.cellsSelected', { count: selCount }) +
+        (assignedCount > 0 ? t('bottomBar.alsoAssigned', { count: assignedCount }) : '')
+      : t('bottomBar.cellsAssigned', { count: assignedCount })
 
   const statusText =
-    snapState.kind === 'busy' ? 'Pick a region in the popup window…' :
+    snapState.kind === 'busy' ? t('bottomBar.pickRegion') :
     snapState.kind === 'ok' ? snapState.msg :
-    snapState.kind === 'warn' ? `⚠ ${snapState.msg}` :
-    snapState.kind === 'cancelled' ? 'Snap cancelled' :
-    snapState.kind === 'err' ? `Snap error: ${snapState.msg}` :
+    snapState.kind === 'warn' ? snapState.msg :
+    snapState.kind === 'cancelled' ? t('bottomBar.snapCancelled') :
+    snapState.kind === 'err' ? t('bottomBar.snapError', { msg: snapState.msg }) :
     idleStatus
 
   const statusColor =
@@ -174,9 +182,9 @@ export default function BottomControls() {
               ? 'border-violet-200 bg-violet-100 text-violet-500 cursor-wait dark:border-cyan-400/30 dark:bg-cyan-400/10 dark:text-cyan-400/60'
               : 'border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100 hover:border-violet-400 dark:border-cyan-400/40 dark:bg-cyan-400/10 dark:text-cyan-300 dark:shadow-[0_0_12px_rgba(34,211,238,0.25)] dark:hover:bg-cyan-400/20 dark:hover:border-cyan-300',
           ].join(' ')}
-          title={`Divvy-style snap — opens a grid popup on M${currentMonitorIndex} and snaps the last-focused window into the selected region.`}
+          title={t('bottomBar.snapTitle', { monitor: currentMonitorIndex })}
         >
-          📌 {snapping ? 'Snapping…' : `Snap → M${currentMonitorIndex}`}
+          📌 {snapping ? t('bottomBar.snapping') : t('bottomBar.snap', { monitor: `M${currentMonitorIndex}` })}
         </button>
         <button
           type="button"
@@ -184,17 +192,17 @@ export default function BottomControls() {
           disabled={assignedCount === 0}
           className="px-3 py-1.5 rounded-lg border border-line bg-raised text-sm text-fg hover:bg-line/60 disabled:cursor-not-allowed disabled:opacity-60"
           title={assignedCount > 0
-            ? `Clear all ${assignedCount} assigned cells on M${currentMonitorIndex} AND reset its grid size to the global default. Other monitors are not affected.`
-            : 'Nothing to clear'}
+            ? t('bottomBar.clearAllTitle', { count: assignedCount, monitor: currentMonitorIndex })
+            : t('bottomBar.clearAllNothing')}
         >
-          Clear All
+          {t('bottomBar.clearAll')}
         </button>
         {/* Per-monitor grid-size picker — operator decision δ (2026-06-09):
             sits in the bottom bar grouped with Snap and Clear All, both of
             which are also scoped to the current monitor. Label format
             "Grid: NxN ▾" is informative on first sight. */}
         <label className="flex items-center gap-1.5 text-sm text-fg">
-          <span className="text-xs text-muted">Grid:</span>
+          <span className="text-xs text-muted">{t('bottomBar.grid')}</span>
           <select
             value={`${currentGridCols}x${currentGridRows}`}
             onChange={(e) => {
@@ -204,7 +212,7 @@ export default function BottomControls() {
               }
             }}
             className="rounded-lg border border-line bg-raised px-2 py-1.5 text-sm text-fg hover:bg-line/60 focus:outline-none focus:ring-2 focus:ring-ring"
-            title={`Grid size for M${currentMonitorIndex}. Changing this will clear that monitor's cells (saved Layouts are not affected).`}
+            title={t('bottomBar.gridSelectTitle', { monitor: currentMonitorIndex })}
           >
             {GRID_SIZE_PRESETS.map((s) => (
               <option key={`${s.cols}x${s.rows}`} value={`${s.cols}x${s.rows}`}>

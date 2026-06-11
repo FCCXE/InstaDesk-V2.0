@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   useAppState,   // central store
   cellKey,
@@ -9,6 +10,7 @@ import { computeInstanceIndices } from '../services/instanceIndex'
 type Cell = { r: number; c: number }
 
 export default function WorkspaceGrid() {
+  const { t } = useTranslation()
   // Keep your proven “cell mouse handlers + window mouseup” UX
   const draggingRef = useRef(false)
 
@@ -100,8 +102,8 @@ export default function WorkspaceGrid() {
     if (selection.size === 0) {
       const assignedCount = Object.values(assignments).filter(Boolean).length
       return assignedCount === 0
-        ? 'No selection'
-        : `No selection • ${assignedCount} cell${assignedCount === 1 ? '' : 's'} assigned`
+        ? t('grid.noSelection')
+        : t('grid.noSelectionAssigned', { count: assignedCount })
     }
     let rMin = Infinity, rMax = -Infinity, cMin = Infinity, cMax = -Infinity
     selection.forEach((k) => {
@@ -113,8 +115,8 @@ export default function WorkspaceGrid() {
       if (c > cMax) cMax = c
     })
     const count = selection.size
-    return `Selected: ${rMin}–${rMax + 1} × ${cMin}–${cMax + 1} • ${count} cell${count === 1 ? '' : 's'}`
-  }, [selection, assignments])
+    return t('grid.selected', { range: `${rMin}–${rMax + 1} × ${cMin}–${cMax + 1}`, count })
+  }, [selection, assignments, t])
 
   const isHighlighted = (r: number, c: number) => selection.has(cellKey(r, c))
 

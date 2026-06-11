@@ -26,5 +26,39 @@
     "windowMarginHint": "Pixels of padding around each monitor's work area. Pulls snapped windows back from monitor edges to leave room for physical bezels. Adjacent windows on the same monitor still touch each other.",
     "marginOff": "Off (0 px)",
     "marginPx": "{{n}} px"
+  },
+  "bottomBar": {
+    "snap": "Snap → {{monitor}}",
+    "snapping": "Snapping…",
+    "clearAll": "Clear All",
+    "grid": "Grid:",
+    "ready": "Ready",
+    "pickRegion": "Pick a region in the popup window…",
+    "snapCancelled": "Snap cancelled",
+    "snapError": "Snap error: {{msg}}",
+    "snapped": "Snapped \"{{title}}\" → M{{monitor}} {{geom}}",
+    "rejected": "⚠ \"{{title}}\" rejected snap — app enforces own placement. Try closing and relaunching it first.",
+    "cellsSelected_one": "{{count}} cell selected",
+    "cellsSelected_other": "{{count}} cells selected",
+    "alsoAssigned": ", {{count}} assigned",
+    "cellsAssigned_one": "{{count}} cell assigned",
+    "cellsAssigned_other": "{{count}} cells assigned",
+    "snapTitle": "Divvy-style snap — opens a grid popup on M{{monitor}} and snaps the last-focused window into the selected region.",
+    "clearAllTitle": "Clear all {{count}} assigned cells on M{{monitor}} AND reset its grid size to the global default. Other monitors are not affected.",
+    "clearAllNothing": "Nothing to clear",
+    "gridSelectTitle": "Grid size for M{{monitor}}. Changing this will clear that monitor's cells (saved Layouts are not affected).",
+    "confirmSwitch": "Switching {{monitor}} from {{from}} to {{to}}",
+    "confirmWillClear_one": "will clear {{count}} cell on {{monitor}}",
+    "confirmWillClear_other": "will clear {{count}} cells on {{monitor}}",
+    "confirmExitEdit": "and exit Edit mode for the current Layout",
+    "confirmUnaffected": "Saved Layouts and Quick Presets are not affected.",
+    "confirmContinue": "Continue?"
+  },
+  "grid": {
+    "noSelection": "No selection",
+    "noSelectionAssigned_one": "No selection • {{count}} cell assigned",
+    "noSelectionAssigned_other": "No selection • {{count}} cells assigned",
+    "selected_one": "Selected: {{range}} • {{count}} cell",
+    "selected_other": "Selected: {{range}} • {{count}} cells"
   }
 }
