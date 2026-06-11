@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type HealthResponse } from '../services/api'
+import { useTheme } from '../state/ThemeProvider'
 
 type ServerStatus =
   | { kind: 'checking' }
@@ -8,6 +9,11 @@ type ServerStatus =
 
 export default function TopChrome() {
   const [status, setStatus] = useState<ServerStatus>({ kind: 'checking' })
+  const { resolved } = useTheme()
+  // Swap to the white-text logo variants in dark mode (the default logos
+  // have dark-navy wordmarks that vanish on a dark background).
+  const instadeskLogo = resolved === 'dark' ? '/brand/instadesk-dark.png' : '/brand/instadesk.png'
+  const fcxeLogo = resolved === 'dark' ? '/brand/fcxe-dark.png' : '/brand/fcxe.png'
 
   useEffect(() => {
     let alive = true
@@ -35,7 +41,7 @@ export default function TopChrome() {
       {/* Left: InstaDesk logo */}
       <div className="flex items-center min-w-0">
         <img
-          src="/brand/instadesk.png"
+          src={instadeskLogo}
           alt="InstaDesk"
           className="max-h-8 object-contain select-none"
           draggable={false}
@@ -65,7 +71,7 @@ export default function TopChrome() {
         <span>v0.1 • {status.kind === 'ok' && status.data.agentExists ? 'live' : 'static'}</span>
         <span className="text-muted">by</span>
         <img
-          src="/brand/fcxe.png"
+          src={fcxeLogo}
           alt="FcXe Studios"
           className="max-h-7 object-contain select-none"
           draggable={false}
