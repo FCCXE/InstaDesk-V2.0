@@ -44,10 +44,10 @@ function readStored(): ThemeSetting {
   } catch {
     /* localStorage unavailable — fall through to default */
   }
-  // Default during the dark-theme build: Light, so a fresh install never
-  // auto-loads the still-incomplete dark theme. Flip this to 'system' at
-  // Step 14 (polish), once the sweep is done.
-  return 'light'
+  // Dark theme is complete, so a fresh install follows the OS preference.
+  // (During the build this was 'light' to avoid auto-loading an unfinished
+  // dark theme; flipped to 'system' in the Step 14 polish pass.)
+  return 'system'
 }
 
 function resolve(setting: ThemeSetting): ResolvedTheme {
