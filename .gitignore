@@ -31,7 +31,8 @@ Thumbs.db
 src-tauri/target/
 src-tauri/gen/
 src-tauri/.cargo/
-src-tauri/Cargo.lock
+# NOTE: Cargo.lock IS committed — InstaDesk is an application (not a library),
+# so pinning the exact dependency graph gives reproducible, signable builds.
 
 # Packaging outputs
 *.exe
