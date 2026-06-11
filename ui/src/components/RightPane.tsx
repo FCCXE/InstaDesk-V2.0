@@ -438,8 +438,10 @@ function AppsAppsPane() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      {/* Controls card — exact layout */}
-      <div className="rounded-2xl border border-line bg-surface p-4">
+      {/* Controls card — exact layout. shrink-0 so on short windows the App
+          History list below (flex-1) yields space and scrolls, instead of the
+          assign buttons getting squished. */}
+      <div className="shrink-0 rounded-2xl border border-line bg-surface p-4">
         {/* Title */}
         <div className="text-[13px] font-medium text-muted">
           {t("apps.selectCells")}

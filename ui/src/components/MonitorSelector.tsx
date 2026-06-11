@@ -188,7 +188,7 @@ export default function MonitorSelector() {
     'text-muted'
 
   return (
-    <aside className="h-full rounded-2xl border border-line bg-surface p-4 shadow-sm">
+    <aside className="h-full overflow-y-auto rounded-2xl border border-line bg-surface p-4 shadow-sm">
       {/* ---------------------------------------------------- */}
       {/*  QUICK PRESETS                                       */}
       {/* ---------------------------------------------------- */}
