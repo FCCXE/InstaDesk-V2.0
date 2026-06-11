@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { MonitorId } from "./EditLayoutDrawer";
 import { api, type PresetListItem } from "../../services/api";
 import { useAppState } from "../../state/AppState";
@@ -47,6 +48,7 @@ function presetToCard(p: PresetListItem): LayoutCardModel | null {
 type Toast = { kind: "ok" | "err"; msg: string };
 
 export default function LayoutsPane() {
+  const { t } = useTranslation();
   const {
     monitors, replaceGridMulti,
     assignmentsByMonitor, assignedCountTotal,
@@ -74,6 +76,16 @@ export default function LayoutsPane() {
   const monitorIdToLabel = (id: string) =>
     monitors.find(m => m.id === id)?.name ?? `M${monitorIdToIndex(id)}`;
 
+  // Localized display name for a card. Cards are stored with their raw
+  // English name (presetToCard runs outside the component, with no t in
+  // scope); we re-derive the display name here so it tracks the active
+  // language without a server refetch on every toggle.
+  const displayName = useCallback(
+    (kind: string, slot: string) =>
+      `${kind === "general" ? t("layouts.layout") : t("layouts.single")} ${(slot || "").toUpperCase()}`,
+    [t]
+  );
+
   const [layouts, setLayouts] = useState<LayoutCardModel[] | null>(null); // null = loading
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -85,9 +97,18 @@ export default function LayoutsPane() {
   // survives Apps↔Layouts tab toggles — RightPane unmounts the inactive
   // pane on switch, which previously wiped local state on every toggle).
   // Drives the amber "Save changes to Layout X" banner.
+  // Layout cards with their display name re-localized to the active language.
+  // All rendering and toast construction reads from this list so a language
+  // switch updates names everywhere (card titles AND flash messages) without
+  // a refetch. State checks (loading / empty) still use raw `layouts`.
+  const localizedLayouts = useMemo(
+    () => layouts?.map(m => ({ ...m, name: displayName(m.preset.kind, m.preset.slot) })) ?? null,
+    [layouts, displayName]
+  );
+
   const editingLayout = useMemo(
-    () => (editingLayoutId && layouts) ? layouts.find(l => l.id === editingLayoutId) ?? null : null,
-    [editingLayoutId, layouts]
+    () => (editingLayoutId && localizedLayouts) ? localizedLayouts.find(l => l.id === editingLayoutId) ?? null : null,
+    [editingLayoutId, localizedLayouts]
   );
 
   // Total assigned cells across ALL monitors. Drives + New Layout enable.
@@ -158,11 +179,11 @@ export default function LayoutsPane() {
         .reduce((sum, c) => sum + Object.keys(c).length, 0);
       const monList = parsed.monitorsUsed.map(n => `M${n}`).join(", ");
       const monMsg = parsed.monitorsUsed.length > 1
-        ? `${parsed.monitorsUsed.length} monitors (${monList})`
-        : `${monList}`;
+        ? t("layouts.monitorsCount", { count: parsed.monitorsUsed.length, list: monList })
+        : monList;
       flash({
         kind: "ok",
-        msg: `Editing "${m.name}" → ${totalCells} cell${totalCells === 1 ? "" : "s"} on ${monMsg}. Make changes in the Apps tab, then click "Save changes to ${m.name}" above.`,
+        msg: t("layouts.editingFlash", { name: m.name, count: totalCells, monitors: monMsg }),
       });
       if (parsed.warnings.length > 0) {
         window.setTimeout(() => flash({ kind: "err", msg: parsed.warnings.join(" ") }), 200);
@@ -185,7 +206,7 @@ export default function LayoutsPane() {
     const name = editingLayout.name;
 
     if (assignedCount === 0) {
-      flash({ kind: "err", msg: `Cannot save "${name}" with an empty grid. Add assignments first or use Delete to remove the layout.` });
+      flash({ kind: "err", msg: t("layouts.saveEmptyFlash", { name }) });
       return;
     }
     const cellsByMonitorIdAny = assignmentsByMonitor as Record<string, Record<string, string | null>>;
@@ -199,7 +220,7 @@ export default function LayoutsPane() {
       return;
     }
     if (built.assignments.length === 0) {
-      flash({ kind: "err", msg: "Nothing to save after target resolution." });
+      flash({ kind: "err", msg: t("layouts.nothingToSave") });
       return;
     }
     setSavingEdits(true);
@@ -215,7 +236,7 @@ export default function LayoutsPane() {
         .sort((a, b) => a[0] - b[0])
         .map(([m, titles]) => `M${m}: ${titles.join(", ")}`)
         .join(" • ");
-      flash({ kind: "ok", msg: `Saved changes to ${name} across ${perMonitor.size} monitor${perMonitor.size === 1 ? "" : "s"} • ${summary}` });
+      flash({ kind: "ok", msg: t("layouts.savedChanges", { name, count: perMonitor.size, summary }) });
       setEditingLayoutId(null);
       window.dispatchEvent(new CustomEvent("insta:presets-changed"));
     } catch (e) {
@@ -227,7 +248,7 @@ export default function LayoutsPane() {
 
   const onCancelEdit = () => {
     setEditingLayoutId(null);
-    flash({ kind: "ok", msg: "Edit mode cleared. Grid contents kept; saving now will create a new Layout." });
+    flash({ kind: "ok", msg: t("layouts.editCleared") });
   };
 
   const onApply = async (m: LayoutCardModel) => {
@@ -236,9 +257,9 @@ export default function LayoutsPane() {
       const res = await api.presetsRun(m.preset.kind, m.preset.slot, windowMargin);
       const failures = res.results.filter(r => r.exitCode !== 0);
       if (failures.length === 0) {
-        flash({ kind: "ok", msg: `Applied "${m.name}" • ${res.results.length} window${res.results.length === 1 ? "" : "s"}` });
+        flash({ kind: "ok", msg: t("layouts.applied", { name: m.name, count: res.results.length }) });
       } else {
-        flash({ kind: "err", msg: `Applied with ${failures.length}/${res.results.length} failures: ${(failures[0].stderr || failures[0].stdout).slice(0, 160)}` });
+        flash({ kind: "err", msg: t("layouts.appliedFailures", { failed: failures.length, total: res.results.length, detail: (failures[0].stderr || failures[0].stdout).slice(0, 160) }) });
       }
     } catch (e) {
       flash({ kind: "err", msg: (e as Error).message });
@@ -249,7 +270,7 @@ export default function LayoutsPane() {
 
   const onNewLayout = async () => {
     if (assignedCount === 0) {
-      flash({ kind: "err", msg: "Assign apps to cells first (Apps tab → pick app → Assign to Selection). Switch monitors to build a layout that spans more than one." });
+      flash({ kind: "err", msg: t("layouts.assignFirst") });
       return;
     }
     const cellsByMonitorIdAny = assignmentsByMonitor as Record<string, Record<string, string | null>>;
@@ -263,20 +284,20 @@ export default function LayoutsPane() {
       return;
     }
     if (built.assignments.length === 0) {
-      flash({ kind: "err", msg: "Nothing to save after target resolution." });
+      flash({ kind: "err", msg: t("layouts.nothingToSave") });
       return;
     }
     const takenSlots = (layouts ?? []).filter(l => l.preset.kind === "general").map(l => l.preset.slot);
     const suggested = nextFreeSlot(takenSlots, "general");
-    const input = window.prompt(`Save layout to slot (A–Z). Suggested: ${suggested}`, suggested);
+    const input = window.prompt(t("layouts.slotPrompt", { suggested }), suggested);
     if (input == null) return; // user cancelled
     const slot = input.trim().toUpperCase();
     if (!/^[A-Z]$/.test(slot)) {
-      flash({ kind: "err", msg: `Invalid slot "${input}". Use a single letter A–Z.` });
+      flash({ kind: "err", msg: t("layouts.invalidSlot", { input }) });
       return;
     }
     if (takenSlots.map(s => s.toUpperCase()).includes(slot)) {
-      if (!confirm(`Slot ${slot} already exists. Overwrite?`)) return;
+      if (!confirm(t("layouts.slotExists", { slot }))) return;
     }
     setSavingNew(true);
     try {
@@ -292,7 +313,7 @@ export default function LayoutsPane() {
         .sort((a, b) => a[0] - b[0])
         .map(([m, titles]) => `M${m}: ${titles.join(", ")}`)
         .join(" • ");
-      flash({ kind: "ok", msg: `Saved Layout ${slot} across ${perMonitor.size} monitor${perMonitor.size === 1 ? "" : "s"} • ${summary}` });
+      flash({ kind: "ok", msg: t("layouts.savedLayout", { slot, count: perMonitor.size, summary }) });
       // Saving a NEW layout (via the explicit slot prompt) ends any prior
       // edit session, since the user has just committed to a different slot.
       setEditingLayoutId(null);
@@ -305,11 +326,11 @@ export default function LayoutsPane() {
   };
 
   const onDelete = async (m: LayoutCardModel) => {
-    if (!confirm(`Delete "${m.name}"? This removes ${m.preset.path}.`)) return;
+    if (!confirm(t("layouts.deleteConfirm", { name: m.name, path: m.preset.path }))) return;
     setBusyId(m.id);
     try {
       await api.presetsDelete(m.preset.kind, m.preset.slot);
-      flash({ kind: "ok", msg: `Deleted "${m.name}"` });
+      flash({ kind: "ok", msg: t("layouts.deleted", { name: m.name }) });
       broadcastChanged();
     } catch (e) {
       flash({ kind: "err", msg: (e as Error).message });
@@ -327,7 +348,7 @@ export default function LayoutsPane() {
       exportLayoutAsFile(res.preset);
       flash({
         kind: "ok",
-        msg: `Exported "${m.name}" → instadesk-layout-${m.preset.kind}-${m.preset.slot}.json (check your Downloads folder).`,
+        msg: t("layouts.exported", { name: m.name, kind: m.preset.kind, slot: m.preset.slot }),
       });
     } catch (e) {
       flash({ kind: "err", msg: (e as Error).message });
@@ -351,7 +372,7 @@ export default function LayoutsPane() {
     try {
       text = await file.text();
     } catch (err) {
-      flash({ kind: "err", msg: `Could not read file: ${(err as Error).message}` });
+      flash({ kind: "err", msg: t("layouts.readFileError", { error: (err as Error).message }) });
       return;
     }
 
@@ -372,24 +393,29 @@ export default function LayoutsPane() {
       ? nextFreeSlot(sameKindSlots, parsed.preset.kind)
       : originalSlot;
     const input = window.prompt(
-      `Import "${file.name}" — save to slot (A–Z). Suggested: ${suggested}`,
+      t("layouts.importPrompt", { file: file.name, suggested }),
       suggested,
     );
     if (input == null) return; // cancelled
     const slot = input.trim().toUpperCase();
     if (!/^[A-Z]$/.test(slot)) {
-      flash({ kind: "err", msg: `Invalid slot "${input}". Use a single letter A–Z.` });
+      flash({ kind: "err", msg: t("layouts.invalidSlot", { input }) });
       return;
     }
     if (sameKindSlots.includes(slot)) {
-      if (!confirm(`Slot ${slot} already exists. Overwrite?`)) return;
+      if (!confirm(t("layouts.slotExists", { slot }))) return;
     }
 
     try {
       await api.presetsSave(parsed.preset.kind, slot, parsed.preset.assignments);
       flash({
         kind: "ok",
-        msg: `Imported "${file.name}" → ${parsed.preset.kind === "general" ? "Layout" : "Single"} ${slot} (${parsed.preset.assignments.length} assignments).`,
+        msg: t("layouts.imported", {
+          file: file.name,
+          type: parsed.preset.kind === "general" ? t("layouts.layout") : t("layouts.single"),
+          slot,
+          count: parsed.preset.assignments.length,
+        }),
       });
       broadcastChanged();
     } catch (err) {
@@ -400,7 +426,7 @@ export default function LayoutsPane() {
   return (
     <div className="flex h-full flex-col overflow-hidden px-3 pt-3">
       <div className="mb-2">
-        <div className="text-lg font-semibold text-fg">Layouts</div>
+        <div className="text-lg font-semibold text-fg">{t("layouts.title")}</div>
       </div>
 
       <div className="mb-2">
@@ -411,10 +437,10 @@ export default function LayoutsPane() {
           <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-2.5 dark:border-amber-500/40 dark:bg-amber-500/10">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-medium text-amber-900 dark:text-amber-200">
-                ✎ Editing {editingLayout.name}
+                {t("layouts.editingName", { name: editingLayout.name })}
               </span>
               <span className="text-[11px] text-amber-700">
-                — modify cells in the Apps tab, then save below
+                {t("layouts.editingHint")}
               </span>
               <div className="flex-1" />
               <button
@@ -430,20 +456,20 @@ export default function LayoutsPane() {
                 ].join(" ")}
                 title={
                   assignedCount === 0
-                    ? "Grid is empty — assign cells first (or click Delete on the card to remove the layout)"
-                    : `Overwrite ${editingLayout.preset.path} with the current grid state across all monitors`
+                    ? t("layouts.saveEmptyTitle")
+                    : t("layouts.saveOverwriteTitle", { path: editingLayout.preset.path })
                 }
               >
-                {savingEdits ? "Saving…" : `💾 Save changes to ${editingLayout.name}`}
+                {savingEdits ? t("layouts.saving") : t("layouts.saveChangesTo", { name: editingLayout.name })}
               </button>
               <button
                 type="button"
                 onClick={onCancelEdit}
                 disabled={savingEdits}
                 className="h-8 rounded-lg border border-amber-300 bg-raised px-3 text-xs font-medium text-amber-800 hover:bg-amber-100 disabled:opacity-50 dark:border-amber-500/40 dark:text-amber-200 dark:hover:bg-amber-500/15"
-                title="Stop editing this layout. Grid contents are kept; saving from here on will create a NEW layout via the slot prompt below."
+                title={t("layouts.cancelTitle")}
               >
-                Cancel
+                {t("layouts.cancel")}
               </button>
             </div>
           </div>
@@ -467,13 +493,13 @@ export default function LayoutsPane() {
               ].join(" ")}
               title={
                 assignedCount === 0
-                  ? "Assign apps to grid cells first (Apps tab); switch monitors to build a multi-monitor layout"
+                  ? t("layouts.newLayoutTitleDisabled")
                   : editingLayout
-                  ? `Save the current grid as a NEW Layout in a different slot (use 'Save changes to ${editingLayout.name}' above to overwrite this one instead)`
-                  : `Save grids from ${monitorsWithAssignments.length} monitor${monitorsWithAssignments.length === 1 ? "" : "s"} (${assignedCount} cells total) as one preset`
+                  ? t("layouts.newLayoutTitleEditing", { name: editingLayout.name })
+                  : t("layouts.newLayoutTitleReady", { count: monitorsWithAssignments.length, cells: assignedCount })
               }
             >
-              {savingNew ? "Saving…" : "+ New Layout"}
+              {savingNew ? t("layouts.saving") : t("layouts.newLayout")}
             </button>
             {/* Import — hidden native file input triggered by the visible
                 button. Accepts only .json to keep the picker focused. */}
@@ -488,17 +514,17 @@ export default function LayoutsPane() {
               type="button"
               onClick={triggerImport}
               className="h-9 flex-1 rounded-lg px-4 text-sm font-medium border border-line bg-raised text-fg hover:bg-raised"
-              title="Import a Layout from a previously-exported .json file. You'll be asked which slot (A–Z) to save it to."
+              title={t("layouts.importTitle")}
             >
-              Import…
+              {t("layouts.import")}
             </button>
           </div>
           <span className="text-xs text-muted">
             {assignedCount === 0
-              ? "Assign apps to enable"
+              ? t("layouts.statusAssignToEnable")
               : monitorsWithAssignments.length === 1
-              ? `${assignedCount} cell${assignedCount === 1 ? "" : "s"} on ${monitorIdToLabel(monitorsWithAssignments[0])}`
-              : `${assignedCount} cells across ${monitorsWithAssignments.length} monitors (${monitorsWithAssignments.map(monitorIdToLabel).join(", ")})`}
+              ? t("layouts.statusOneMonitor", { count: assignedCount, monitor: monitorIdToLabel(monitorsWithAssignments[0]) })
+              : t("layouts.statusMultiMonitor", { count: assignedCount, monitors: monitorsWithAssignments.length, list: monitorsWithAssignments.map(monitorIdToLabel).join(", ") })}
           </span>
         </div>
       </div>
@@ -528,23 +554,23 @@ export default function LayoutsPane() {
           <div className="flex flex-col gap-3">
           {layouts === null && (
             <div className="rounded-xl border border-line bg-surface p-4 text-sm text-muted">
-              Loading saved layouts…
+              {t("layouts.loading")}
             </div>
           )}
 
           {error && (
             <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-300">
-              Could not reach server: {error}
+              {t("layouts.serverError", { error })}
             </div>
           )}
 
           {layouts && layouts.length === 0 && !error && (
             <div className="rounded-xl border border-dashed border-line bg-surface p-6 text-center text-sm text-muted">
-              No saved layouts yet. Build a grid in the Apps tab and click <span className="font-medium text-fg">+ New Layout</span> above to save your first one.
+              {t("layouts.emptyPre")} <span className="font-medium text-fg">{t("layouts.newLayout")}</span> {t("layouts.emptyPost")}
             </div>
           )}
 
-          {layouts?.map((m) => (
+          {localizedLayouts?.map((m) => (
             <LayoutCard
               key={m.id}
               model={m}
@@ -579,12 +605,14 @@ function LayoutCard({
   onExport: () => void;
   onTogglePreview: () => void;
 }) {
+  const { t } = useTranslation();
   const updatedStr = useMemo(() => {
     const d = new Date(model.updatedISO);
-    if (isNaN(d.getTime())) return `Updated: ${model.updatedISO}`;
+    if (isNaN(d.getTime())) return t("layouts.updated", { date: model.updatedISO });
     const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
-    return `Updated: ${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }, [model.updatedISO]);
+    const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return t("layouts.updated", { date });
+  }, [model.updatedISO, t]);
 
   return (
     <div className={[
@@ -603,7 +631,7 @@ function LayoutCard({
             </div>
             {isEditing && (
               <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-amber-300 bg-amber-50 px-2 text-[10px] font-semibold text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-200">
-                ✎ editing
+                {t("layouts.editingBadge")}
               </span>
             )}
           </div>
@@ -612,7 +640,7 @@ function LayoutCard({
               {model.preset.kind}
             </span>
             <span className="inline-flex h-5 items-center rounded-full border border-sky-200 bg-sky-50 px-2 text-[10px] font-medium text-sky-700 dark:border-primary/40 dark:bg-primary/10 dark:text-sky-300">
-              slot {model.preset.slot.toUpperCase()}
+              {t("layouts.slotBadge", { slot: model.preset.slot.toUpperCase() })}
             </span>
           </div>
 
@@ -631,12 +659,10 @@ function LayoutCard({
                   ? "border-sky-300 bg-sky-100 text-sky-800 hover:bg-sky-200 dark:border-primary/50 dark:bg-primary/20 dark:text-sky-200 dark:hover:bg-primary/30"
                   : "border-line bg-raised text-fg hover:bg-raised",
               ].join(" ")}
-              title={isPreviewed
-                ? "Hide the layout content overlay over the central grid"
-                : "Show the layout content as a large overlay over the central grid"}
+              title={isPreviewed ? t("layouts.hideContentTitle") : t("layouts.showContentTitle")}
             >
               <span aria-hidden>{isPreviewed ? "✕" : "👁"}</span>
-              <span>{isPreviewed ? "Hide content" : "Show content"}</span>
+              <span>{isPreviewed ? t("layouts.hideContent") : t("layouts.showContent")}</span>
             </button>
           </div>
 
@@ -654,25 +680,25 @@ function LayoutCard({
               utility actions (Export, Delete). */}
           <div className="mt-3 grid grid-cols-2 gap-2">
             <PrimaryBtn onClick={onApply} disabled={busy}>
-              {busy ? "Applying…" : "Apply"}
+              {busy ? t("layouts.applying") : t("layouts.apply")}
             </PrimaryBtn>
             <GhostBtn
               className="border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 dark:border-primary/40 dark:bg-primary/10 dark:text-sky-300 dark:hover:bg-primary/20"
               onClick={onLoad}
               disabled={busy}
-              title="Loads this layout into the grid across all monitors. Modify cells in the Apps tab, then click 'Save changes to this Layout' in the amber banner at the top of this pane."
+              title={t("layouts.editTitle")}
             >
-              {busy ? "Loading…" : "Edit"}
+              {busy ? t("layouts.loadingShort") : t("layouts.edit")}
             </GhostBtn>
             <GhostBtn
               onClick={onExport}
               disabled={busy}
-              title="Download this Layout as a .json file (shareable / backupable)."
+              title={t("layouts.exportTitle")}
             >
-              Export
+              {t("layouts.export")}
             </GhostBtn>
             <GhostBtn onClick={onDelete} disabled={busy}>
-              {busy ? "Deleting…" : "Delete"}
+              {busy ? t("layouts.deleting") : t("layouts.delete")}
             </GhostBtn>
           </div>
         </div>
