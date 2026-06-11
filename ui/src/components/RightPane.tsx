@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 /* Other panes (unchanged) */
 import LayoutsPane from "./layouts/LayoutsPane";
@@ -50,6 +51,7 @@ type MainTab = "Apps" | "Layouts" | "Settings" | "Help";
 type AppsSubTab = "URLs" | "Apps" | "Favorites";
 
 export default function RightPane() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<MainTab>("Apps");
 
   // Quick Presets "Manage" link in the left pane dispatches this event.
@@ -63,10 +65,10 @@ export default function RightPane() {
     <div className="flex h-full w-full flex-col overflow-hidden">
       {/* Top Tabs */}
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
-        <TopTab label="Apps" active={tab === "Apps"} onClick={() => setTab("Apps")} />
-        <TopTab label="Layouts" active={tab === "Layouts"} onClick={() => setTab("Layouts")} />
-        <TopTab label="Settings" active={tab === "Settings"} onClick={() => setTab("Settings")} />
-        <TopTab label="Help" active={tab === "Help"} onClick={() => setTab("Help")} />
+        <TopTab label={t("tabs.apps")} active={tab === "Apps"} onClick={() => setTab("Apps")} />
+        <TopTab label={t("tabs.layouts")} active={tab === "Layouts"} onClick={() => setTab("Layouts")} />
+        <TopTab label={t("tabs.settings")} active={tab === "Settings"} onClick={() => setTab("Settings")} />
+        <TopTab label={t("tabs.help")} active={tab === "Help"} onClick={() => setTab("Help")} />
       </div>
 
       {/* Body */}
@@ -112,14 +114,15 @@ function TopTab({
 /* -------------------------------------------------------------------------- */
 
 function AppsPane() {
+  const { t } = useTranslation();
   const [sub, setSub] = useState<AppsSubTab>("Apps");
   return (
     <div className="flex h-full flex-col overflow-hidden px-3 pt-3">
       {/* Sub-tabs */}
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <SubTab label="URL's" active={sub === "URLs"} onClick={() => setSub("URLs")} />
-        <SubTab label="Apps" active={sub === "Apps"} onClick={() => setSub("Apps")} />
-        <SubTab label="Favorites" active={sub === "Favorites"} onClick={() => setSub("Favorites")} />
+        <SubTab label={t("tabs.urls")} active={sub === "URLs"} onClick={() => setSub("URLs")} />
+        <SubTab label={t("tabs.apps")} active={sub === "Apps"} onClick={() => setSub("Apps")} />
+        <SubTab label={t("tabs.favorites")} active={sub === "Favorites"} onClick={() => setSub("Favorites")} />
       </div>
 
       {/* Content area:
@@ -185,6 +188,7 @@ type AppsHistoryRow = {
 };
 
 function AppsAppsPane() {
+  const { t } = useTranslation();
   const {
     selection, selectedApp, setSelectedApp,
     assignSelected, unassignSelected,
@@ -438,7 +442,7 @@ function AppsAppsPane() {
       <div className="rounded-2xl border border-line bg-surface p-4">
         {/* Title */}
         <div className="text-[13px] font-medium text-muted">
-          Select Cells and Pick an App to enable assign
+          {t("apps.selectCells")}
         </div>
 
         {/* Button row: three equal-width (flex-1) buttons spanning the full
@@ -446,23 +450,23 @@ function AppsAppsPane() {
             centered labels and the existing small gaps preserved. */}
         <div className="mt-3 flex items-center gap-1">
           <GhostBtn className={smallBtnCommon} onClick={onBrowse}>
-            Browse
+            {t("apps.browse")}
           </GhostBtn>
           <GhostBtn className={smallBtnCommon} onClick={onRefresh}>
-            Refresh
+            {t("apps.refresh")}
           </GhostBtn>
           <GhostBtn className={smallBtnCommon} onClick={() => setEditMode((v) => !v)}>
-            {editMode ? "Done" : "Edit"}
+            {editMode ? t("apps.done") : t("apps.edit")}
           </GhostBtn>
 
         {editMode && (
             <GhostBtn
               className="shrink-0 h-9 w-[64px] mr-1 px-1 text-[11px] whitespace-normal text-center leading-tight overflow-hidden"
               onClick={onClearCustom}
-              title="Clear Custom"
+              title={t("apps.clearCustomTitle")}
             >
-              <span className="block">Clear</span>
-              <span className="block">Custom</span>
+              <span className="block">{t("apps.clear")}</span>
+              <span className="block">{t("apps.custom")}</span>
             </GhostBtn>
           )}
         </div>
@@ -471,15 +475,15 @@ function AppsAppsPane() {
             stacked beneath it (matches the aesthetic-redesign mockup's
             vertical distribution — the buttons span the full pane width). */}
         <div className="mt-3 text-xs text-fg">
-          Selection Grid : {selCount > 0 ? selCount : "none"}
+          {t("apps.selectionGrid", { n: selCount > 0 ? selCount : t("apps.none") })}
         </div>
 
         <div className="mt-2 flex flex-col gap-2">
           <PrimaryBtn onClick={onAssign} disabled={!canAssign} className="h-9 w-full">
-            Assign to Selection
+            {t("apps.assignToSelection")}
           </PrimaryBtn>
           <GhostBtn onClick={onUnassign} disabled={!canUnassign} className="h-9 w-full">
-            Unassign Selection
+            {t("apps.unassignSelection")}
           </GhostBtn>
         </div>
 
@@ -490,10 +494,10 @@ function AppsAppsPane() {
           <div className="mt-3 rounded-md border border-line bg-raised p-2">
             <div className="mb-1 flex items-center justify-between">
               <label className="text-[11px] font-medium uppercase tracking-wide text-muted">
-                Launch args for selection
+                {t("apps.launchArgs")}
                 {hasMixedArgsInSelection && (
                   <span className="ml-1 normal-case tracking-normal text-amber-600">
-                    (mixed)
+                    {t("apps.mixed")}
                   </span>
                 )}
               </label>
@@ -502,9 +506,9 @@ function AppsAppsPane() {
                   type="button"
                   onClick={onArgsClear}
                   className="text-[10px] text-muted hover:text-red-600"
-                  title="Clear override → revert these cells to the app's default args"
+                  title={t("apps.resetArgsTitle")}
                 >
-                  Reset
+                  {t("apps.reset")}
                 </button>
               )}
             </div>
@@ -516,8 +520,8 @@ function AppsAppsPane() {
                 onKeyDown={(e) => { if (e.key === 'Enter') onArgsApply() }}
                 placeholder={
                   hasMixedArgsInSelection
-                    ? "Mixed — type to overwrite all selected cells"
-                    : 'e.g. "C:\\Downloads" for File Explorer'
+                    ? t("apps.argsPlaceholderMixed")
+                    : t("apps.argsPlaceholder")
                 }
                 className="h-7 flex-1 rounded-md border border-line bg-raised px-2 text-[11px] text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ring"
               />
@@ -526,15 +530,15 @@ function AppsAppsPane() {
                 disabled={!argsDirty}
                 className="h-7 px-3 text-[11px]"
               >
-                Apply
+                {t("apps.apply")}
               </PrimaryBtn>
             </div>
             <div className="mt-1 text-[10px] text-muted">
               {hintApp && hintCatalogArgs
-                ? <>Replaces app default <code className="rounded bg-line px-1">{hintCatalogArgs}</code>. Include it in your override if you still need it.</>
+                ? <>{t("apps.argsHintReplacesPre")} <code className="rounded bg-line px-1">{hintCatalogArgs}</code>{t("apps.argsHintReplacesPost")}</>
                 : hintApp
-                  ? <>App default is empty. Whatever you type here is appended to the launch command.</>
-                  : <>Differentiates two regions of the same app (e.g. two File Explorer windows on distinct folders).</>}
+                  ? <>{t("apps.argsHintEmpty")}</>
+                  : <>{t("apps.argsHintDefault")}</>}
             </div>
           </div>
         )}
@@ -544,7 +548,7 @@ function AppsAppsPane() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search applications from App History ..."
+            placeholder={t("apps.searchPlaceholder")}
             className="h-8 w-full rounded-md border border-line bg-raised px-3 text-xs text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
@@ -555,7 +559,7 @@ function AppsAppsPane() {
           corners always visible) with the scroll happening INSIDE the card,
           never clipped by an ancestor overflow-hidden. */}
       <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-line bg-surface p-2">
-        <div className="px-2 py-1 text-sm font-medium text-fg">App History</div>
+        <div className="px-2 py-1 text-sm font-medium text-fg">{t("apps.appHistory")}</div>
 
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
           {filtered.map((r) => {
@@ -596,17 +600,17 @@ function AppsAppsPane() {
                       <span className="text-xs text-muted">{r.category}</span>
                       {isCustom && (
                         <span className="rounded-full bg-raised px-2 py-0.5 text-[10px] text-muted ring-1 ring-line">
-                          Custom
+                          {t("apps.custom")}
                         </span>
                       )}
                       {isUrlGroup && (
                         <span className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] text-cyan-700 ring-1 ring-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-300 dark:ring-cyan-500/30">
-                          {r.urlGroup!.urls.length} URL{r.urlGroup!.urls.length === 1 ? "" : "s"}
+                          {t("apps.urlCount", { count: r.urlGroup!.urls.length })}
                         </span>
                       )}
                       {isFavorite && (
                         <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] text-amber-700 ring-1 ring-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-500/30">
-                          Favorite
+                          {t("apps.favorite")}
                         </span>
                       )}
                     </div>
@@ -626,9 +630,9 @@ function AppsAppsPane() {
                           ? "rotate-90 border-cyan-300 bg-cyan-50 text-cyan-700 dark:border-cyan-500/40 dark:bg-cyan-500/15 dark:text-cyan-300"
                           : "border-line bg-raised text-muted hover:bg-raised",
                       ].join(" ")}
-                      title={isExpanded ? "Hide URLs in this group" : "Show URLs in this group"}
+                      title={isExpanded ? t("apps.hideUrls") : t("apps.showUrls")}
                       aria-expanded={isExpanded}
-                      aria-label={isExpanded ? "Collapse URLs" : "Expand URLs"}
+                      aria-label={isExpanded ? t("apps.collapseUrls") : t("apps.expandUrls")}
                     >
                       ▸
                     </button>
@@ -636,27 +640,27 @@ function AppsAppsPane() {
 
                   {editMode && (isCustom || isUrlGroup || isFavorite) ? (
                     <GhostBtn onClick={() => onDeleteCustom(r)} className="ml-2 h-7 whitespace-nowrap px-2">
-                      🗑 Delete
+                      {t("apps.delete")}
                     </GhostBtn>
                   ) : editMode && r.seedId && !r.isHiddenSeed ? (
                     <GhostBtn
                       onClick={() => onHideSeed(r)}
                       className="ml-2 h-7 whitespace-nowrap px-2"
-                      title={`Hide "${r.label}" from this list. Use "Show N hidden" below to bring it back. The catalog entry is preserved.`}
+                      title={t("apps.hideTitle", { label: r.label })}
                     >
-                      👁 Hide
+                      {t("apps.hide")}
                     </GhostBtn>
                   ) : editMode && r.seedId && r.isHiddenSeed ? (
                     <GhostBtn
                       onClick={() => onShowSeed(r)}
                       className="ml-2 h-7 whitespace-nowrap border-emerald-200 bg-emerald-50 px-2 text-emerald-700 hover:bg-emerald-100"
-                      title={`Restore "${r.label}" to the list.`}
+                      title={t("apps.restoreTitle", { label: r.label })}
                     >
-                      ↺ Restore
+                      {t("apps.restore")}
                     </GhostBtn>
                   ) : r.isHiddenSeed ? (
                     <span className="ml-2 inline-flex h-7 items-center rounded-full bg-line px-2 text-[10px] italic text-muted">
-                      hidden
+                      {t("apps.hidden")}
                     </span>
                   ) : null}
                 </div>
@@ -675,11 +679,11 @@ function AppsAppsPane() {
                       <span className="truncate" title={r.urlGroup!.name}>{r.urlGroup!.name}</span>
                     </div>
                     <div className="mb-1.5 text-[10px] uppercase tracking-wide text-muted">
-                      Browser: <span className="font-mono text-cyan-700">{r.urlGroup!.browser}</span>
-                      <span className="ml-2 text-muted">• {r.urlGroup!.urls.length} URL{r.urlGroup!.urls.length === 1 ? "" : "s"}</span>
+                      {t("apps.browserLabel")} <span className="font-mono text-cyan-700">{r.urlGroup!.browser}</span>
+                      <span className="ml-2 text-muted">• {t("apps.urlCount", { count: r.urlGroup!.urls.length })}</span>
                     </div>
                     {r.urlGroup!.urls.length === 0 ? (
-                      <div className="text-[11px] italic text-muted">(empty group)</div>
+                      <div className="text-[11px] italic text-muted">{t("apps.emptyGroup")}</div>
                     ) : (
                       <ol className="space-y-1">
                         {r.urlGroup!.urls.map((u, i) => (
@@ -688,7 +692,7 @@ function AppsAppsPane() {
                             <button
                               type="button"
                               className="min-w-0 flex-1 truncate text-left text-[11px] text-fg hover:text-cyan-700"
-                              title={`Click to copy: ${u}`}
+                              title={t("apps.clickToCopy", { url: u })}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 try { navigator.clipboard.writeText(u); } catch {}
@@ -707,7 +711,7 @@ function AppsAppsPane() {
           })}
 
           {filtered.length === 0 && (
-            <div className="px-3 py-8 text-center text-xs text-muted">No apps match your search.</div>
+            <div className="px-3 py-8 text-center text-xs text-muted">{t("apps.noMatch")}</div>
           )}
         </div>
 
@@ -721,22 +725,22 @@ function AppsAppsPane() {
               type="button"
               onClick={() => setRevealHidden((v) => !v)}
               className="text-[11px] text-muted hover:text-fg"
-              title={revealHidden
-                ? "Hide the hidden-seed entries again — they remain hidden by default."
-                : "Reveal the hidden catalog seeds inline. Turn on Edit to Restore individual ones."}
+              title={revealHidden ? t("apps.hideHiddenTitle") : t("apps.showHiddenTitle")}
             >
-              {revealHidden ? "▾ Hide" : "▸ Show"} {hiddenSeedIds.size} hidden app{hiddenSeedIds.size === 1 ? "" : "s"}
+              {revealHidden
+                ? t("apps.hideHidden", { count: hiddenSeedIds.size })
+                : t("apps.showHidden", { count: hiddenSeedIds.size })}
             </button>
             {editMode && revealHidden && (
               <button
                 type="button"
                 onClick={() => {
-                  if (!confirm(`Restore all ${hiddenSeedIds.size} hidden apps to the list?`)) return;
+                  if (!confirm(t("apps.restoreAllConfirm", { count: hiddenSeedIds.size }))) return;
                   onShowAllHiddenSeeds();
                 }}
                 className="text-[11px] font-medium text-emerald-700 hover:text-emerald-900"
               >
-                ↺ Restore all
+                {t("apps.restoreAll")}
               </button>
             )}
           </div>
