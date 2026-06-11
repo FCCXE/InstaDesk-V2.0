@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { useAppState, GRID_SIZE_PRESETS, WINDOW_MARGIN_PRESETS } from "../../state/AppState";
 import { useTheme, type ThemeSetting } from "../../state/ThemeProvider";
+import { useTranslation } from "react-i18next";
+import { setLang, type Lang } from "../../i18n";
 
 /**
  * SettingsPane
@@ -14,6 +16,7 @@ import { useTheme, type ThemeSetting } from "../../state/ThemeProvider";
 export default function SettingsPane() {
   const { defaultGridSize, setDefaultGridSize, windowMargin, setWindowMargin } = useAppState();
   const { theme, setTheme } = useTheme();
+  const { t, i18n } = useTranslation();
 
   // Currently-selected preset key, for the <select>'s value prop.
   const selectedKey = `${defaultGridSize.cols}x${defaultGridSize.rows}`;
@@ -21,18 +24,18 @@ export default function SettingsPane() {
   return (
     <div className="flex h-full flex-col overflow-hidden p-3">
       {/* Title */}
-      <div className="mb-2 text-lg font-semibold text-fg">Settings</div>
+      <div className="mb-2 text-lg font-semibold text-fg">{t("settings.title")}</div>
 
       {/* Scrollable content */}
       <div className="min-h-0 flex-1 overflow-y-auto pr-2">
         <div className="flex flex-col gap-4">
-          <Section title="General">
+          <Section title={t("settings.general")}>
             <Row>
-              <Label>Launch on system start</Label>
+              <Label>{t("settings.launchOnStart")}</Label>
               <Toggle on />
             </Row>
             <Row>
-              <Label>Theme</Label>
+              <Label>{t("settings.theme")}</Label>
               <select
                 value={theme}
                 onChange={(e) => setTheme(e.target.value as ThemeSetting)}
@@ -45,8 +48,15 @@ export default function SettingsPane() {
               </select>
             </Row>
             <Row>
-              <Label>Language</Label>
-              <Select value="English ▾" />
+              <Label>{t("settings.language")}</Label>
+              <select
+                value={i18n.language === "es" ? "es" : "en"}
+                onChange={(e) => setLang(e.target.value as Lang)}
+                className="h-7 min-w-[160px] rounded-md border border-line bg-raised px-3 text-xs font-medium text-fg hover:bg-line/60 focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="en">English</option>
+                <option value="es">Español</option>
+              </select>
             </Row>
           </Section>
 
@@ -140,17 +150,5 @@ function Toggle({ on = true }: { on?: boolean }) {
         ].join(" ")}
       />
     </div>
-  );
-}
-
-function Select({ value }: { value: string }) {
-  return (
-    <button
-      className="h-7 min-w-[160px] cursor-not-allowed rounded-md border border-line bg-raised px-3 text-xs font-medium text-fg hover:bg-raised"
-      disabled
-      aria-disabled
-    >
-      {value}
-    </button>
   );
 }

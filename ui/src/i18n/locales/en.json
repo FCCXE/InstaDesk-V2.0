@@ -1,0 +1,9 @@
+{
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "launchOnStart": "Launch on system start",
+    "theme": "Theme",
+    "language": "Language"
+  }
+}
