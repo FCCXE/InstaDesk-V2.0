@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   useAppState,   // central store
@@ -20,6 +20,7 @@ export default function WorkspaceGrid() {
     assignments,          // Record<"r,c", AppId | null>
     argsOverridesByMonitor,
     currentMonitorId,
+    monitors,             // for the selected monitor's real aspect ratio
     currentGridCols,      // per-monitor grid size (Step 1 of grid-size build)
     currentGridRows,
     beginDrag,            // (r, c) => void
@@ -120,19 +121,54 @@ export default function WorkspaceGrid() {
 
   const isHighlighted = (r: number, c: number) => selection.has(cellKey(r, c))
 
+  // Selected monitor's real aspect ratio (w/h reflects physical orientation —
+  // a portrait monitor reads as tall).
+  const monAspect = useMemo(() => {
+    const m = monitors.find((mm) => mm.id === currentMonitorId)
+    return m && m.w > 0 && m.h > 0 ? m.w / m.h : 16 / 9
+  }, [monitors, currentMonitorId])
+
+  // Size the grid to FILL its container, but clamp the cell aspect between
+  // square (1:1) and the monitor's true aspect. So it fills honestly when the
+  // container shape is close to the monitor's, and falls back to neutral square
+  // cells (never skinny-stretched) when the container is a very different shape.
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [box, setBox] = useState<{ w: number; h: number }>({ w: 0, h: 0 })
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const arLo = Math.min(1, monAspect)
+    const arHi = Math.max(1, monAspect)
+    const compute = () => {
+      const cw = el.clientWidth
+      const ch = el.clientHeight
+      if (cw <= 0 || ch <= 0) return
+      const targetAR = Math.min(arHi, Math.max(arLo, cw / ch))
+      let bw = cw
+      let bh = cw / targetAR
+      if (bh > ch) { bh = ch; bw = ch * targetAR }
+      setBox({ w: Math.round(bw), h: Math.round(bh) })
+    }
+    compute()
+    const ro = new ResizeObserver(compute)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [monAspect])
+
   return (
     <section className="h-full w-full bg-surface rounded-xl border border-line shadow-sm p-3 flex flex-col">
-      <div className="flex-1 min-h-0 flex items-center justify-center">
-        <div className="w-full h-full max-w-full max-h-full aspect-square">
-          <div className="relative w-full h-full select-none">
-            {/* Grid */}
-            <div
-              className="grid w-full h-full gap-[3px]"
-              style={{
-                gridTemplateColumns: `repeat(${currentGridCols}, 1fr)`,
-                gridTemplateRows: `repeat(${currentGridRows}, 1fr)`,
-              }}
-            >
+      <div ref={containerRef} className="flex-1 min-h-0 flex items-center justify-center">
+        {/* Grid box: fills the container with cell aspect clamped between square
+            and the monitor's true aspect (computed above). */}
+        <div className="relative select-none" style={{ width: box.w, height: box.h }}>
+          {/* Grid */}
+          <div
+            className="grid h-full w-full gap-[3px]"
+            style={{
+              gridTemplateColumns: `repeat(${currentGridCols}, 1fr)`,
+              gridTemplateRows: `repeat(${currentGridRows}, 1fr)`,
+            }}
+          >
               {cells.map(({ r, c }) => {
                 const highlighted = isHighlighted(r, c)
                 const k = cellKey(r, c)
@@ -183,7 +219,6 @@ export default function WorkspaceGrid() {
                   </div>
                 )
               })}
-            </div>
           </div>
         </div>
       </div>

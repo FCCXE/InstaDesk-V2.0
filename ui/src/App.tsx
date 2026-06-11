@@ -10,56 +10,68 @@ import LayoutPreviewOverlay from './components/layouts/LayoutPreviewOverlay'
 import { AppStateProvider } from './state/AppState'
 
 /**
- * Option A — "balanced proportion in any configuration" (2026-06-11).
+ * Middle term — "balanced AND filled" (2026-06-11).
  *
- * Scale the ENTIRE 1280×820 construct as one cohesive unit to fit the window
- * (contain), centered. Every element — panels, grid, text, buttons — keeps its
- * exact designed proportion to every other; only the overall size changes. This
- * is the one behavior that stays perfectly balanced at any window shape (no
- * stretched cells, no element shrinking independently of the others).
+ * Option A (uniform scale, contain) gave perfect balance but left symmetric
+ * empty margins. This keeps the balance and fills the window:
  *
- * Trade-off (intentional, operator-approved for assessment): when the window's
- * aspect differs from the construct's (1280:820 ≈ 1.56), there are SYMMETRIC
- * empty margins — side bars on wide/ultrawide windows, top/bottom bars on tall
- * snaps. Balanced, never lopsided.
+ *  - Scale the construct's CONTENT uniformly by the fit factor
+ *    S = min(w/DESIGN_W, h/DESIGN_H) — text, buttons, grid all grow together,
+ *    so it stays balanced and readable (the part of Option A you liked).
+ *  - But lay the construct out FLUID at (w/S × h/S) px, then scale by S, so it
+ *    renders at exactly the window size — NO empty margins. The slack beyond the
+ *    1280×820 design is absorbed by the construct itself: the fluid center
+ *    column widens (a bigger, honest grid on wide monitors) and the flexible
+ *    main row grows (taller panels on tall windows) — i.e. "fill the empty
+ *    space with actual construct."
  *
- * Unlike the earlier capped version (which stayed 1× and floated tiny on big
- * screens), the scale is NOT capped: the construct grows to fill the limiting
- * dimension, so it's large and centered, framed by a subtle ring.
+ * The grid clamps its own shape (see WorkspaceGrid) so it never stretches into
+ * skinny cells; on shapes that don't match the monitor it falls back to neutral
+ * square cells rather than distorting.
  */
 const DESIGN_W = 1280
 const DESIGN_H = 820
 
-function useScaleToFit() {
-  const compute = () =>
-    Math.min(window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H)
-  const [scale, setScale] = useState(compute)
+function useFitFill() {
+  const get = () => {
+    const w = window.innerWidth
+    const h = window.innerHeight
+    const s = Math.min(w / DESIGN_W, h / DESIGN_H)
+    return { s, w, h }
+  }
+  const [v, setV] = useState(get)
   useEffect(() => {
-    const onResize = () => setScale(compute())
+    const onResize = () => setV(get())
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
-  return scale
+  return v
 }
 
 export default function App() {
-  const scale = useScaleToFit()
+  const { s, w, h } = useFitFill()
   return (
     <AppStateProvider>
-      <div className="h-dvh w-full overflow-hidden bg-bg flex items-center justify-center">
-        {/* Fixed 1280×820 construct, uniformly scaled to fit the window (origin
-            center). The surrounding flex centers it; overflow-hidden clips the
-            scaled-box edges so there are never scrollbars. A subtle ring frames
-            the construct against the symmetric margins. */}
+      <div className="h-dvh w-full overflow-hidden bg-bg">
+        {/* Fluid construct sized to (window / S) and scaled by S from the
+            top-left, so it fills the window exactly with content uniformly
+            scaled (balanced) and no empty margins. */}
         <div
-          className="w-[1280px] h-[820px] bg-bg shadow ring-1 ring-black/5 dark:ring-white/10 overflow-hidden flex flex-col"
-          style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}
+          className="bg-bg overflow-hidden flex flex-col"
+          style={{
+            width: `${w / s}px`,
+            height: `${h / s}px`,
+            transform: `scale(${s})`,
+            transformOrigin: 'top left',
+          }}
         >
           {/* Top chrome */}
           <TopChrome />
 
-          {/* Main content: symmetric top/bottom gaps via pt-3 / pb-3 */}
-          <div className="flex-1 min-h-0 grid grid-cols-[284px_1fr_320px] gap-3 px-6 pt-3 pb-3">
+          {/* Main content: symmetric top/bottom gaps via pt-3 / pb-3.
+              center column minmax(0,1fr) absorbs extra width (a wider grid on
+              wide monitors). */}
+          <div className="flex-1 min-h-0 grid grid-cols-[284px_minmax(0,1fr)_320px] gap-3 px-6 pt-3 pb-3">
             {/* Left column */}
             <div className="min-h-0">
               <MonitorSelector />
