@@ -40,11 +40,11 @@ export default function SettingsPane() {
                 value={theme}
                 onChange={(e) => setTheme(e.target.value as ThemeSetting)}
                 className="h-7 min-w-[160px] rounded-md border border-line bg-raised px-3 text-xs font-medium text-fg hover:bg-raised focus:outline-none focus:ring-2 focus:ring-ring"
-                title="Light, Dark, or follow the operating system (System). Dark theme is still being built out, pane by pane."
+                title={t("settings.themeHint")}
               >
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-                <option value="system">System</option>
+                <option value="light">{t("settings.themeLight")}</option>
+                <option value="dark">{t("settings.themeDark")}</option>
+                <option value="system">{t("settings.themeSystem")}</option>
               </select>
             </Row>
             <Row>
@@ -60,9 +60,9 @@ export default function SettingsPane() {
             </Row>
           </Section>
 
-          <Section title="Grid &amp; Snapping">
+          <Section title={t("settings.gridSnapping")}>
             <Row>
-              <Label>Default grid size</Label>
+              <Label>{t("settings.defaultGridSize")}</Label>
               <select
                 value={selectedKey}
                 onChange={(e) => {
@@ -72,7 +72,7 @@ export default function SettingsPane() {
                   }
                 }}
                 className="h-7 min-w-[160px] rounded-md border border-line bg-raised px-3 text-xs font-medium text-fg hover:bg-raised focus:outline-none focus:ring-2 focus:ring-ring"
-                title="The grid size used for monitors InstaDesk hasn't seen before. Currently-configured monitors are auto-pinned to their existing size when this changes, so your assignments are never disturbed."
+                title={t("settings.defaultGridSizeHint")}
               >
                 {GRID_SIZE_PRESETS.map((s) => (
                   <option key={`${s.cols}x${s.rows}`} value={`${s.cols}x${s.rows}`}>
@@ -82,16 +82,16 @@ export default function SettingsPane() {
               </select>
             </Row>
             <Row>
-              <Label>Window margin</Label>
+              <Label>{t("settings.windowMargin")}</Label>
               <select
                 value={String(windowMargin)}
                 onChange={(e) => setWindowMargin(parseInt(e.target.value, 10) || 0)}
                 className="h-7 min-w-[160px] rounded-md border border-line bg-raised px-3 text-xs font-medium text-fg hover:bg-raised focus:outline-none focus:ring-2 focus:ring-ring"
-                title="Pixels of padding around each monitor's work area. Pulls snapped windows back from monitor edges to leave room for physical bezels. Adjacent windows on the same monitor still touch each other."
+                title={t("settings.windowMarginHint")}
               >
                 {WINDOW_MARGIN_PRESETS.map((m) => (
                   <option key={m} value={String(m)}>
-                    {m === 0 ? "Off (0 px)" : `${m} px`}
+                    {m === 0 ? t("settings.marginOff") : t("settings.marginPx", { n: m })}
                   </option>
                 ))}
               </select>

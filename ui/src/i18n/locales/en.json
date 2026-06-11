@@ -1,9 +1,30 @@
 {
+  "header": {
+    "dashboard": "DASHBOARD",
+    "live": "live",
+    "static": "static",
+    "by": "by",
+    "checkingServer": "Checking server…",
+    "serverOk": "Server OK • agent at {{path}}",
+    "agentMissing": "Server up but agent missing: {{path}}",
+    "serverUnreachable": "Server unreachable ({{base}}) — {{reason}}"
+  },
   "settings": {
     "title": "Settings",
     "general": "General",
     "launchOnStart": "Launch on system start",
     "theme": "Theme",
-    "language": "Language"
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeSystem": "System",
+    "themeHint": "Light, Dark, or follow the operating system (System).",
+    "language": "Language",
+    "gridSnapping": "Grid & Snapping",
+    "defaultGridSize": "Default grid size",
+    "defaultGridSizeHint": "The grid size used for monitors InstaDesk hasn't seen before. Currently-configured monitors are auto-pinned to their existing size when this changes, so your assignments are never disturbed.",
+    "windowMargin": "Window margin",
+    "windowMarginHint": "Pixels of padding around each monitor's work area. Pulls snapped windows back from monitor edges to leave room for physical bezels. Adjacent windows on the same monitor still touch each other.",
+    "marginOff": "Off (0 px)",
+    "marginPx": "{{n}} px"
   }
 }

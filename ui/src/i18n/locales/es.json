@@ -1,9 +1,30 @@
 {
+  "header": {
+    "dashboard": "Panel de Control",
+    "live": "en vivo",
+    "static": "estático",
+    "by": "por",
+    "checkingServer": "Comprobando servidor…",
+    "serverOk": "Servidor OK • agente en {{path}}",
+    "agentMissing": "Servidor activo pero falta el agente: {{path}}",
+    "serverUnreachable": "Servidor inaccesible ({{base}}) — {{reason}}"
+  },
   "settings": {
     "title": "Configuración",
     "general": "General",
     "launchOnStart": "Iniciar con el sistema",
     "theme": "Tema",
-    "language": "Idioma"
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "themeSystem": "Sistema",
+    "themeHint": "Claro, Oscuro, o seguir el sistema operativo (Sistema).",
+    "language": "Idioma",
+    "gridSnapping": "Cuadrícula y ajuste",
+    "defaultGridSize": "Tamaño de cuadrícula predeterminado",
+    "defaultGridSizeHint": "El tamaño de cuadrícula que se usa para monitores que InstaDesk no ha visto antes. Los monitores ya configurados se fijan automáticamente a su tamaño actual cuando esto cambia, de modo que tus asignaciones nunca se alteran.",
+    "windowMargin": "Margen de ventana",
+    "windowMarginHint": "Píxeles de relleno alrededor del área de trabajo de cada monitor. Aleja las ventanas ajustadas de los bordes del monitor para dejar espacio a los marcos físicos. Las ventanas adyacentes en el mismo monitor se siguen tocando.",
+    "marginOff": "Desactivado (0 px)",
+    "marginPx": "{{n}} px"
   }
 }

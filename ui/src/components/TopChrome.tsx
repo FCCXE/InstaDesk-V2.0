@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api, type HealthResponse } from '../services/api'
 import { useTheme } from '../state/ThemeProvider'
 
@@ -9,6 +10,7 @@ type ServerStatus =
 
 export default function TopChrome() {
   const [status, setStatus] = useState<ServerStatus>({ kind: 'checking' })
+  const { t } = useTranslation()
   const { resolved } = useTheme()
   // Swap to the white-text logo variants in dark mode (the default logos
   // have dark-navy wordmarks that vanish on a dark background).
@@ -31,10 +33,10 @@ export default function TopChrome() {
   }, [])
 
   const dot =
-    status.kind === 'checking' ? { color: 'bg-gray-300', label: 'Checking server…' } :
-    status.kind === 'ok' && status.data.agentExists ? { color: 'bg-emerald-500', label: `Server OK • agent at ${status.data.agentPath}` } :
-    status.kind === 'ok' ? { color: 'bg-amber-500', label: `Server up but agent missing: ${status.data.agentPath}` } :
-    { color: 'bg-red-500', label: `Server unreachable (${api.base}) — ${status.reason}` }
+    status.kind === 'checking' ? { color: 'bg-gray-300', label: t('header.checkingServer') } :
+    status.kind === 'ok' && status.data.agentExists ? { color: 'bg-emerald-500', label: t('header.serverOk', { path: status.data.agentPath }) } :
+    status.kind === 'ok' ? { color: 'bg-amber-500', label: t('header.agentMissing', { path: status.data.agentPath }) } :
+    { color: 'bg-red-500', label: t('header.serverUnreachable', { base: api.base, reason: status.reason }) }
 
   return (
     <header className="h-14 border-b border-line bg-surface grid grid-cols-3 items-center px-4">
@@ -57,7 +59,7 @@ export default function TopChrome() {
                      rounded-lg shadow-md transition-colors
                      scale-110"
         >
-          DASHBOARD
+          {t('header.dashboard')}
         </button>
       </div>
 
@@ -68,8 +70,8 @@ export default function TopChrome() {
           title={dot.label}
           aria-label={dot.label}
         />
-        <span>v0.1 • {status.kind === 'ok' && status.data.agentExists ? 'live' : 'static'}</span>
-        <span className="text-muted">by</span>
+        <span>v0.1 • {status.kind === 'ok' && status.data.agentExists ? t('header.live') : t('header.static')}</span>
+        <span className="text-muted">{t('header.by')}</span>
         <img
           src={fcxeLogo}
           alt="FcXe Studios"
