@@ -159,7 +159,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl rounded-2xl bg-white p-5 shadow-xl ring-1 ring-gray-200"
+        className="w-full max-w-2xl rounded-2xl bg-surface p-5 shadow-xl ring-1 ring-line"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -167,15 +167,15 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
       >
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <div className="text-base font-semibold text-gray-800">Quick Presets</div>
-            <div className="text-[11px] text-gray-500">
+            <div className="text-base font-semibold text-fg">Quick Presets</div>
+            <div className="text-[11px] text-muted">
               Named bundles of Layouts applied with one click.
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+            className="rounded-md px-2 py-1 text-sm text-muted hover:bg-raised hover:text-fg"
             title="Close (Esc)"
           >
             ✕
@@ -183,12 +183,12 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
         </div>
 
         {err && (
-          <div className="mb-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700">
+          <div className="mb-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-300">
             {err}
           </div>
         )}
         {info && !err && (
-          <div className="mb-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-700">
+          <div className="mb-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300">
             {info}
           </div>
         )}
@@ -196,7 +196,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
         {view.mode === 'list' && (
           <>
             <div className="mb-3 flex items-center justify-between">
-              <div className="text-[12px] text-gray-600">
+              <div className="text-[12px] text-muted">
                 {qps === null ? 'Loading…' :
                  qps.length === 0 ? 'No Quick Presets yet.' :
                  `${qps.length} Quick Preset${qps.length === 1 ? '' : 's'}`}
@@ -205,31 +205,31 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                 type="button"
                 onClick={startCreate}
                 disabled={busy || availableSlotsForCreate.length === 0}
-                className="rounded-md bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary shadow hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
                 title={availableSlotsForCreate.length === 0 ? 'All 26 slots used' : 'Create a new Quick Preset'}
               >
                 + New Quick Preset
               </button>
             </div>
 
-            <div className="max-h-80 overflow-y-auto rounded-lg border border-gray-200">
+            <div className="max-h-80 overflow-y-auto rounded-lg border border-line">
               {(qps ?? []).length === 0 ? (
-                <div className="px-3 py-6 text-center text-[12px] text-gray-400">
+                <div className="px-3 py-6 text-center text-[12px] text-muted">
                   Compose your first Quick Preset to bundle multiple Layouts under one Apply button.
                 </div>
               ) : (
-                <ul className="divide-y divide-gray-100">
+                <ul className="divide-y divide-line">
                   {(qps ?? []).map((q) => (
                     <li key={q.slot} className="flex items-center justify-between px-3 py-2">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 text-sm font-medium text-gray-800">
+                        <div className="flex items-center gap-1.5 text-sm font-medium text-fg">
                           <span aria-hidden className="text-purple-500">⚡</span>
                           <span className="truncate">{q.name}</span>
-                          <span className="ml-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-normal uppercase tracking-wide text-gray-500">
+                          <span className="ml-1 rounded-full bg-raised px-1.5 py-0.5 text-[10px] font-normal uppercase tracking-wide text-muted">
                             slot {q.slot}
                           </span>
                         </div>
-                        <div className="text-[11px] text-gray-500">
+                        <div className="text-[11px] text-muted">
                           {q.layoutCount} Layout{q.layoutCount === 1 ? '' : 's'}
                         </div>
                       </div>
@@ -238,7 +238,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                           type="button"
                           onClick={() => startEdit(q.slot)}
                           disabled={busy}
-                          className="rounded-md border border-gray-200 px-2 py-1 text-[11px] text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                          className="rounded-md border border-line px-2 py-1 text-[11px] text-fg hover:bg-raised disabled:opacity-50"
                         >
                           Edit
                         </button>
@@ -261,7 +261,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
+                className="rounded-md border border-line bg-raised px-3 py-1.5 text-xs text-fg hover:bg-raised"
               >
                 Close
               </button>
@@ -273,12 +273,12 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
           <>
             <div className="mb-3 flex items-center gap-3">
               <div className="flex flex-col">
-                <label className="text-[11px] uppercase tracking-wide text-gray-500">Slot</label>
+                <label className="text-[11px] uppercase tracking-wide text-muted">Slot</label>
                 {view.mode === 'create' ? (
                   <select
                     value={formSlot}
                     onChange={(e) => setFormSlot(e.target.value)}
-                    className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                    className="rounded-md border border-line px-2 py-1.5 text-sm"
                   >
                     {availableSlotsForCreate.length === 0 ? (
                       <option value="">(none free)</option>
@@ -289,44 +289,44 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                     )}
                   </select>
                 ) : (
-                  <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm font-mono">
+                  <div className="rounded-md border border-line bg-raised px-3 py-1.5 text-sm font-mono">
                     {formSlot}
                   </div>
                 )}
               </div>
               <div className="flex flex-1 flex-col">
-                <label className="text-[11px] uppercase tracking-wide text-gray-500">Name</label>
+                <label className="text-[11px] uppercase tracking-wide text-muted">Name</label>
                 <input
                   type="text"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="e.g. Work Day, Trading Mode, Movie Night"
-                  className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                  className="rounded-md border border-line px-2 py-1.5 text-sm"
                   maxLength={80}
                 />
               </div>
             </div>
 
-            <div className="mb-2 text-[12px] font-medium text-gray-700">
+            <div className="mb-2 text-[12px] font-medium text-fg">
               Layouts (applied in order, top → bottom)
             </div>
 
-            <div className="mb-3 max-h-56 overflow-y-auto rounded-lg border border-gray-200">
+            <div className="mb-3 max-h-56 overflow-y-auto rounded-lg border border-line">
               {formLayouts.length === 0 ? (
-                <div className="px-3 py-6 text-center text-[12px] text-gray-400">
+                <div className="px-3 py-6 text-center text-[12px] text-muted">
                   No Layouts yet. Add one below.
                 </div>
               ) : (
-                <ul className="divide-y divide-gray-100">
+                <ul className="divide-y divide-line">
                   {formLayouts.map((ref, i) => {
                     const exists = layoutMap.has(`${ref.kind}/${ref.slot}`)
                     return (
                       <li key={`${ref.kind}/${ref.slot}/${i}`} className="flex items-center justify-between px-3 py-2">
                         <div className="flex min-w-0 items-center gap-2">
-                          <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-mono text-gray-500">
+                          <span className="rounded-full bg-raised px-1.5 py-0.5 text-[10px] font-mono text-muted">
                             #{i + 1}
                           </span>
-                          <span className={`truncate text-sm ${exists ? 'text-gray-800' : 'text-red-600'}`}>
+                          <span className={`truncate text-sm ${exists ? 'text-fg' : 'text-red-600'}`}>
                             {ref.kind === 'general' ? 'Layout' : 'Single'} {ref.slot}
                             {!exists && <span className="ml-1 text-[10px]">(missing)</span>}
                           </span>
@@ -336,7 +336,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                             type="button"
                             onClick={() => moveLayout(i, -1)}
                             disabled={i === 0}
-                            className="rounded-md px-1.5 py-0.5 text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-30"
+                            className="rounded-md px-1.5 py-0.5 text-xs text-muted hover:bg-raised disabled:opacity-30"
                             title="Move up"
                           >
                             ↑
@@ -345,7 +345,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                             type="button"
                             onClick={() => moveLayout(i, 1)}
                             disabled={i === formLayouts.length - 1}
-                            className="rounded-md px-1.5 py-0.5 text-xs text-gray-500 hover:bg-gray-100 disabled:opacity-30"
+                            className="rounded-md px-1.5 py-0.5 text-xs text-muted hover:bg-raised disabled:opacity-30"
                             title="Move down"
                           >
                             ↓
@@ -369,7 +369,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
               <select
                 value={pickerSlot}
                 onChange={(e) => setPickerSlot(e.target.value)}
-                className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                className="flex-1 rounded-md border border-line px-2 py-1.5 text-sm"
               >
                 <option value="">
                   {(layouts ?? []).length === 0 ? 'No Layouts saved yet' : 'Pick a Layout to add…'}
@@ -384,7 +384,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                 type="button"
                 onClick={addLayoutToForm}
                 disabled={!pickerSlot}
-                className="rounded-md bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-md bg-raised px-3 py-1.5 text-xs font-semibold text-fg hover:bg-line disabled:cursor-not-allowed disabled:opacity-50"
               >
                 + Add
               </button>
@@ -395,7 +395,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                 type="button"
                 onClick={() => setView({ mode: 'list' })}
                 disabled={busy}
-                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                className="rounded-md border border-line bg-raised px-3 py-1.5 text-xs text-fg hover:bg-raised disabled:opacity-50"
               >
                 ← Back
               </button>
@@ -403,7 +403,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                 type="button"
                 onClick={onSave}
                 disabled={busy || !formSlot || !formName.trim() || formLayouts.length === 0}
-                className="rounded-md bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary shadow hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {busy ? 'Saving…' : view.mode === 'create' ? 'Create Quick Preset' : 'Save changes'}
               </button>

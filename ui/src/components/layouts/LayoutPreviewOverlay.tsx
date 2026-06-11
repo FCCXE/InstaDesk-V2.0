@@ -103,24 +103,24 @@ export default function LayoutPreviewOverlay() {
       onClick={() => setPreviewedLayout(null)}
     >
       <div
-        className="m-3 flex flex-1 flex-col rounded-2xl border border-slate-200 bg-white/95 shadow-2xl"
+        className="m-3 flex flex-1 flex-col rounded-2xl border border-line bg-surface/95 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header: layout name + close. */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2.5">
+        <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
           <div className="flex items-center gap-2">
-            <div className="text-base font-semibold text-slate-800">{titleForHeader}</div>
-            <span className="inline-flex h-5 items-center rounded-full border border-slate-200 bg-slate-50 px-2 text-[10px] font-medium text-slate-600">
+            <div className="text-base font-semibold text-fg">{titleForHeader}</div>
+            <span className="inline-flex h-5 items-center rounded-full border border-line bg-raised px-2 text-[10px] font-medium text-muted">
               {kindForHeader}
             </span>
-            <span className="inline-flex h-5 items-center rounded-full border border-sky-200 bg-sky-50 px-2 text-[10px] font-medium text-sky-700">
+            <span className="dark:border-primary/40 dark:bg-primary/10 dark:text-sky-300 inline-flex h-5 items-center rounded-full border border-sky-200 bg-sky-50 px-2 text-[10px] font-medium text-sky-700">
               slot {slotForHeader.toUpperCase()}
             </span>
           </div>
           <button
             type="button"
             onClick={() => setPreviewedLayout(null)}
-            className="rounded-md px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            className="rounded-md px-2 py-1 text-xs font-medium text-muted hover:bg-raised hover:text-fg"
             title="Close (Esc)"
           >
             ✕ Hide content
@@ -130,7 +130,7 @@ export default function LayoutPreviewOverlay() {
         {/* Body. */}
         <div className="flex-1 min-h-0 overflow-auto p-4">
           {loading && (
-            <div className="flex h-full items-center justify-center text-sm text-slate-500">
+            <div className="flex h-full items-center justify-center text-sm text-muted">
               Loading…
             </div>
           )}
@@ -188,7 +188,7 @@ function PreviewBody({ preset, monitors }: { preset: SavedPreset; monitors: Moni
 
   if (layout.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-slate-400">
+      <div className="flex h-full items-center justify-center text-sm text-muted">
         This Layout has no assigned cells.
       </div>
     );
@@ -217,22 +217,22 @@ function PreviewBody({ preset, monitors }: { preset: SavedPreset; monitors: Moni
 
       {/* Footer: per-monitor resolution + role metadata. Compact so the
           monitors get all available vertical space. */}
-      <div className="shrink-0 border-t border-slate-200 pt-2 text-[11px] text-slate-600">
+      <div className="shrink-0 border-t border-line pt-2 text-[11px] text-muted">
         <div className="flex flex-wrap gap-x-5 gap-y-1">
           {layout.map((m) => (
             <span key={m.idx} className="whitespace-nowrap">
-              <span className="font-semibold text-slate-800">M{m.idx}</span>
+              <span className="font-semibold text-fg">M{m.idx}</span>
               {m.live ? (
                 <>
-                  <span className="text-slate-500"> · </span>
+                  <span className="text-muted"> · </span>
                   <span>{m.live.resolution}</span>
-                  <span className="text-slate-500"> · </span>
+                  <span className="text-muted"> · </span>
                   <span>{m.live.role}</span>
                 </>
               ) : (
-                <span className="text-slate-400"> · not currently connected</span>
+                <span className="text-muted"> · not currently connected</span>
               )}
-              <span className="text-slate-500"> · </span>
+              <span className="text-muted"> · </span>
               <span>
                 {m.cols}×{m.rows} grid
               </span>
@@ -271,7 +271,7 @@ function MonitorPanel({
 
   return (
     <div className="flex min-w-0 min-h-0 flex-col items-center gap-1 overflow-hidden">
-      <div className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+      <div className="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-muted">
         M{idx}
       </div>
       {/* Responsive-SVG pattern: the wrapping div is `relative` and
@@ -284,7 +284,7 @@ function MonitorPanel({
           viewBox aspect overflowed the 1fr row). */}
       <div className="relative min-h-0 w-full flex-1">
         <svg
-          className="absolute inset-0 h-full w-full rounded-md bg-white shadow ring-1 ring-slate-300"
+          className="absolute inset-0 h-full w-full rounded-md bg-raised shadow ring-1 ring-line"
           viewBox={`0 0 ${VB_W} ${VB_H}`}
           preserveAspectRatio="xMidYMid meet"
         >
