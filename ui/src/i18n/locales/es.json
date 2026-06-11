@@ -117,6 +117,7 @@
     "clear": "Borrar",
     "custom": "Personalizado",
     "clearCustomTitle": "Borrar personalizado",
+    "clearCustomConfirm": "¿Borrar todos los elementos personalizados del historial? Esta acción no se puede deshacer.",
     "selectionGrid": "Cuadrícula de selección: {{n}}",
     "none": "ninguna",
     "assignToSelection": "Asignar a la selección",

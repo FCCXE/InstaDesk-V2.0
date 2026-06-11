@@ -368,7 +368,7 @@ function AppsAppsPane() {
     setFavorites(listFavorites());
   };
   const onClearCustom = () => {
-    if (!confirm("Clear all Custom history items? This cannot be undone.")) return;
+    if (!confirm(t("apps.clearCustomConfirm"))) return;
     clearHistory();
     setHistory(listHistory());
     setSelectedApp(null);

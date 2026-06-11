@@ -26,7 +26,7 @@ export default function DisplayArray() {
           viewBox={`0 0 ${VBW} ${VBH}`}
           className="h-[140px] w-full"
           role="img"
-          aria-label="Display arrangement"
+          aria-label={t('monitor.displayArray')}
         >
           <rect x="0" y="0" width={VBW} height={VBH} fill={dark ? '#141d30' : 'rgb(246,247,249)'} />
           {monitors.map((m, idx) => {

@@ -117,6 +117,7 @@
     "clear": "Clear",
     "custom": "Custom",
     "clearCustomTitle": "Clear Custom",
+    "clearCustomConfirm": "Clear all Custom history items? This cannot be undone.",
     "selectionGrid": "Selection Grid : {{n}}",
     "none": "none",
     "assignToSelection": "Assign to Selection",

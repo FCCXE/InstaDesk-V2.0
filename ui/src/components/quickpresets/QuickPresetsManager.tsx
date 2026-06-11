@@ -161,7 +161,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="Quick Presets Manager"
+        aria-label={t('quickPresets.title')}
       >
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-baseline gap-2">
