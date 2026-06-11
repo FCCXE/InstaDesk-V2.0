@@ -131,7 +131,7 @@ function AppsPane() {
       <div
         className={
           sub === "URLs"
-            ? "min-h-0 flex-1 overflow-y-auto pr-2"
+            ? "min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-2"
             : sub === "Apps"
             ? "flex min-h-0 flex-1 flex-col overflow-hidden"
             : "min-h-0 flex-1 overflow-visible pr-2"
@@ -909,12 +909,16 @@ function UrlsBuilderPane() {
           </div>
         </div>
 
-        {/* Save / Preview / Reset — standardized size (h-8 + flex-1), justified
-            across the line; Save keeps the blue PrimaryBtn styling. */}
-        <div className="mt-3 flex items-center gap-2">
-          <PrimaryBtn className="h-8 flex-1" onClick={onSave}>{t("urls.save")}</PrimaryBtn>
-          <GhostBtn className="h-8 flex-1" onClick={onPreview}>{t("urls.preview")}</GhostBtn>
-          <GhostBtn className="h-8 flex-1" onClick={onReset}>{t("urls.reset")}</GhostBtn>
+        {/* Save / Preview / Reset — stacked full-width, one per line. A single
+            row can't fit longer-language labels (e.g. ES "Guardar / Vista previa
+            / Restablecer") inside the narrow pane: the non-shrinking nowrap
+            buttons would overflow and trigger a horizontal scrollbar. Stacking
+            matches the Add Browser / Add Tab Group buttons above and is
+            language-proof. Save keeps the blue PrimaryBtn styling. */}
+        <div className="mt-3 flex flex-col gap-2">
+          <PrimaryBtn className="h-8 w-full" onClick={onSave}>{t("urls.save")}</PrimaryBtn>
+          <GhostBtn className="h-8 w-full text-center" onClick={onPreview}>{t("urls.preview")}</GhostBtn>
+          <GhostBtn className="h-8 w-full text-center" onClick={onReset}>{t("urls.reset")}</GhostBtn>
         </div>
 
         {flash && (
