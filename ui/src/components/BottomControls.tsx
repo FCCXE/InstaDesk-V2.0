@@ -141,11 +141,11 @@ export default function BottomControls() {
     idleStatus
 
   const statusColor =
-    snapState.kind === 'err' ? 'text-red-600' :
-    snapState.kind === 'warn' ? 'text-amber-700 font-medium' :
-    snapState.kind === 'ok' ? 'text-emerald-600' :
-    snapState.kind === 'cancelled' ? 'text-amber-600' :
-    snapState.kind === 'busy' ? 'text-sky-600' :
+    snapState.kind === 'err' ? 'text-red-600 dark:text-red-400' :
+    snapState.kind === 'warn' ? 'text-amber-700 font-medium dark:text-amber-300' :
+    snapState.kind === 'ok' ? 'text-emerald-600 dark:text-emerald-400' :
+    snapState.kind === 'cancelled' ? 'text-amber-600 dark:text-amber-300' :
+    snapState.kind === 'busy' ? 'text-sky-600 dark:text-sky-400' :
     'text-muted'
 
   return (

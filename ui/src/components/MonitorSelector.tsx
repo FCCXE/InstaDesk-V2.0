@@ -173,9 +173,9 @@ export default function MonitorSelector() {
     !hasAny ? 'No saved layouts. Save one in the Layouts tab.' :
     'No preset selected'
   const statusColor =
-    applyState.kind === 'err' ? 'text-red-600' :
-    applyState.kind === 'ok' ? 'text-emerald-600' :
-    applyState.kind === 'busy' ? 'text-sky-600' :
+    applyState.kind === 'err' ? 'text-red-600 dark:text-red-400' :
+    applyState.kind === 'ok' ? 'text-emerald-600 dark:text-emerald-400' :
+    applyState.kind === 'busy' ? 'text-sky-600 dark:text-sky-400' :
     'text-muted'
 
   return (
