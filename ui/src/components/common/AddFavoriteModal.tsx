@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { addFavorite, seedEmoji, type Favorite } from "../../services/FavoritesService";
 import { api, type BrowseEntry } from "../../services/api";
 
@@ -33,6 +34,7 @@ export default function AddFavoriteModal({
   onClose: () => void;
   onAdded: (fav: Favorite) => void;
 }) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<"url" | "app">("url");
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
@@ -120,19 +122,19 @@ export default function AddFavoriteModal({
     try {
       setBusy(true);
       setErr(null);
-      const t = title.trim();
-      if (!t) {
-        setErr("Please enter a title.");
+      const ttl = title.trim();
+      if (!ttl) {
+        setErr(t("addFavorite.errTitle"));
         return;
       }
 
       if (tab === "url") {
         const u = url.trim();
         if (!/^https?:\/\//i.test(u)) {
-          setErr("Enter a valid URL starting with http:// or https://");
+          setErr(t("addFavorite.errUrl"));
           return;
         }
-        const fav = addFavorite({ kind: "url", title: t, pathOrUrl: u, icon: seedEmoji(t) });
+        const fav = addFavorite({ kind: "url", title: ttl, pathOrUrl: u, icon: seedEmoji(ttl) });
         window.dispatchEvent(new CustomEvent("insta:favorites-changed"));
         onAdded(fav);
         reset();
@@ -141,14 +143,14 @@ export default function AddFavoriteModal({
       } else {
         const p = path.trim();
         if (!p) {
-          setErr("Enter an application path (e.g., C:\\Program Files\\App\\app.exe)");
+          setErr(t("addFavorite.errPath"));
           return;
         }
         if (!/\.(exe|lnk|bat|cmd)$/i.test(p)) {
-          const proceed = confirm("Path does not end with .exe/.lnk/.bat/.cmd. Save anyway?");
+          const proceed = confirm(t("addFavorite.confirmExt"));
           if (!proceed) return;
         }
-        const fav = addFavorite({ kind: "app", title: t, pathOrUrl: p, icon: seedEmoji(t) });
+        const fav = addFavorite({ kind: "app", title: ttl, pathOrUrl: p, icon: seedEmoji(ttl) });
         window.dispatchEvent(new CustomEvent("insta:favorites-changed"));
         onAdded(fav);
         reset();
@@ -207,12 +209,12 @@ export default function AddFavoriteModal({
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-3">
       <div className="w-[560px] max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-surface p-4 shadow-xl">
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-base font-semibold text-fg">Add Favorite</div>
+          <div className="text-base font-semibold text-fg">{t("addFavorite.title")}</div>
           <button
             className="h-7 rounded-md border border-line bg-raised px-3 text-xs font-medium text-fg hover:bg-raised"
             onClick={onCancel}
           >
-            Close
+            {t("browseApp.close")}
           </button>
         </div>
 
@@ -245,10 +247,10 @@ export default function AddFavoriteModal({
         {/* Form fields */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-12 text-sm text-fg">Title</div>
+            <div className="w-12 text-sm text-fg">{t("browseApp.fieldTitle")}</div>
             <input
               className="h-8 w-full rounded-md border border-line bg-raised px-3 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder={tab === "url" ? "e.g., Research" : "e.g., Notepad"}
+              placeholder={tab === "url" ? t("urls.tabTitlePlaceholder") : t("browseApp.titlePlaceholder")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
@@ -267,7 +269,7 @@ export default function AddFavoriteModal({
           ) : (
             <>
               <div className="flex items-center gap-2">
-                <div className="w-12 text-sm text-fg">Path</div>
+                <div className="w-12 text-sm text-fg">{t("browseApp.fieldPath")}</div>
                 <input
                   className="h-8 w-full rounded-md border border-line bg-raised px-3 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="C:\Program Files\App\app.exe"
@@ -279,12 +281,12 @@ export default function AddFavoriteModal({
                   onClick={onBrowse}
                   type="button"
                 >
-                  Browse…
+                  {t("browseApp.browse")}
                 </button>
               </div>
 
               <div className="text-[11px] text-muted">
-                Browse opens an in-app folder picker (server-routed). Tauri build: native OS picker is used automatically.
+                {t("browseApp.browseHint")}
               </div>
 
               {browseOpen && (
@@ -295,14 +297,14 @@ export default function AddFavoriteModal({
                       onClick={onUp}
                       disabled={browsePath === ""}
                       className="h-7 rounded-md border border-line bg-raised px-2 text-xs font-medium text-fg hover:bg-raised disabled:cursor-not-allowed disabled:opacity-50"
-                      title={browseParent !== null ? `Up to ${browseParent}` : browsePath !== "" ? "Up to drive list" : "Already at top"}
+                      title={browseParent !== null ? t("browseApp.upTo", { path: browseParent }) : browsePath !== "" ? t("browseApp.upToDrives") : t("browseApp.alreadyTop")}
                     >
-                      ↑ Up
+                      {t("browseApp.up")}
                     </button>
                     <input
                       type="text"
                       className="min-w-0 flex-1 rounded-md border border-line bg-raised px-2 py-1 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-ring"
-                      placeholder="<drives> — or type a path and press Enter"
+                      placeholder={t("browseApp.pathInputPlaceholder")}
                       value={browsePathDraft}
                       onChange={(e) => setBrowsePathDraft(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onPathDraftCommit(); } }}
@@ -313,28 +315,28 @@ export default function AddFavoriteModal({
                       onClick={onPathDraftCommit}
                       disabled={browsePathDraft === browsePath}
                       className="h-7 rounded-md border border-line bg-raised px-2 text-xs font-medium text-fg hover:bg-raised disabled:cursor-not-allowed disabled:opacity-50"
-                      title="Navigate to the path you typed"
+                      title={t("browseApp.goTitle")}
                     >
-                      Go
+                      {t("browseApp.go")}
                     </button>
                     <button
                       type="button"
                       onClick={() => setBrowseOpen(false)}
                       className="h-7 rounded-md border border-line bg-raised px-2 text-xs font-medium text-fg hover:bg-raised"
                     >
-                      Hide
+                      {t("browseApp.hide")}
                     </button>
                   </div>
 
                   {/* Quick jumps to common app-launcher locations */}
                   <div className="mb-2 flex flex-wrap items-center gap-1">
-                    <span className="text-[10px] uppercase tracking-wide text-muted mr-1">Jump:</span>
+                    <span className="text-[10px] uppercase tracking-wide text-muted mr-1">{t("browseApp.jump")}</span>
                     {[
-                      { label: "Start Menu (all users)", path: "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs" },
-                      { label: "Start Menu (user)",      path: "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs" },
-                      { label: "Program Files",           path: "C:\\Program Files" },
-                      { label: "Program Files (x86)",     path: "C:\\Program Files (x86)" },
-                      { label: "LocalAppData\\Programs",  path: "%LOCALAPPDATA%\\Programs" },
+                      { label: t("browseApp.jumpStartAll"), path: "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs" },
+                      { label: t("browseApp.jumpStartUser"),      path: "%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs" },
+                      { label: t("browseApp.jumpProgramFiles"),           path: "C:\\Program Files" },
+                      { label: t("browseApp.jumpProgramFilesX86"),     path: "C:\\Program Files (x86)" },
+                      { label: t("browseApp.jumpLocalAppData"),  path: "%LOCALAPPDATA%\\Programs" },
                     ].map(j => (
                       <button
                         key={j.label}
@@ -356,10 +358,10 @@ export default function AddFavoriteModal({
 
                   <div className="max-h-[260px] overflow-y-auto rounded-md border border-line bg-raised">
                     {browseLoading && (
-                      <div className="p-3 text-center text-xs text-muted">Loading…</div>
+                      <div className="p-3 text-center text-xs text-muted">{t("browseApp.loading")}</div>
                     )}
                     {!browseLoading && entries.length === 0 && !browseErr && (
-                      <div className="p-3 text-center text-xs text-muted">(empty)</div>
+                      <div className="p-3 text-center text-xs text-muted">{t("browseApp.empty")}</div>
                     )}
                     {!browseLoading && entries.map((e) => (
                       <button
@@ -372,7 +374,7 @@ export default function AddFavoriteModal({
                           e.isExe ? "text-emerald-700 hover:bg-emerald-50" :
                           "text-muted hover:bg-raised",
                         ].join(" ")}
-                        title={e.isDir ? "Open folder" : "Pick this file"}
+                        title={e.isDir ? t("browseApp.openFolder") : t("addFavorite.pickFile")}
                       >
                         <span className="w-4 text-center">
                           {e.isDir ? "📁" : e.isExe ? "⚙️" : "📄"}
@@ -400,14 +402,14 @@ export default function AddFavoriteModal({
             onClick={onCancel}
             disabled={busy}
           >
-            Cancel
+            {t("browseApp.cancel")}
           </button>
           <button
             className="h-8 rounded-md bg-primary px-3 text-xs font-medium text-on-primary shadow hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
             onClick={onSave}
             disabled={!canSave || busy}
           >
-            Save
+            {t("browseApp.save")}
           </button>
         </div>
       </div>
