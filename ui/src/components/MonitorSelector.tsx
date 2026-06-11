@@ -203,11 +203,15 @@ export default function MonitorSelector() {
             delete Quick Preset bundles; gets a filled sky-blue pill.
             'Layouts ↗' is a secondary cross-link to the Layouts tab on
             the right pane; ghost-styled but still clearly clickable. */}
-        <div className="mb-3 flex items-center gap-2">
+        {/* items-stretch + min-h-8 + leading-tight so a longer label (e.g.
+            ES "Gestionar preajustes") wraps to two lines and grows the
+            button instead of overflowing a fixed height. Both buttons keep
+            equal height via items-stretch. */}
+        <div className="mb-3 flex items-stretch gap-2">
           <button
             type="button"
             onClick={() => setQpManagerOpen(true)}
-            className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-sky-300 bg-sky-50 px-3 text-[12px] font-semibold text-sky-700 shadow-sm hover:bg-sky-100 hover:border-sky-400 dark:border-primary/40 dark:bg-primary/10 dark:text-sky-300 dark:hover:bg-primary/20 dark:hover:border-primary/60"
+            className="flex min-h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-sky-300 bg-sky-50 px-3 py-1 text-center text-[12px] font-semibold leading-tight text-sky-700 shadow-sm hover:bg-sky-100 hover:border-sky-400 dark:border-primary/40 dark:bg-primary/10 dark:text-sky-300 dark:hover:bg-primary/20 dark:hover:border-primary/60"
             title={t('monitor.manageQPsTitle')}
           >
             <span aria-hidden>⚡</span>
@@ -216,7 +220,7 @@ export default function MonitorSelector() {
           <button
             type="button"
             onClick={onOpenLayoutsTab}
-            className="flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-line bg-raised px-3 text-[12px] font-medium text-fg shadow-sm hover:bg-line/60 hover:border-line-strong"
+            className="flex min-h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-line bg-raised px-3 text-[12px] font-medium text-fg shadow-sm hover:bg-line/60 hover:border-line-strong"
             title={t('monitor.layoutsLinkTitle')}
           >
             {t('monitor.layoutsLink')}
