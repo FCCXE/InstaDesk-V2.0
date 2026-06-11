@@ -10,19 +10,24 @@ import LayoutPreviewOverlay from './components/layouts/LayoutPreviewOverlay'
 import { AppStateProvider } from './state/AppState'
 
 /**
- * Auto-adjust (Phase-1 baseline): scale the fixed 1280×820 dashboard DOWN
- * to fit smaller windows, so InstaDesk is never clipped when it's snapped to
- * a monitor / half-monitor / grid cell. Capped at 1× so it stays at its
- * designed size (centered) on large screens. The commercial responsive
- * layout (panes reflow + a minimum window size) is a Tauri-phase item —
- * see the master roadmap, Phase 3.1.
+ * Auto-adjust (interim Tauri-phase stopgap): scale the fixed 1280×820
+ * dashboard to fit the window — DOWN for small windows (never clipped when
+ * snapped to a monitor / half-monitor / grid cell) and UP to fill larger
+ * windows, capped at MAX_SCALE so a 4K display doesn't balloon the UI.
+ *
+ * This removes empty margins by *zooming* only; it does NOT add layout
+ * density, and a wider-than-design monitor (e.g. 2560×1080 ultrawide) keeps
+ * side margins because scaling preserves the 1280:820 aspect ratio. The real
+ * fix — panes reflow + density-aware columns — is the commercial responsive
+ * layout, Phase 3.1 in the master roadmap.
  */
 const DESIGN_W = 1280
 const DESIGN_H = 820
+const MAX_SCALE = 1.5
 
 function useScaleToFit() {
   const compute = () =>
-    Math.min(1, Math.min(window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H))
+    Math.min(MAX_SCALE, Math.min(window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H))
   const [scale, setScale] = useState(compute)
   useEffect(() => {
     const onResize = () => setScale(compute())
