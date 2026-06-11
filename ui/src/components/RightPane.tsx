@@ -780,6 +780,7 @@ function UrlsBuilderPane() {
     previewUrlBuilder,
     setOpenMode,
   } = useAppState();
+  const { t } = useTranslation();
 
   const [flash, setFlash] = useState<string | null>(null);
   const showFlash = (msg: string) => {
@@ -790,7 +791,7 @@ function UrlsBuilderPane() {
   const onSave = () => {
     const snap = saveUrlBuilder();
     if (!snap.browser) {
-      showFlash("Pick a browser first.");
+      showFlash(t("urls.pickBrowser"));
       return;
     }
     const created: string[] = [];
@@ -798,7 +799,7 @@ function UrlsBuilderPane() {
     for (const tg of snap.tabGroups) {
       const urls = tg.urls.filter(Boolean);
       if (urls.length === 0) continue;
-      const name = tg.title.trim() || `Tabs ${created.length + 1}`;
+      const name = tg.title.trim() || t("urls.tabsDefault", { n: created.length + 1 });
       try {
         addUrlGroup({ name, browser: snap.browser, urls });
         created.push(name);
@@ -807,39 +808,37 @@ function UrlsBuilderPane() {
       }
     }
     if (created.length === 0) {
-      showFlash(errors[0] ?? "Add at least one URL to a tab group before saving.");
+      showFlash(errors[0] ?? t("urls.addUrlFirst"));
       return;
     }
     // Notify the Apps list (and anywhere else) so URL groups appear immediately.
     window.dispatchEvent(new CustomEvent("insta:url-groups-changed"));
-    showFlash(
-      `Saved ${created.length} URL group${created.length === 1 ? "" : "s"}: ${created.join(", ")}. Pick from App History to assign.`
-    );
+    showFlash(t("urls.saved", { count: created.length, names: created.join(", ") }));
   };
 
   const onReset = () => {
     resetUrlBuilder();
-    showFlash("URL Builder reset.");
+    showFlash(t("urls.resetDone"));
   };
 
   const onPreview = () => {
     const snap = previewUrlBuilder();
-    showFlash(`Preview: ${snap.tabGroups.reduce((n, g) => n + g.urls.filter(Boolean).length, 0)} URL(s).`);
+    showFlash(t("urls.preview", { count: snap.tabGroups.reduce((n: number, g) => n + g.urls.filter(Boolean).length, 0) }));
   };
 
   return (
     <div className="flex flex-col gap-3">
       <div className="rounded-2xl border border-line bg-surface p-4">
-        <div className="mb-2 text-base font-semibold text-fg">URL Builder</div>
+        <div className="mb-2 text-base font-semibold text-fg">{t("urls.title")}</div>
 
         <div className="mb-3 flex items-center gap-2">
-          <Label>Browser</Label>
+          <Label>{t("urls.browser")}</Label>
           <select
             value={urlBuilder.browser ?? ""}
             onChange={(e) => setUrlBrowser(e.target.value || null)}
             className="h-7 min-w-0 flex-1 rounded-md border border-line bg-raised px-2 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-ring"
           >
-            <option value="">Choose…</option>
+            <option value="">{t("urls.choose")}</option>
             {browsers.map((b) => (
               <option key={b} value={b}>
                 {b}
@@ -855,20 +854,20 @@ function UrlsBuilderPane() {
           <GhostBtn
             className="w-full text-center"
             onClick={() => {
-              const name = prompt("Add browser (e.g., Brave):");
+              const name = prompt(t("urls.addBrowserPrompt"));
               if (name && name.trim()) addBrowser(name.trim());
             }}
           >
-            + Add Browser
+            {t("urls.addBrowser")}
           </GhostBtn>
-          <GhostBtn className="w-full text-center" onClick={() => addTabGroup()}>+ Add Tab Group</GhostBtn>
+          <GhostBtn className="w-full text-center" onClick={() => addTabGroup()}>{t("urls.addTabGroup")}</GhostBtn>
         </div>
 
         {urlBuilder.tabGroups.map((g) => (
           <div key={g.id} className="mb-3 rounded-xl border border-line p-3">
             <div className="mb-2 flex items-center gap-2">
-              <Label>Tab Title</Label>
-              <Input value={g.title} onChange={(v) => setTabTitle(g.id, v)} placeholder="e.g., Research" />
+              <Label>{t("urls.tabTitle")}</Label>
+              <Input value={g.title} onChange={(v) => setTabTitle(g.id, v)} placeholder={t("urls.tabTitlePlaceholder")} />
             </div>
             <div className="flex flex-col gap-2">
               {g.urls.map((u, i) => (
@@ -881,29 +880,29 @@ function UrlsBuilderPane() {
               ))}
             </div>
             <div className="mt-2">
-              <GhostBtn className="w-full text-center" onClick={() => addUrlLine(g.id)}>+ Add URL</GhostBtn>
+              <GhostBtn className="w-full text-center" onClick={() => addUrlLine(g.id)}>{t("urls.addUrl")}</GhostBtn>
             </div>
           </div>
         ))}
 
         <div className="mt-3">
-          <div className="mb-2 text-sm font-medium text-fg">Open behavior</div>
+          <div className="mb-2 text-sm font-medium text-fg">{t("urls.openBehavior")}</div>
           <div className="flex flex-wrap items-center gap-2">
             <Radio
               name="open"
-              label="Single window"
+              label={t("urls.singleWindow")}
               checked={urlBuilder.openMode === "single"}
               onChange={() => setOpenMode("single")}
             />
             <Radio
               name="open"
-              label="Per tab group"
+              label={t("urls.perTabGroup")}
               checked={urlBuilder.openMode === "per-group"}
               onChange={() => setOpenMode("per-group")}
             />
             <Radio
               name="open"
-              label="Per URL"
+              label={t("urls.perUrl")}
               checked={urlBuilder.openMode === "per-url"}
               onChange={() => setOpenMode("per-url")}
             />
@@ -913,9 +912,9 @@ function UrlsBuilderPane() {
         {/* Save / Preview / Reset — standardized size (h-8 + flex-1), justified
             across the line; Save keeps the blue PrimaryBtn styling. */}
         <div className="mt-3 flex items-center gap-2">
-          <PrimaryBtn className="h-8 flex-1" onClick={onSave}>Save</PrimaryBtn>
-          <GhostBtn className="h-8 flex-1" onClick={onPreview}>Preview</GhostBtn>
-          <GhostBtn className="h-8 flex-1" onClick={onReset}>Reset</GhostBtn>
+          <PrimaryBtn className="h-8 flex-1" onClick={onSave}>{t("urls.save")}</PrimaryBtn>
+          <GhostBtn className="h-8 flex-1" onClick={onPreview}>{t("urls.preview")}</GhostBtn>
+          <GhostBtn className="h-8 flex-1" onClick={onReset}>{t("urls.reset")}</GhostBtn>
         </div>
 
         {flash && (
@@ -933,6 +932,7 @@ function UrlsBuilderPane() {
 /* -------------------------------------------------------------------------- */
 
 function FavoritesPane() {
+  const { t } = useTranslation();
   const [editMode, setEditMode] = useState(false);
   const [favorites, setFavorites] = useState<Favorite[]>(() => listFavorites());
   const [showAdd, setShowAdd] = useState(false);
@@ -957,10 +957,10 @@ function FavoritesPane() {
     <div className="flex flex-col gap-3">
       <div className="rounded-2xl border border-line bg-surface p-4">
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-base font-semibold text-fg">Favorites</div>
+          <div className="text-base font-semibold text-fg">{t("favorites.title")}</div>
           <div className="flex items-center gap-2">
-            <GhostBtn onClick={() => setEditMode((v) => !v)}>{editMode ? "Done" : "Edit"}</GhostBtn>
-            <GhostBtn onClick={() => setShowAdd(true)}>+ Add Favorite</GhostBtn>
+            <GhostBtn onClick={() => setEditMode((v) => !v)}>{editMode ? t("apps.done") : t("apps.edit")}</GhostBtn>
+            <GhostBtn onClick={() => setShowAdd(true)}>{t("favorites.addFavorite")}</GhostBtn>
           </div>
         </div>
 
@@ -974,12 +974,12 @@ function FavoritesPane() {
                 </TruncateText>
                 <span className="ml-1 text-amber-500">★</span>
               </div>
-              {editMode ? <GhostBtn onClick={() => onDelete(f.id)}>🗑 Delete</GhostBtn> : <div className="h-7" />}
+              {editMode ? <GhostBtn onClick={() => onDelete(f.id)}>{t("apps.delete")}</GhostBtn> : <div className="h-7" />}
             </div>
           ))}
           {favorites.length === 0 && (
             <div className="rounded-md border border-dashed border-line p-3 text-center text-xs text-muted">
-              No favorites yet. Click “+ Add Favorite” to add an App or a URL.
+              {t("favorites.none")}
             </div>
           )}
         </div>
@@ -989,7 +989,7 @@ function FavoritesPane() {
             className="h-8 w-full rounded-md border border-line bg-raised px-3 text-xs font-medium text-fg hover:bg-raised"
             onClick={() => setShowAdd(true)}
           >
-            + Add Custom App/URL
+            {t("favorites.addCustom")}
           </button>
         </div>
       </div>
@@ -1004,14 +1004,12 @@ function FavoritesPane() {
 /* -------------------------------------------------------------------------- */
 
 function HelpPane() {
+  const { t } = useTranslation();
   return (
     <div className="flex h-full flex-col overflow-hidden p-3">
       <div className="rounded-2xl border border-line bg-surface p-4">
-        <div className="text-base font-semibold text-fg">Help</div>
-        <div className="mt-2 text-sm text-muted">
-          This is a visuals-only shell for Phase A. No OS actions are performed. Use the tabs above
-          to preview Apps, Layouts, and Settings UI. For support, open the project README.
-        </div>
+        <div className="text-base font-semibold text-fg">{t("help.title")}</div>
+        <div className="mt-2 text-sm text-muted">{t("help.body")}</div>
       </div>
     </div>
   );

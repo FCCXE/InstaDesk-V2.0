@@ -159,5 +159,41 @@
     "showHiddenTitle": "Reveal the hidden catalog seeds inline. Turn on Edit to Restore individual ones.",
     "restoreAll": "↺ Restore all",
     "restoreAllConfirm": "Restore all {{count}} hidden apps to the list?"
+  },
+  "urls": {
+    "pickBrowser": "Pick a browser first.",
+    "tabsDefault": "Tabs {{n}}",
+    "addUrlFirst": "Add at least one URL to a tab group before saving.",
+    "saved_one": "Saved {{count}} URL group: {{names}}. Pick from App History to assign.",
+    "saved_other": "Saved {{count}} URL groups: {{names}}. Pick from App History to assign.",
+    "resetDone": "URL Builder reset.",
+    "preview_one": "Preview: {{count}} URL.",
+    "preview_other": "Preview: {{count}} URLs.",
+    "title": "URL Builder",
+    "browser": "Browser",
+    "choose": "Choose…",
+    "addBrowserPrompt": "Add browser (e.g., Brave):",
+    "addBrowser": "+ Add Browser",
+    "addTabGroup": "+ Add Tab Group",
+    "tabTitle": "Tab Title",
+    "tabTitlePlaceholder": "e.g., Research",
+    "addUrl": "+ Add URL",
+    "openBehavior": "Open behavior",
+    "singleWindow": "Single window",
+    "perTabGroup": "Per tab group",
+    "perUrl": "Per URL",
+    "save": "Save",
+    "preview": "Preview",
+    "reset": "Reset"
+  },
+  "favorites": {
+    "title": "Favorites",
+    "addFavorite": "+ Add Favorite",
+    "none": "No favorites yet. Click “+ Add Favorite” to add an App or a URL.",
+    "addCustom": "+ Add Custom App/URL"
+  },
+  "help": {
+    "title": "Help",
+    "body": "This is a visuals-only shell for Phase A. No OS actions are performed. Use the tabs above to preview Apps, Layouts, and Settings UI. For support, open the project README."
   }
 }

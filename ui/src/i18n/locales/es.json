@@ -159,5 +159,41 @@
     "showHiddenTitle": "Muestra las apps ocultas del catálogo en línea. Activa Editar para restaurar individuales.",
     "restoreAll": "↺ Restaurar todo",
     "restoreAllConfirm": "¿Restaurar las {{count}} apps ocultas a la lista?"
+  },
+  "urls": {
+    "pickBrowser": "Elige primero un navegador.",
+    "tabsDefault": "Pestañas {{n}}",
+    "addUrlFirst": "Añade al menos una URL a un grupo de pestañas antes de guardar.",
+    "saved_one": "Se guardó {{count}} grupo de URL: {{names}}. Elige en el Historial para asignar.",
+    "saved_other": "Se guardaron {{count}} grupos de URL: {{names}}. Elige en el Historial para asignar.",
+    "resetDone": "Creador de URL restablecido.",
+    "preview_one": "Vista previa: {{count}} URL.",
+    "preview_other": "Vista previa: {{count}} URLs.",
+    "title": "Creador de URL",
+    "browser": "Navegador",
+    "choose": "Elegir…",
+    "addBrowserPrompt": "Añadir navegador (p. ej., Brave):",
+    "addBrowser": "+ Añadir navegador",
+    "addTabGroup": "+ Añadir grupo de pestañas",
+    "tabTitle": "Título de pestaña",
+    "tabTitlePlaceholder": "p. ej., Investigación",
+    "addUrl": "+ Añadir URL",
+    "openBehavior": "Comportamiento de apertura",
+    "singleWindow": "Una ventana",
+    "perTabGroup": "Por grupo de pestañas",
+    "perUrl": "Por URL",
+    "save": "Guardar",
+    "preview": "Vista previa",
+    "reset": "Restablecer"
+  },
+  "favorites": {
+    "title": "Favoritos",
+    "addFavorite": "+ Añadir favorito",
+    "none": "Aún no hay favoritos. Haz clic en «+ Añadir favorito» para agregar una app o una URL.",
+    "addCustom": "+ Añadir app/URL personalizada"
+  },
+  "help": {
+    "title": "Ayuda",
+    "body": "Esto es una maqueta solo visual para la Fase A. No se realizan acciones del sistema. Usa las pestañas de arriba para previsualizar la interfaz de Apps, Diseños y Configuración. Para soporte, abre el README del proyecto."
   }
 }
