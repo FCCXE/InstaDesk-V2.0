@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { useAppState } from '../state/AppState'
 import {
   api,
@@ -23,16 +25,23 @@ function entryKey(e: DropdownEntry): string {
   return e.type === 'qp' ? `qp/${e.slot}` : `layout/${e.layout.kind}/${e.layout.slot}`
 }
 
-function entryLabel(e: DropdownEntry): string {
+function entryLabel(e: DropdownEntry, t: TFunction): string {
   if (e.type === 'qp') return e.name
-  return `${e.layout.kind === 'general' ? 'Layout' : 'Single'} ${e.layout.slot}`
+  return e.layout.kind === 'general'
+    ? t('monitor.entryLayout', { slot: e.layout.slot })
+    : t('monitor.entrySingle', { slot: e.layout.slot })
 }
 
 export default function MonitorSelector() {
   const { monitors, currentMonitorId, setCurrentMonitor, windowMargin } = useAppState()
+  const { t } = useTranslation()
 
   const current = monitors.find((m) => m.id === currentMonitorId)!
   const activeCount = monitors.filter((m) => m.active).length
+  const roleLabel =
+    current.role === 'Primary' ? t('monitor.primary')
+    : current.role === 'Secondary' ? t('monitor.secondary')
+    : current.role
 
   /* -------------------- Quick Presets + Layouts (real data) -------------------- */
   const [layouts, setLayouts] = useState<PresetListItem[] | null>(null)
@@ -105,10 +114,10 @@ export default function MonitorSelector() {
         if (failures.length === 0) {
           flash({
             kind: 'ok',
-            msg: `Applied ${entryLabel(selected)} • ${r.results.length} window${r.results.length === 1 ? '' : 's'}`,
+            msg: `${t('monitor.appliedName', { name: entryLabel(selected, t) })} • ${t('monitor.windows', { count: r.results.length })}`,
           })
         } else {
-          flash({ kind: 'err', msg: `${failures.length}/${r.results.length} failed` })
+          flash({ kind: 'err', msg: t('monitor.layoutFailed', { failed: failures.length, total: r.results.length }) })
         }
         return
       }
@@ -123,13 +132,13 @@ export default function MonitorSelector() {
       if (okCount === r.layouts.length) {
         flash({
           kind: 'ok',
-          msg: `Applied ${r.quickpreset.name} • ${r.layouts.length} Layout${r.layouts.length === 1 ? '' : 's'} • ${totalWindows} window${totalWindows === 1 ? '' : 's'}`,
+          msg: `${t('monitor.appliedName', { name: r.quickpreset.name })} • ${t('monitor.layoutsRun', { count: r.layouts.length })} • ${t('monitor.windows', { count: totalWindows })}`,
         })
       } else {
         const firstErr = r.layouts.find((x) => !x.ok)?.error
         flash({
           kind: 'err',
-          msg: `${r.layouts.length - okCount}/${r.layouts.length} Layouts failed${firstErr ? ` — ${firstErr}` : ''}`,
+          msg: t('monitor.qpLayoutsFailed', { failed: r.layouts.length - okCount, total: r.layouts.length, err: firstErr ? ` — ${firstErr}` : '' }),
         })
       }
     } catch (e) {
@@ -165,13 +174,13 @@ export default function MonitorSelector() {
   const loading = layouts === null || quickpresets === null
 
   const statusText =
-    applyState.kind === 'busy' ? 'Applying…' :
+    applyState.kind === 'busy' ? t('monitor.applying') :
     applyState.kind === 'ok' ? applyState.msg :
-    applyState.kind === 'err' ? `Error: ${applyState.msg}` :
-    selected ? `Selected: ${entryLabel(selected)}` :
-    loading ? 'Loading…' :
-    !hasAny ? 'No saved layouts. Save one in the Layouts tab.' :
-    'No preset selected'
+    applyState.kind === 'err' ? t('monitor.errorPrefix', { msg: applyState.msg }) :
+    selected ? t('monitor.selectedPreset', { name: entryLabel(selected, t) }) :
+    loading ? t('monitor.loading') :
+    !hasAny ? t('monitor.noSavedLayouts') :
+    t('monitor.noPresetSelected')
   const statusColor =
     applyState.kind === 'err' ? 'text-red-600 dark:text-red-400' :
     applyState.kind === 'ok' ? 'text-emerald-600 dark:text-emerald-400' :
@@ -186,7 +195,7 @@ export default function MonitorSelector() {
       <div className="mb-6">
         {/* Title row — Quick Presets label */}
         <div className="mb-2 flex items-center">
-          <div className="text-[14px] font-semibold text-fg">Quick Presets</div>
+          <div className="text-[14px] font-semibold text-fg">{t('monitor.quickPresets')}</div>
         </div>
 
         {/* Action buttons row — proper buttons (not tertiary text links).
@@ -199,18 +208,18 @@ export default function MonitorSelector() {
             type="button"
             onClick={() => setQpManagerOpen(true)}
             className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-sky-300 bg-sky-50 px-3 text-[12px] font-semibold text-sky-700 shadow-sm hover:bg-sky-100 hover:border-sky-400 dark:border-primary/40 dark:bg-primary/10 dark:text-sky-300 dark:hover:bg-primary/20 dark:hover:border-primary/60"
-            title="Compose, rename, and delete Quick Presets (bundles of Layouts)"
+            title={t('monitor.manageQPsTitle')}
           >
             <span aria-hidden>⚡</span>
-            Manage QPs
+            {t('monitor.manageQPs')}
           </button>
           <button
             type="button"
             onClick={onOpenLayoutsTab}
             className="flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-line bg-raised px-3 text-[12px] font-medium text-fg shadow-sm hover:bg-line/60 hover:border-line-strong"
-            title="Open the Layouts tab on the right pane"
+            title={t('monitor.layoutsLinkTitle')}
           >
-            Layouts
+            {t('monitor.layoutsLink')}
             <span aria-hidden className="text-muted">↗</span>
           </button>
         </div>
@@ -224,7 +233,7 @@ export default function MonitorSelector() {
               className="flex w-full items-center justify-between rounded-lg border border-line bg-raised px-3 py-2 text-sm shadow-sm hover:bg-line/60 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span className="truncate">
-                {selected ? entryLabel(selected) : 'Choose a Quick Preset or Layout'}
+                {selected ? entryLabel(selected, t) : t('monitor.choosePreset')}
               </span>
               <span aria-hidden>▾</span>
             </button>
@@ -237,7 +246,7 @@ export default function MonitorSelector() {
                 {quickpresets && quickpresets.length > 0 && (
                   <>
                     <div className="px-2 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
-                      Quick Presets
+                      {t('monitor.dropdownQuickPresets')}
                     </div>
                     {quickpresets.map((q) => {
                       const e: DropdownEntry = {
@@ -257,7 +266,7 @@ export default function MonitorSelector() {
                             <span className="truncate">{q.name}</span>
                           </span>
                           <span className="ml-2 shrink-0 text-[10px] uppercase tracking-wide text-muted">
-                            {q.layoutCount} layout{q.layoutCount === 1 ? '' : 's'}
+                            {t('monitor.layoutCount', { count: q.layoutCount })}
                           </span>
                         </button>
                       )
@@ -271,7 +280,7 @@ export default function MonitorSelector() {
                       <div className="my-1 h-px bg-line" />
                     )}
                     <div className="px-2 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
-                      Layouts
+                      {t('monitor.dropdownLayouts')}
                     </div>
                     {layouts.map((p) => {
                       const e: DropdownEntry = { type: 'layout', layout: p }
@@ -284,9 +293,9 @@ export default function MonitorSelector() {
                           role="menuitem"
                           title={p.path}
                         >
-                          <span>{entryLabel(e)}</span>
+                          <span>{entryLabel(e, t)}</span>
                           <span className="ml-2 text-[10px] uppercase tracking-wide text-muted">
-                            slot {p.slot}
+                            {t('monitor.slot', { slot: p.slot })}
                           </span>
                         </button>
                       )
@@ -307,10 +316,10 @@ export default function MonitorSelector() {
                 ? selected.type === 'qp'
                   ? `POST /quickpresets/run slot=${selected.slot}`
                   : `POST /presets/run kind=${selected.layout.kind} slot=${selected.layout.slot}`
-                : 'Pick a preset first'
+                : t('monitor.pickPresetFirst')
             }
           >
-            {isApplying ? '…' : '▶ Apply'}
+            {isApplying ? '…' : `▶ ${t('monitor.apply')}`}
           </button>
         </div>
 
@@ -321,7 +330,7 @@ export default function MonitorSelector() {
       {/*  MONITOR SELECTION (UNCHANGED)                       */}
       {/* ---------------------------------------------------- */}
       <div>
-        <div className="mb-2 text-[13px] font-semibold text-fg">Monitor Selection</div>
+        <div className="mb-2 text-[13px] font-semibold text-fg">{t('monitor.selection')}</div>
 
         <div className="mb-2">
           <select
@@ -338,7 +347,7 @@ export default function MonitorSelector() {
         </div>
 
         <div className="text-[12px] text-muted">
-          {current.resolution} {current.role}
+          {current.resolution} {roleLabel}
         </div>
 
         <div className="mt-3 rounded-xl border border-line bg-raised p-3 shadow-sm">
@@ -354,24 +363,24 @@ export default function MonitorSelector() {
                   : 'bg-raised text-muted'
               }`}
             >
-              {current.active ? 'Active' : 'Inactive'}
+              {current.active ? t('monitor.active') : t('monitor.inactive')}
             </span>
           </div>
 
           <dl className="mt-3 space-y-1 text-[12px] text-muted">
             <div className="flex justify-between">
-              <dt>Role:</dt>
-              <dd>{current.role}</dd>
+              <dt>{t('monitor.role')}</dt>
+              <dd>{roleLabel}</dd>
             </div>
             <div className="flex justify-between">
-              <dt>Resolution:</dt>
+              <dt>{t('monitor.resolution')}</dt>
               <dd>{current.resolution}</dd>
             </div>
           </dl>
         </div>
 
         <div className="mt-3 text-[11px] text-muted">
-          Active Monitors: {activeCount}/{monitors.length}
+          {t('monitor.activeMonitors', { active: activeCount, total: monitors.length })}
         </div>
 
         <DisplayArray />

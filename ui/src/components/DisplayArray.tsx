@@ -1,4 +1,5 @@
 import { useAppState } from '../state/AppState'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '../state/ThemeProvider'
 
 /**
@@ -9,6 +10,7 @@ import { useTheme } from '../state/ThemeProvider'
  */
 export default function DisplayArray() {
   const { monitors, currentMonitorId, setCurrentMonitor } = useAppState()
+  const { t } = useTranslation()
   const { resolved } = useTheme()
   const dark = resolved === 'dark'
 
@@ -18,7 +20,7 @@ export default function DisplayArray() {
 
   return (
     <div className="mt-3 rounded-xl border border-line bg-raised p-3 shadow-sm">
-      <div className="mb-2 text-[12px] font-semibold text-fg">Display Array</div>
+      <div className="mb-2 text-[12px] font-semibold text-fg">{t('monitor.displayArray')}</div>
       <div className="w-full">
         <svg
           viewBox={`0 0 ${VBW} ${VBH}`}
