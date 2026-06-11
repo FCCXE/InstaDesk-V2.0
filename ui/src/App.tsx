@@ -34,7 +34,11 @@ import { AppStateProvider } from './state/AppState'
 const DESIGN_W = 1280
 const DESIGN_H = 820
 const DESIGN_AR = DESIGN_W / DESIGN_H // ≈ 1.561 — the construct's natural balance
-const MAX_AR = 2.5 // widen up to ultrawide (covers 21:9 ≈ 2.37); beyond → side margins
+// Widen cap. At DESIGN_AR the construct never widens past its balanced shape —
+// no horizontal stretch — so wide windows get symmetric SIDE margins, mirroring
+// the approved top/bottom margins on tall windows. Raise this (e.g. 1.8) to
+// trade a little balance for less side margin on ultrawides.
+const MAX_AR = DESIGN_AR
 
 function useBalancedFit() {
   const get = () => {
