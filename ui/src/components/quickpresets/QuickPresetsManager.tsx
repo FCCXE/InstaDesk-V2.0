@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   api,
   type PresetListItem,
@@ -14,15 +15,12 @@ type EditMode =
 
 const SLOTS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
 
-function layoutLabel(l: PresetListItem): string {
-  return `${l.kind === 'general' ? 'Layout' : 'Single'} ${l.slot}`
-}
-
 function dispatchChanged() {
   window.dispatchEvent(new CustomEvent('insta:quickpresets-changed'))
 }
 
 export default function QuickPresetsManager({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation()
   const [qps, setQps] = useState<QuickPresetListItem[] | null>(null)
   const [layouts, setLayouts] = useState<PresetListItem[] | null>(null)
   const [view, setView] = useState<EditMode>({ mode: 'list' })
@@ -90,16 +88,16 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
 
   const onSave = async () => {
     setErr(null); setInfo(null)
-    if (!formSlot) { setErr('Pick a slot.'); return }
-    if (!formName.trim()) { setErr('Give it a name.'); return }
-    if (formLayouts.length === 0) { setErr('Add at least one Layout.'); return }
+    if (!formSlot) { setErr(t('quickPresets.errPickSlot')); return }
+    if (!formName.trim()) { setErr(t('quickPresets.errName')); return }
+    if (formLayouts.length === 0) { setErr(t('quickPresets.errAddLayout')); return }
     setBusy(true)
     try {
       const res = await api.quickPresetsSave(formSlot, formName.trim(), formLayouts)
       if (res.missingLayouts.length > 0) {
-        setInfo(`Saved with ${res.missingLayouts.length} missing reference(s): ${res.missingLayouts.join(', ')}`)
+        setInfo(t('quickPresets.savedMissing', { count: res.missingLayouts.length, refs: res.missingLayouts.join(', ') }))
       } else {
-        setInfo('Saved.')
+        setInfo(t('quickPresets.saved'))
       }
       dispatchChanged()
       await refresh()
@@ -112,13 +110,13 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
   }
 
   const onDelete = async (slot: string) => {
-    if (!window.confirm(`Delete Quick Preset ${slot}? Underlying Layouts are NOT removed.`)) return
+    if (!window.confirm(t('quickPresets.confirmDelete', { slot }))) return
     setErr(null); setInfo(null); setBusy(true)
     try {
       await api.quickPresetsDelete(slot)
       dispatchChanged()
       await refresh()
-      setInfo(`Quick Preset ${slot} deleted.`)
+      setInfo(t('quickPresets.deleted', { slot }))
     } catch (e) {
       setErr((e as Error).message)
     } finally {
@@ -167,16 +165,16 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
       >
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <div className="text-base font-semibold text-fg">Quick Presets</div>
+            <div className="text-base font-semibold text-fg">{t('quickPresets.title')}</div>
             <div className="text-[11px] text-muted">
-              Named bundles of Layouts applied with one click.
+              {t('quickPresets.subtitle')}
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="rounded-md px-2 py-1 text-sm text-muted hover:bg-raised hover:text-fg"
-            title="Close (Esc)"
+            title={t('quickPresets.closeEsc')}
           >
             ✕
           </button>
@@ -197,25 +195,25 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
           <>
             <div className="mb-3 flex items-center justify-between">
               <div className="text-[12px] text-muted">
-                {qps === null ? 'Loading…' :
-                 qps.length === 0 ? 'No Quick Presets yet.' :
-                 `${qps.length} Quick Preset${qps.length === 1 ? '' : 's'}`}
+                {qps === null ? t('browseApp.loading') :
+                 qps.length === 0 ? t('quickPresets.noneYet') :
+                 t('quickPresets.count', { count: qps.length })}
               </div>
               <button
                 type="button"
                 onClick={startCreate}
                 disabled={busy || availableSlotsForCreate.length === 0}
                 className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary shadow hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-                title={availableSlotsForCreate.length === 0 ? 'All 26 slots used' : 'Create a new Quick Preset'}
+                title={availableSlotsForCreate.length === 0 ? t('quickPresets.newTitleFull') : t('quickPresets.newTitle')}
               >
-                + New Quick Preset
+                {t('quickPresets.newBtn')}
               </button>
             </div>
 
             <div className="max-h-80 overflow-y-auto rounded-lg border border-line">
               {(qps ?? []).length === 0 ? (
                 <div className="px-3 py-6 text-center text-[12px] text-muted">
-                  Compose your first Quick Preset to bundle multiple Layouts under one Apply button.
+                  {t('quickPresets.emptyHelp')}
                 </div>
               ) : (
                 <ul className="divide-y divide-line">
@@ -226,11 +224,11 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                           <span aria-hidden className="text-purple-500">⚡</span>
                           <span className="truncate">{q.name}</span>
                           <span className="ml-1 rounded-full bg-raised px-1.5 py-0.5 text-[10px] font-normal uppercase tracking-wide text-muted">
-                            slot {q.slot}
+                            {t('layouts.slotBadge', { slot: q.slot })}
                           </span>
                         </div>
                         <div className="text-[11px] text-muted">
-                          {q.layoutCount} Layout{q.layoutCount === 1 ? '' : 's'}
+                          {t('quickPresets.layoutCount', { count: q.layoutCount })}
                         </div>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
@@ -240,7 +238,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                           disabled={busy}
                           className="rounded-md border border-line px-2 py-1 text-[11px] text-fg hover:bg-raised disabled:opacity-50"
                         >
-                          Edit
+                          {t('layouts.edit')}
                         </button>
                         <button
                           type="button"
@@ -248,7 +246,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                           disabled={busy}
                           className="rounded-md border border-red-200 px-2 py-1 text-[11px] text-red-600 hover:bg-red-50 disabled:opacity-50"
                         >
-                          Delete
+                          {t('layouts.delete')}
                         </button>
                       </div>
                     </li>
@@ -263,7 +261,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                 onClick={onClose}
                 className="rounded-md border border-line bg-raised px-3 py-1.5 text-xs text-fg hover:bg-raised"
               >
-                Close
+                {t('browseApp.close')}
               </button>
             </div>
           </>
@@ -273,7 +271,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
           <>
             <div className="mb-3 flex items-center gap-3">
               <div className="flex flex-col">
-                <label className="text-[11px] uppercase tracking-wide text-muted">Slot</label>
+                <label className="text-[11px] uppercase tracking-wide text-muted">{t('quickPresets.slotLabel')}</label>
                 {view.mode === 'create' ? (
                   <select
                     value={formSlot}
@@ -281,7 +279,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                     className="rounded-md border border-line px-2 py-1.5 text-sm"
                   >
                     {availableSlotsForCreate.length === 0 ? (
-                      <option value="">(none free)</option>
+                      <option value="">{t('quickPresets.noneFree')}</option>
                     ) : (
                       availableSlotsForCreate.map((s) => (
                         <option key={s} value={s}>{s}</option>
@@ -295,12 +293,12 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                 )}
               </div>
               <div className="flex flex-1 flex-col">
-                <label className="text-[11px] uppercase tracking-wide text-muted">Name</label>
+                <label className="text-[11px] uppercase tracking-wide text-muted">{t('quickPresets.nameLabel')}</label>
                 <input
                   type="text"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
-                  placeholder="e.g. Work Day, Trading Mode, Movie Night"
+                  placeholder={t('quickPresets.namePlaceholder')}
                   className="rounded-md border border-line px-2 py-1.5 text-sm"
                   maxLength={80}
                 />
@@ -308,13 +306,13 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
             </div>
 
             <div className="mb-2 text-[12px] font-medium text-fg">
-              Layouts (applied in order, top → bottom)
+              {t('quickPresets.layoutsHeader')}
             </div>
 
             <div className="mb-3 max-h-56 overflow-y-auto rounded-lg border border-line">
               {formLayouts.length === 0 ? (
                 <div className="px-3 py-6 text-center text-[12px] text-muted">
-                  No Layouts yet. Add one below.
+                  {t('quickPresets.noLayouts')}
                 </div>
               ) : (
                 <ul className="divide-y divide-line">
@@ -327,8 +325,8 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                             #{i + 1}
                           </span>
                           <span className={`truncate text-sm ${exists ? 'text-fg' : 'text-red-600'}`}>
-                            {ref.kind === 'general' ? 'Layout' : 'Single'} {ref.slot}
-                            {!exists && <span className="ml-1 text-[10px]">(missing)</span>}
+                            {ref.kind === 'general' ? t('layouts.layout') : t('layouts.single')} {ref.slot}
+                            {!exists && <span className="ml-1 text-[10px]">{t('quickPresets.missing')}</span>}
                           </span>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
@@ -337,7 +335,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                             onClick={() => moveLayout(i, -1)}
                             disabled={i === 0}
                             className="rounded-md px-1.5 py-0.5 text-xs text-muted hover:bg-raised disabled:opacity-30"
-                            title="Move up"
+                            title={t('quickPresets.moveUp')}
                           >
                             ↑
                           </button>
@@ -346,7 +344,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                             onClick={() => moveLayout(i, 1)}
                             disabled={i === formLayouts.length - 1}
                             className="rounded-md px-1.5 py-0.5 text-xs text-muted hover:bg-raised disabled:opacity-30"
-                            title="Move down"
+                            title={t('quickPresets.moveDown')}
                           >
                             ↓
                           </button>
@@ -355,7 +353,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                             onClick={() => removeLayoutAt(i)}
                             className="ml-1 rounded-md border border-red-200 px-2 py-0.5 text-[11px] text-red-600 hover:bg-red-50"
                           >
-                            Remove
+                            {t('quickPresets.remove')}
                           </button>
                         </div>
                       </li>
@@ -372,11 +370,11 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                 className="flex-1 rounded-md border border-line px-2 py-1.5 text-sm"
               >
                 <option value="">
-                  {(layouts ?? []).length === 0 ? 'No Layouts saved yet' : 'Pick a Layout to add…'}
+                  {(layouts ?? []).length === 0 ? t('quickPresets.pickNoLayouts') : t('quickPresets.pickLayout')}
                 </option>
                 {(layouts ?? []).map((l) => (
                   <option key={`${l.kind}/${l.slot}`} value={l.slot}>
-                    {layoutLabel(l)}
+                    {`${l.kind === 'general' ? t('layouts.layout') : t('layouts.single')} ${l.slot}`}
                   </option>
                 ))}
               </select>
@@ -386,7 +384,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                 disabled={!pickerSlot}
                 className="rounded-md bg-raised px-3 py-1.5 text-xs font-semibold text-fg hover:bg-line disabled:cursor-not-allowed disabled:opacity-50"
               >
-                + Add
+                {t('quickPresets.add')}
               </button>
             </div>
 
@@ -397,7 +395,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                 disabled={busy}
                 className="rounded-md border border-line bg-raised px-3 py-1.5 text-xs text-fg hover:bg-raised disabled:opacity-50"
               >
-                ← Back
+                {t('quickPresets.back')}
               </button>
               <button
                 type="button"
@@ -405,7 +403,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                 disabled={busy || !formSlot || !formName.trim() || formLayouts.length === 0}
                 className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary shadow hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {busy ? 'Saving…' : view.mode === 'create' ? 'Create Quick Preset' : 'Save changes'}
+                {busy ? t('layouts.saving') : view.mode === 'create' ? t('quickPresets.createBtn') : t('quickPresets.saveChangesBtn')}
               </button>
             </div>
           </>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api, type Assignment, type SavedPreset } from "../../services/api";
 import { useAppState, type Monitor } from "../../state/AppState";
 
@@ -38,6 +39,7 @@ const MAX_ASPECT = 2.5;
 const DEFAULT_ASPECT = 16 / 9;
 
 export default function LayoutPreviewOverlay() {
+  const { t } = useTranslation();
   const { previewedLayoutId, setPreviewedLayout, monitors } = useAppState();
   const [preset, setPreset] = useState<SavedPreset | null>(null);
   const [loading, setLoading] = useState(false);
@@ -93,7 +95,7 @@ export default function LayoutPreviewOverlay() {
   const underscoreIx = previewedLayoutId.indexOf("_");
   const kindForHeader = underscoreIx > 0 ? previewedLayoutId.slice(0, underscoreIx) : "general";
   const slotForHeader = underscoreIx > 0 ? previewedLayoutId.slice(underscoreIx + 1) : previewedLayoutId;
-  const titleForHeader = `${kindForHeader === "general" ? "Layout" : "Single"} ${slotForHeader.toUpperCase()}`;
+  const titleForHeader = `${kindForHeader === "general" ? t("layouts.layout") : t("layouts.single")} ${slotForHeader.toUpperCase()}`;
 
   return (
     <div
@@ -114,16 +116,16 @@ export default function LayoutPreviewOverlay() {
               {kindForHeader}
             </span>
             <span className="dark:border-primary/40 dark:bg-primary/10 dark:text-sky-300 inline-flex h-5 items-center rounded-full border border-sky-200 bg-sky-50 px-2 text-[10px] font-medium text-sky-700">
-              slot {slotForHeader.toUpperCase()}
+              {t("layouts.slotBadge", { slot: slotForHeader.toUpperCase() })}
             </span>
           </div>
           <button
             type="button"
             onClick={() => setPreviewedLayout(null)}
             className="rounded-md px-2 py-1 text-xs font-medium text-muted hover:bg-raised hover:text-fg"
-            title="Close (Esc)"
+            title={t("quickPresets.closeEsc")}
           >
-            ✕ Hide content
+            ✕ {t("layouts.hideContent")}
           </button>
         </div>
 
@@ -131,12 +133,12 @@ export default function LayoutPreviewOverlay() {
         <div className="flex-1 min-h-0 overflow-auto p-4">
           {loading && (
             <div className="flex h-full items-center justify-center text-sm text-muted">
-              Loading…
+              {t("browseApp.loading")}
             </div>
           )}
           {error && (
             <div className="flex h-full items-center justify-center text-sm text-red-600">
-              Could not load layout: {error}
+              {t("layoutPreview.couldNotLoad", { error })}
             </div>
           )}
           {!loading && !error && preset && (
@@ -163,6 +165,7 @@ function chooseGrid(n: number): { cols: number; rows: number } {
 }
 
 function PreviewBody({ preset, monitors }: { preset: SavedPreset; monitors: Monitor[] }) {
+  const { t } = useTranslation();
   const layout = useMemo(() => {
     const byMonitor = new Map<number, Assignment[]>();
     for (const a of preset.assignments) {
@@ -189,7 +192,7 @@ function PreviewBody({ preset, monitors }: { preset: SavedPreset; monitors: Moni
   if (layout.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted">
-        This Layout has no assigned cells.
+        {t("layoutPreview.noAssignedCells")}
       </div>
     );
   }
@@ -230,11 +233,11 @@ function PreviewBody({ preset, monitors }: { preset: SavedPreset; monitors: Moni
                   <span>{m.live.role}</span>
                 </>
               ) : (
-                <span className="text-muted"> · not currently connected</span>
+                <span className="text-muted"> · {t("layoutPreview.notConnected")}</span>
               )}
               <span className="text-muted"> · </span>
               <span>
-                {m.cols}×{m.rows} grid
+                {t("layoutPreview.gridLabel", { cols: m.cols, rows: m.rows })}
               </span>
             </span>
           ))}
