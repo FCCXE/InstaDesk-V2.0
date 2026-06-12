@@ -167,7 +167,11 @@ export const api = {
     inTauri()
       ? invoke<HealthResponse>('health')
       : request<HealthResponse>('GET', '/health'),
-  monitors: () => request<MonitorsResponse>('GET', '/monitors'),
+  // PORTED to Rust (step 2.3): agent subprocess (`--list-monitors`) in the shell.
+  monitors: () =>
+    inTauri()
+      ? invoke<MonitorsResponse>('monitors')
+      : request<MonitorsResponse>('GET', '/monitors'),
   launch: (req: LaunchRequest) => request<LaunchResponse>('POST', '/launch', req),
   // PORTED to Rust (step 2.3): file/OS endpoints route to native commands in
   // the desktop shell; the web preview keeps HTTP. The agent-invoking *Run /

@@ -32,6 +32,23 @@ fn quickpresets_dir() -> PathBuf {
     data_dir().join("quickpresets")
 }
 
+/// Path to the C# WinAgent DLL (the worker the agent-invoking commands shell out
+/// to via `dotnet`). `AGENT_PATH` env overrides, matching the Python server.
+/// Step 2.4 swaps this for the bundled self-contained sidecar exe.
+fn agent_path() -> PathBuf {
+    std::env::var_os("AGENT_PATH")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            outer_root()
+                .unwrap_or_default()
+                .join("winagent")
+                .join("InstaDesk.WinAgent")
+                .join("publish")
+                .join("dll")
+                .join("InstaDesk.WinAgent.dll")
+        })
+}
+
 /// File mtime as an ISO-8601 (RFC3339, local tz) string — matches the Python
 /// `datetime.fromtimestamp(mtime).isoformat()` for the UI's `updatedAt`.
 fn mtime_iso(path: &Path) -> String {
@@ -126,32 +143,16 @@ fn outer_root() -> Option<PathBuf> {
 /// same env overrides as the server (`AGENT_PATH`, plus `INSTADESK_DATA_DIR`).
 #[tauri::command]
 pub fn health() -> HealthResponse {
-    let root = outer_root();
-
-    let agent_path: PathBuf = std::env::var_os("AGENT_PATH")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            root.clone()
-                .unwrap_or_default()
-                .join("winagent")
-                .join("InstaDesk.WinAgent")
-                .join("publish")
-                .join("dll")
-                .join("InstaDesk.WinAgent.dll")
-        });
-
-    let data_dir: PathBuf = std::env::var_os("INSTADESK_DATA_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| root.unwrap_or_default().join("data"));
-
+    let agent = agent_path();
+    let dir = data_dir();
     HealthResponse {
         ok: true,
-        agent_exists: agent_path.exists(),
-        agent_path: agent_path.to_string_lossy().into_owned(),
+        agent_exists: agent.exists(),
+        agent_path: agent.to_string_lossy().into_owned(),
         mode: "dll".into(),
         timeout_sec: 45,
         cors: Vec::new(),
-        data_dir: data_dir.to_string_lossy().into_owned(),
+        data_dir: dir.to_string_lossy().into_owned(),
     }
 }
 
@@ -461,6 +462,39 @@ pub fn browse(path: Option<String>) -> Result<Value, String> {
         _ => Value::Null,
     };
     Ok(json!({ "ok": true, "path": p.to_string_lossy(), "parent": parent_val, "entries": entries }))
+}
+
+// ----------------------------------------------------------------------------
+// Agent-invoking commands — shell out to the C# WinAgent (the real Win32 work),
+// replicating the Python server's `dotnet <AGENT_PATH> <args>` subprocess calls.
+// ----------------------------------------------------------------------------
+
+/// `GET /monitors` — runs the agent's `--list-monitors` and returns the JSON it
+/// prints (last non-empty stdout line), unchanged — same as the Python server.
+#[tauri::command]
+pub async fn monitors() -> Result<Value, String> {
+    let agent = agent_path();
+    if !agent.exists() {
+        return Err(format!("Agent DLL not found at {}", agent.display()));
+    }
+    let fut = tokio::process::Command::new("dotnet")
+        .arg(&agent)
+        .arg("--list-monitors")
+        .output();
+    let out = match tokio::time::timeout(std::time::Duration::from_secs(10), fut).await {
+        Ok(Ok(o)) => o,
+        Ok(Err(e)) => return Err(format!("Failed to run agent: {e}")),
+        Err(_) => return Err("Agent timed out enumerating monitors".into()),
+    };
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let line = stdout.lines().map(str::trim).filter(|l| !l.is_empty()).last().unwrap_or("");
+    if line.is_empty() {
+        return Err(format!(
+            "Empty agent response. stderr: {}",
+            String::from_utf8_lossy(&out.stderr)
+        ));
+    }
+    serde_json::from_str(line).map_err(|e| format!("Agent returned non-JSON: {e}"))
 }
 
 #[cfg(test)]
