@@ -816,6 +816,126 @@ pub async fn quickpresets_run(slot: String, margin_px: Option<i64>) -> Result<Va
     }))
 }
 
+// ----------------------------------------------------------------------------
+// Snap popup (the Snap button) + foreground-window tracker.
+// ----------------------------------------------------------------------------
+
+/// Tight filter: matches ONLY the InstaDesk dashboard window or the agent's own
+/// overlay form — those must never be tracked as a snap target. (Used by the
+/// foreground tracker, added next.)
+#[allow(dead_code)]
+fn looks_like_instadesk_title(title: &str) -> bool {
+    let t = title.to_lowercase();
+    t.contains("127.0.0.1:17866")
+        || t.contains("localhost:17866")
+        || t.starts_with("vite + react + ts")
+        || t.starts_with("instadesk dashboard")
+        || t == "instadesk snap"
+}
+
+/// Last-focused non-InstaDesk window handle (set by the foreground tracker,
+/// read by snap). 0 = none known → agent falls back to a z-order scan.
+fn tracker() -> &'static std::sync::Mutex<isize> {
+    static T: std::sync::OnceLock<std::sync::Mutex<isize>> = std::sync::OnceLock::new();
+    T.get_or_init(|| std::sync::Mutex::new(0isize))
+}
+fn tracker_target() -> isize {
+    tracker().lock().map(|g| *g).unwrap_or(0)
+}
+fn set_tracker_target(hwnd: isize) {
+    if let Ok(mut g) = tracker().lock() {
+        *g = hwnd;
+    }
+}
+fn reset_tracker() {
+    set_tracker_target(0);
+}
+
+/// Spawn the agent with temp-file stdio, wait on the process with a timeout,
+/// return (exit code, stdout, stderr, timeout-suffix).
+async fn run_agent(args: &[String], timeout_secs: u64) -> Result<(i32, String, String, &'static str), String> {
+    let so = tempfile::tempfile().map_err(|e| e.to_string())?;
+    let se = tempfile::tempfile().map_err(|e| e.to_string())?;
+    let so_read = so.try_clone().map_err(|e| e.to_string())?;
+    let se_read = se.try_clone().map_err(|e| e.to_string())?;
+    let mut child = tokio::process::Command::new("dotnet")
+        .args(args)
+        .stdout(std::process::Stdio::from(so))
+        .stderr(std::process::Stdio::from(se))
+        .spawn()
+        .map_err(|e| format!("Failed to run agent: {e}"))?;
+    let (rc, tmsg) = match tokio::time::timeout(std::time::Duration::from_secs(timeout_secs), child.wait()).await {
+        Ok(Ok(status)) => (status.code().unwrap_or(1), ""),
+        Ok(Err(_)) => (1, ""),
+        Err(_) => {
+            let _ = child.kill().await;
+            (124, "\nTIMEOUT")
+        }
+    };
+    Ok((rc, read_temp(so_read), read_temp(se_read), tmsg))
+}
+
+/// `POST /snap/popup` — Divvy-style ad-hoc snap. Opens the agent's overlay on
+/// the target monitor; blocks (180s) until the user commits or cancels. Passes
+/// the foreground tracker's last target via `--target-hwnd` when known; else the
+/// agent falls back to a z-order scan. Returns {exitCode, result, stdout, stderr,
+/// cmd}, where `result` is the JSON the agent prints (its last `{...}` line).
+#[tauri::command]
+pub async fn snap_popup(monitor: i64, grid_size: Option<String>, margin_px: Option<i64>) -> Result<Value, String> {
+    let agent = agent_path();
+    if !agent.exists() {
+        return Err(format!("Agent DLL not found at {}", agent.display()));
+    }
+    let grid_size = grid_size.unwrap_or_else(|| "6x6".into());
+    let mut args: Vec<String> = vec![
+        agent.to_string_lossy().into_owned(),
+        "--snap-popup".into(),
+        "--monitor".into(),
+        monitor.to_string(),
+        "--grid-size".into(),
+        grid_size,
+    ];
+    if let Some(m) = margin_px {
+        if m > 0 {
+            args.push("--cell-margin-px".into());
+            args.push(m.to_string());
+        }
+    }
+    let tracked = tracker_target();
+    if tracked != 0 {
+        args.push("--target-hwnd".into());
+        args.push(tracked.to_string());
+    }
+    let cmd_str = format!("dotnet {}", args.join(" "));
+
+    let (rc, out, err, tmsg) = run_agent(&args, 180).await?;
+
+    // The agent's last stdout `{...}` line is the JSON result.
+    let mut result = json!({});
+    for line in out.lines().rev() {
+        let l = line.trim();
+        if l.starts_with('{') && l.ends_with('}') {
+            if let Ok(v) = serde_json::from_str::<Value>(l) {
+                result = v;
+                break;
+            }
+        }
+    }
+    // Release the tracker after a successful snap — each snap is independent;
+    // the user must focus a window again for the next one.
+    if result.get("ok") == Some(&json!(true)) {
+        reset_tracker();
+    }
+
+    Ok(json!({
+        "exitCode": rc,
+        "result": result,
+        "stdout": format!("{}{}", out, tmsg),
+        "stderr": err,
+        "cmd": cmd_str,
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

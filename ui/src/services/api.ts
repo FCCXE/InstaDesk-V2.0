@@ -236,7 +236,23 @@ export const api = {
   // the popup's grid, and the window snaps. Server request blocks until
   // user commits or cancels — give it a long timeout.
   snapPopup: (monitor: number, gridSize = '6x6', marginPx?: number) =>
-    request<{
+    inTauri()
+      ? invoke<{
+          exitCode: number
+          result: {
+            ok?: boolean
+            cancelled?: boolean
+            targetTitle?: string
+            monitor?: number
+            snapped?: { x: number; y: number; w: number; h: number }
+            placementVerified?: boolean
+            placementMismatch?: string
+            error?: string
+          }
+          stdout: string
+          stderr: string
+        }>('snap_popup', { monitor, gridSize, marginPx })
+      : request<{
       exitCode: number
       result: {
         ok?: boolean
