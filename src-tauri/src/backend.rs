@@ -206,6 +206,24 @@ pub fn presets_list() -> Result<Value, String> {
     Ok(json!({ "ok": true, "presets": items }))
 }
 
+// Reject kind/slot values that could escape the data dir or produce junk
+// filenames. Tauri commands are callable from ANY page JS, so validate even
+// though the UI already constrains these (path-traversal hardening).
+fn check_kind(kind: &str) -> Result<(), String> {
+    if kind == "general" || kind == "single" {
+        Ok(())
+    } else {
+        Err(format!("Invalid kind: {kind}"))
+    }
+}
+fn check_slot(slot: &str) -> Result<(), String> {
+    let mut chars = slot.chars();
+    match (chars.next(), chars.next()) {
+        (Some(c), None) if c.is_ascii_alphabetic() => Ok(()),
+        _ => Err(format!("Invalid slot: {slot}")),
+    }
+}
+
 /// `GET /presets/get`
 #[tauri::command]
 pub fn presets_get(kind: String, slot: String) -> Result<Value, String> {
@@ -241,6 +259,8 @@ pub fn presets_get(kind: String, slot: String) -> Result<Value, String> {
 /// `POST /presets/save`
 #[tauri::command]
 pub fn presets_save(kind: String, slot: String, assignments: Vec<Value>) -> Result<Value, String> {
+    check_kind(&kind)?;
+    check_slot(&slot)?;
     // Normalize each assignment's `type` (url if a url with no program, else program).
     let norm: Vec<Value> = assignments
         .into_iter()
@@ -273,6 +293,8 @@ pub fn presets_save(kind: String, slot: String, assignments: Vec<Value>) -> Resu
 /// `DELETE /presets/delete`
 #[tauri::command]
 pub fn presets_delete(kind: String, slot: String) -> Result<Value, String> {
+    check_kind(&kind)?;
+    check_slot(&slot)?;
     let path = presets_dir().join(format!("{}_{}.json", kind, slot.to_uppercase()));
     if !path.exists() {
         return Err("Preset not found.".into());
@@ -355,6 +377,7 @@ pub fn quickpresets_get(slot: String) -> Result<Value, String> {
 /// `POST /quickpresets/save`
 #[tauri::command]
 pub fn quickpresets_save(slot: String, name: String, layouts: Vec<Value>) -> Result<Value, String> {
+    check_slot(&slot)?;
     if layouts.is_empty() {
         return Err("A Quick Preset must reference at least one Layout.".into());
     }
@@ -396,6 +419,7 @@ pub fn quickpresets_save(slot: String, name: String, layouts: Vec<Value>) -> Res
 /// `DELETE /quickpresets/delete`
 #[tauri::command]
 pub fn quickpresets_delete(slot: String) -> Result<Value, String> {
+    check_slot(&slot)?;
     let path = quickpresets_dir().join(format!("QP_{}.json", slot.to_uppercase()));
     if !path.exists() {
         return Err("Quick Preset not found.".into());
@@ -538,9 +562,26 @@ fn default_grid_size() -> String {
     "6x6".into()
 }
 
+// Resolve the browser to open URL-only assignments in. Order: explicit env
+// override → the OS default browser (registry UserChoice) → the first detected
+// installed browser → Chrome at its usual path (last resort). The old behavior
+// hardcoded Chrome, which silently failed on machines without it.
 fn default_browser() -> String {
-    std::env::var("DEFAULT_BROWSER_PATH")
-        .unwrap_or_else(|_| r"C:\Program Files\Google\Chrome\Application\chrome.exe".to_string())
+    if let Ok(p) = std::env::var("DEFAULT_BROWSER_PATH") {
+        if !p.trim().is_empty() {
+            return p;
+        }
+    }
+    #[cfg(windows)]
+    {
+        if let Some(p) = browsers::default_browser_exe() {
+            return p;
+        }
+        if let Some(b) = browsers::detect().into_iter().next() {
+            return b.path;
+        }
+    }
+    r"C:\Program Files\Google\Chrome\Application\chrome.exe".to_string()
 }
 
 /// Read a temp file (the agent's captured stdout/stderr) to a lossy string.
@@ -1058,8 +1099,40 @@ pub fn pick_exe(title: Option<String>, extensions: Option<Vec<String>>) -> Optio
 #[cfg(windows)]
 mod browsers {
     use super::BrowserInfo;
-    use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
+    use winreg::enums::{HKEY_CLASSES_ROOT, HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
     use winreg::RegKey;
+
+    // The OS default browser's exe, via the user's UrlAssociations UserChoice
+    // (https → http) ProgId → HKCR\<ProgId>\shell\open\command. None if it can't
+    // be resolved (falls back to detection / Chrome upstream).
+    pub fn default_browser_exe() -> Option<String> {
+        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+        let hkcr = RegKey::predef(HKEY_CLASSES_ROOT);
+        for scheme in ["https", "http"] {
+            let assoc = format!(
+                r"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\{}\UserChoice",
+                scheme
+            );
+            let progid = hkcu
+                .open_subkey(&assoc)
+                .ok()
+                .and_then(|k| k.get_value::<String, _>("ProgId").ok());
+            if let Some(progid) = progid {
+                let cmd = hkcr
+                    .open_subkey(format!(r"{}\shell\open\command", progid))
+                    .ok()
+                    .and_then(|k| k.get_value::<String, _>("").ok());
+                if let Some(exe) = cmd.as_deref().and_then(exe_from_command) {
+                    // %1-only ProgIds (e.g. some handlers) resolve to a real exe;
+                    // ignore anything that isn't a .exe path.
+                    if exe.to_lowercase().ends_with(".exe") {
+                        return Some(exe);
+                    }
+                }
+            }
+        }
+        None
+    }
 
     // Extract the exe from a `shell\open\command` string — typically a quoted
     // path, optionally followed by args: `"C:\...\chrome.exe" -- "%1"`.
