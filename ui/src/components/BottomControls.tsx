@@ -60,7 +60,7 @@ export default function BottomControls() {
   // Bottom-bar grid-size picker for the active monitor (Step 2 of the
   // 4-step grid-size build). Confirms before wiping cells / exiting Edit
   // mode; reassures the user that saved Layouts and QPs are untouched.
-  const onGridSizeChange = (next: GridSize) => {
+  const onGridSizeChange = async (next: GridSize) => {
     if (next.cols === currentGridCols && next.rows === currentGridRows) return
 
     const monitorLabel = `M${currentMonitorIndex}`
@@ -85,7 +85,7 @@ export default function BottomControls() {
     parts.push(`\n\n${t('bottomBar.confirmUnaffected')}`)
     parts.push(`\n\n${t('bottomBar.confirmContinue')}`)
 
-    if (window.confirm(parts.join(' ').replace(' \n', '\n'))) {
+    if (await confirm({ title: t('bottomBar.gridResizeTitle'), body: parts.join(' ').replace(' \n', '\n') })) {
       resizeMonitor(currentMonitorId, next)
     }
   }

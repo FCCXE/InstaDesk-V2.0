@@ -1,5 +1,5 @@
-// Reusable, theme-aware confirm/alert dialog — the styled replacement for the
-// browser's native window.confirm()/alert() (which render unstylable OS chrome
+// Reusable, theme-aware dialogs — the styled replacement for the browser's
+// native window.confirm()/prompt()/alert() (which render unstylable OS chrome
 // and leak the "localhost:5173 says" web origin).
 //
 // Promise-based so call sites stay one-liners and the app-wide sweep of native
@@ -8,8 +8,11 @@
 //   const confirm = useConfirm()
 //   if (await confirm({ title, body, danger: true })) doDestructiveThing()
 //
+//   const prompt = usePrompt()
+//   const value = await prompt({ title, defaultValue }) // string | null (cancel)
+//
 // Mounted once, high in the tree (main.tsx, inside ThemeProvider so it inherits
-// the active theme's tokens). First consumer: Bottom-bar "Clear All Grids".
+// the active theme's tokens).
 import {
   createContext,
   useCallback,
@@ -34,9 +37,21 @@ export type ConfirmOptions = {
   danger?: boolean
 }
 
+export type PromptOptions = {
+  title: string
+  body?: string
+  /** Pre-filled input value. */
+  defaultValue?: string
+  placeholder?: string
+  confirmLabel?: string
+  cancelLabel?: string
+}
+
 type ConfirmFn = (opts: ConfirmOptions) => Promise<boolean>
+type PromptFn = (opts: PromptOptions) => Promise<string | null>
 
 const ConfirmContext = createContext<ConfirmFn | null>(null)
+const PromptContext = createContext<PromptFn | null>(null)
 
 export function useConfirm(): ConfirmFn {
   const ctx = useContext(ConfirmContext)
@@ -44,92 +59,137 @@ export function useConfirm(): ConfirmFn {
   return ctx
 }
 
-type DialogState = (ConfirmOptions & { resolve: (value: boolean) => void }) | null
+export function usePrompt(): PromptFn {
+  const ctx = useContext(PromptContext)
+  if (!ctx) throw new Error('usePrompt must be used within <ConfirmProvider>')
+  return ctx
+}
+
+type DialogState =
+  | { mode: 'confirm'; opts: ConfirmOptions; resolve: (value: boolean) => void }
+  | { mode: 'prompt'; opts: PromptOptions; resolve: (value: string | null) => void }
+  | null
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
   const [state, setState] = useState<DialogState>(null)
+  const [inputValue, setInputValue] = useState('')
   const okRef = useRef<HTMLButtonElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const confirm = useCallback<ConfirmFn>(
-    (opts) => new Promise<boolean>((resolve) => setState({ ...opts, resolve })),
+    (opts) => new Promise<boolean>((resolve) => setState({ mode: 'confirm', opts, resolve })),
     [],
   )
 
-  // Resolve the outstanding promise and dismiss. Using the updater form keeps
-  // us safe against double-close (e.g. Enter + button click racing).
-  const close = useCallback((result: boolean) => {
+  const prompt = useCallback<PromptFn>(
+    (opts) =>
+      new Promise<string | null>((resolve) => {
+        setInputValue(opts.defaultValue ?? '')
+        setState({ mode: 'prompt', opts, resolve })
+      }),
+    [],
+  )
+
+  // Resolve the outstanding promise and dismiss. Updater form keeps us safe
+  // against double-close (e.g. Enter + button click racing).
+  const cancel = useCallback(() => {
     setState((cur) => {
-      cur?.resolve(result)
+      if (cur?.mode === 'prompt') cur.resolve(null)
+      else cur?.resolve(false)
       return null
     })
   }, [])
 
-  // While open: focus the primary button, Enter confirms, Esc cancels.
+  const accept = useCallback((value: string) => {
+    setState((cur) => {
+      if (cur?.mode === 'prompt') cur.resolve(value)
+      else cur?.resolve(true)
+      return null
+    })
+  }, [])
+
+  // While open: focus the input (prompt) or primary button (confirm); Enter
+  // accepts, Esc cancels.
   useEffect(() => {
     if (!state) return
-    okRef.current?.focus()
+    if (state.mode === 'prompt') inputRef.current?.focus()
+    else okRef.current?.focus()
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault()
-        close(false)
+        cancel()
       } else if (e.key === 'Enter') {
         e.preventDefault()
-        close(true)
+        accept(inputValue)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [state, close])
+  }, [state, cancel, accept, inputValue])
+
+  const opts = state?.opts
+  const danger = state?.mode === 'confirm' && state.opts.danger
 
   return (
     <ConfirmContext.Provider value={confirm}>
-      {children}
-      {state && (
-        <div
-          className="fixed inset-0 z-[100] grid place-items-center bg-black/40 p-3"
-          // Backdrop click (outside the card) cancels.
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) close(false)
-          }}
-          role="presentation"
-        >
+      <PromptContext.Provider value={prompt}>
+        {children}
+        {state && opts && (
           <div
-            role="alertdialog"
-            aria-modal="true"
-            className="w-[460px] max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-surface p-5 shadow-xl"
+            className="fixed inset-0 z-[100] grid place-items-center bg-black/40 p-3"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) cancel()
+            }}
+            role="presentation"
           >
-            <h2 className="text-base font-semibold text-fg">{state.title}</h2>
-            {state.body && (
-              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">
-                {state.body}
-              </p>
-            )}
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => close(false)}
-                className="rounded-lg border border-line bg-raised px-3 py-1.5 text-sm font-medium text-fg hover:bg-line/60"
-              >
-                {state.cancelLabel ?? t('common.cancel')}
-              </button>
-              <button
-                ref={okRef}
-                type="button"
-                onClick={() => close(true)}
-                className={[
-                  'rounded-lg border px-3 py-1.5 text-sm font-semibold shadow-sm transition-colors',
-                  state.danger
-                    ? 'border-red-600 bg-red-600 text-white hover:bg-red-700 dark:border-red-500/50 dark:hover:bg-red-500'
-                    : 'border-violet-600 bg-violet-600 text-white hover:bg-violet-700 dark:border-cyan-400/50 dark:bg-cyan-500 dark:text-slate-900 dark:hover:bg-cyan-400',
-                ].join(' ')}
-              >
-                {state.confirmLabel ?? t('common.ok')}
-              </button>
+            <div
+              role={state.mode === 'confirm' ? 'alertdialog' : 'dialog'}
+              aria-modal="true"
+              className="w-[460px] max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-surface p-5 shadow-xl"
+            >
+              <h2 className="text-base font-semibold text-fg">{opts.title}</h2>
+              {opts.body && (
+                <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">
+                  {opts.body}
+                </p>
+              )}
+              {state.mode === 'prompt' && (
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder={state.opts.placeholder}
+                  className="mt-3 h-9 w-full rounded-md border border-line bg-raised px-3 text-sm text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              )}
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={cancel}
+                  className="rounded-lg border border-line bg-raised px-3 py-1.5 text-sm font-medium text-fg hover:bg-line/60"
+                >
+                  {opts.cancelLabel ?? t('common.cancel')}
+                </button>
+                <button
+                  ref={okRef}
+                  type="button"
+                  onClick={() => accept(inputValue)}
+                  className={[
+                    'rounded-lg border px-3 py-1.5 text-sm font-semibold shadow-sm transition-colors',
+                    danger
+                      ? 'border-red-600 bg-red-600 text-white hover:bg-red-700 dark:border-red-500/50 dark:hover:bg-red-500'
+                      : 'border-violet-600 bg-violet-600 text-white hover:bg-violet-700 dark:border-cyan-400/50 dark:bg-cyan-500 dark:text-slate-900 dark:hover:bg-cyan-400',
+                  ].join(' ')}
+                >
+                  {opts.confirmLabel ?? t('common.ok')}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </PromptContext.Provider>
     </ConfirmContext.Provider>
   )
 }

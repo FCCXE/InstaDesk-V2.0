@@ -40,6 +40,7 @@ import {
 import AddFavoriteModal from "./common/AddFavoriteModal";
 import BrowseAppModal from "./common/BrowseAppModal";
 import BrowserPickerModal from "./common/BrowserPickerModal";
+import { useConfirm } from "./common/ConfirmDialog";
 
 /* Helper */
 import TruncateText from "./common/TruncateText";
@@ -190,6 +191,7 @@ type AppsHistoryRow = {
 
 function AppsAppsPane() {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const {
     selection, selectedApp, setSelectedApp,
     assignSelected, unassignSelected,
@@ -368,8 +370,8 @@ function AppsAppsPane() {
     setUrlGroups(listUrlGroups());
     setFavorites(listFavorites());
   };
-  const onClearCustom = () => {
-    if (!confirm(t("apps.clearCustomConfirm"))) return;
+  const onClearCustom = async () => {
+    if (!(await confirm({ title: t("apps.clearCustomTitle"), body: t("apps.clearCustomConfirm"), danger: true }))) return;
     clearHistory();
     setHistory(listHistory());
     setSelectedApp(null);
@@ -394,10 +396,10 @@ function AppsAppsPane() {
     setHiddenSeedIds(listHiddenIds());
   };
 
-  const onDeleteCustom = (row: AppsHistoryRow) => {
+  const onDeleteCustom = async (row: AppsHistoryRow) => {
     // URL group rows — delete from UrlGroupsService.
     if (row.urlGroup) {
-      if (!confirm(`Delete URL group "${row.label}"?`)) return;
+      if (!(await confirm({ title: t("apps.deleteTitle"), body: t("apps.deleteUrlGroupConfirm", { label: row.label }), danger: true }))) return;
       removeUrlGroup(row.urlGroup.id);
       setUrlGroups(listUrlGroups());
       window.dispatchEvent(new CustomEvent("insta:url-groups-changed"));
@@ -406,7 +408,7 @@ function AppsAppsPane() {
     }
     // Favorite rows — delete from FavoritesService.
     if (row.favorite) {
-      if (!confirm(`Delete favorite "${row.label}"?`)) return;
+      if (!(await confirm({ title: t("apps.deleteTitle"), body: t("apps.deleteFavoriteConfirm", { label: row.label }), danger: true }))) return;
       removeFavorite(row.favorite.id);
       setFavorites(listFavorites());
       window.dispatchEvent(new CustomEvent("insta:favorites-changed"));
@@ -414,7 +416,7 @@ function AppsAppsPane() {
       return;
     }
     if (!row.path) return;
-    if (!confirm(`Delete "${row.label}" from history?`)) return;
+    if (!(await confirm({ title: t("apps.deleteTitle"), body: t("apps.deleteHistoryConfirm", { label: row.label }), danger: true }))) return;
     const match = history.find((h) => h.path.toLowerCase() === row.path!.toLowerCase());
     if (match) {
       removeHistory(match.id);
@@ -737,11 +739,11 @@ function AppsAppsPane() {
             {editMode && revealHidden && (
               <button
                 type="button"
-                onClick={() => {
-                  if (!confirm(t("apps.restoreAllConfirm", { count: hiddenSeedIds.size }))) return;
+                onClick={async () => {
+                  if (!(await confirm({ title: t("apps.restoreAllTitle"), body: t("apps.restoreAllConfirm", { count: hiddenSeedIds.size }) }))) return;
                   onShowAllHiddenSeeds();
                 }}
-                className="text-[11px] font-medium text-emerald-700 hover:text-emerald-900"
+                className="text-[11px] font-medium text-emerald-700 hover:text-emerald-900 dark:text-emerald-300 dark:hover:text-emerald-200"
               >
                 {t("apps.restoreAll")}
               </button>

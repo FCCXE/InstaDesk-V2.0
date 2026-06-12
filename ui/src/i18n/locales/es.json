@@ -56,6 +56,7 @@
     "clearAllGridsConfirmTitle": "¿Borrar todas las cuadrículas?",
     "clearAllGridsConfirmBody": "Esto elimina todas las celdas asignadas en cada monitor y restablece cada cuadrícula al tamaño predeterminado. Los Diseños guardados no se ven afectados.\n\nEsta acción no se puede deshacer.",
     "gridSelectTitle": "Tamaño de cuadrícula para M{{monitor}}. Cambiarlo borrará las celdas de ese monitor (los Diseños guardados no se ven afectados).",
+    "gridResizeTitle": "¿Cambiar el tamaño de la cuadrícula?",
     "confirmSwitch": "Cambiando {{monitor}} de {{from}} a {{to}}",
     "confirmWillClear_one": "se borrará {{count}} celda en {{monitor}}",
     "confirmWillClear_other": "se borrarán {{count}} celdas en {{monitor}}",
@@ -127,6 +128,12 @@
     "custom": "Personalizado",
     "clearCustomTitle": "Borrar personalizado",
     "clearCustomConfirm": "¿Borrar todos los elementos personalizados del historial? Esta acción no se puede deshacer.",
+    "clearCustomTitle": "¿Borrar el historial personalizado?",
+    "deleteUrlGroupConfirm": "¿Eliminar el grupo de URLs \"{{label}}\"?",
+    "deleteFavoriteConfirm": "¿Eliminar el favorito \"{{label}}\"?",
+    "deleteHistoryConfirm": "¿Eliminar \"{{label}}\" del historial?",
+    "deleteTitle": "¿Eliminar?",
+    "restoreAllTitle": "¿Restaurar apps ocultas?",
     "selectionGrid": "Cuadrícula de selección: {{n}}",
     "none": "ninguna",
     "assignToSelection": "Asignar a la selección",
@@ -267,6 +274,10 @@
     "appliedFailures": "Aplicado con {{failed}}/{{total}} fallos: {{detail}}",
     "assignFirst": "Primero asigna apps a las celdas (pestaña Apps → elige app → Asignar a la selección). Cambia de monitor para crear un diseño que abarque más de uno.",
     "slotPrompt": "Guardar diseño en la ranura (A–Z). Sugerida: {{suggested}}",
+    "slotPromptTitle": "Guardar diseño",
+    "importPromptTitle": "Importar diseño",
+    "overwriteTitle": "¿Sobrescribir la ranura?",
+    "deleteTitle": "¿Eliminar el diseño?",
     "invalidSlot": "Ranura no válida \"{{input}}\". Usa una sola letra A–Z.",
     "slotExists": "La ranura {{slot}} ya existe. ¿Sobrescribir?",
     "savedLayout_one": "Diseño {{slot}} guardado en {{count}} monitor • {{summary}}",
@@ -321,6 +332,7 @@
     "errUrl": "Introduce una URL válida que empiece por http:// o https://",
     "errPath": "Introduce la ruta de una aplicación (p. ej., C:\\Program Files\\App\\app.exe)",
     "confirmExt": "La ruta no termina en .exe/.lnk/.bat/.cmd. ¿Guardar de todos modos?",
+    "confirmExtTitle": "¿Guardar de todos modos?",
     "pickFile": "Elegir este archivo"
   },
   "editLayout": {
@@ -372,6 +384,7 @@
     "savedMissing_other": "Guardado con {{count}} referencias faltantes: {{refs}}",
     "saved": "Guardado.",
     "confirmDelete": "¿Eliminar el preajuste rápido {{slot}}? Los Diseños subyacentes NO se eliminan.",
+    "confirmDeleteTitle": "¿Eliminar el preajuste rápido?",
     "deleted": "Preajuste rápido {{slot}} eliminado."
   },
   "layoutPreview": {

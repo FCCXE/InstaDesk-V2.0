@@ -56,6 +56,7 @@
     "clearAllGridsConfirmTitle": "Clear all grids?",
     "clearAllGridsConfirmBody": "This removes every assigned cell on every monitor and resets each grid to the default size. Saved Layouts are not affected.\n\nThis can't be undone.",
     "gridSelectTitle": "Grid size for M{{monitor}}. Changing this will clear that monitor's cells (saved Layouts are not affected).",
+    "gridResizeTitle": "Change grid size?",
     "confirmSwitch": "Switching {{monitor}} from {{from}} to {{to}}",
     "confirmWillClear_one": "will clear {{count}} cell on {{monitor}}",
     "confirmWillClear_other": "will clear {{count}} cells on {{monitor}}",
@@ -127,6 +128,12 @@
     "custom": "Custom",
     "clearCustomTitle": "Clear Custom",
     "clearCustomConfirm": "Clear all Custom history items? This cannot be undone.",
+    "clearCustomTitle": "Clear custom history?",
+    "deleteUrlGroupConfirm": "Delete URL group \"{{label}}\"?",
+    "deleteFavoriteConfirm": "Delete favorite \"{{label}}\"?",
+    "deleteHistoryConfirm": "Delete \"{{label}}\" from history?",
+    "deleteTitle": "Delete?",
+    "restoreAllTitle": "Restore hidden apps?",
     "selectionGrid": "Selection Grid : {{n}}",
     "none": "none",
     "assignToSelection": "Assign to Selection",
@@ -267,6 +274,10 @@
     "appliedFailures": "Applied with {{failed}}/{{total}} failures: {{detail}}",
     "assignFirst": "Assign apps to cells first (Apps tab → pick app → Assign to Selection). Switch monitors to build a layout that spans more than one.",
     "slotPrompt": "Save layout to slot (A–Z). Suggested: {{suggested}}",
+    "slotPromptTitle": "Save layout",
+    "importPromptTitle": "Import layout",
+    "overwriteTitle": "Overwrite slot?",
+    "deleteTitle": "Delete layout?",
     "invalidSlot": "Invalid slot \"{{input}}\". Use a single letter A–Z.",
     "slotExists": "Slot {{slot}} already exists. Overwrite?",
     "savedLayout_one": "Saved Layout {{slot}} across {{count}} monitor • {{summary}}",
@@ -321,6 +332,7 @@
     "errUrl": "Enter a valid URL starting with http:// or https://",
     "errPath": "Enter an application path (e.g., C:\\Program Files\\App\\app.exe)",
     "confirmExt": "Path does not end with .exe/.lnk/.bat/.cmd. Save anyway?",
+    "confirmExtTitle": "Save anyway?",
     "pickFile": "Pick this file"
   },
   "editLayout": {
@@ -372,6 +384,7 @@
     "savedMissing_other": "Saved with {{count}} missing references: {{refs}}",
     "saved": "Saved.",
     "confirmDelete": "Delete Quick Preset {{slot}}? Underlying Layouts are NOT removed.",
+    "confirmDeleteTitle": "Delete Quick Preset?",
     "deleted": "Quick Preset {{slot}} deleted."
   },
   "layoutPreview": {

@@ -9,6 +9,7 @@ import {
   parsePresetIntoCellsMulti,
 } from "../../services/layoutBuilder";
 import { exportLayoutAsFile, parseImportedLayout } from "../../services/layoutsIO";
+import { useConfirm, usePrompt } from "../common/ConfirmDialog";
 
 /**
  * LayoutsPane
@@ -49,6 +50,8 @@ type Toast = { kind: "ok" | "err"; msg: string };
 
 export default function LayoutsPane() {
   const { t } = useTranslation();
+  const confirm = useConfirm();
+  const prompt = usePrompt();
   const {
     monitors, replaceGridMulti,
     assignmentsByMonitor, assignedCountTotal,
@@ -292,7 +295,7 @@ export default function LayoutsPane() {
     }
     const takenSlots = (layouts ?? []).filter(l => l.preset.kind === "general").map(l => l.preset.slot);
     const suggested = nextFreeSlot(takenSlots, "general");
-    const input = window.prompt(t("layouts.slotPrompt", { suggested }), suggested);
+    const input = await prompt({ title: t("layouts.slotPromptTitle"), body: t("layouts.slotPrompt", { suggested }), defaultValue: suggested });
     if (input == null) return; // user cancelled
     const slot = input.trim().toUpperCase();
     if (!/^[A-Z]$/.test(slot)) {
@@ -300,7 +303,7 @@ export default function LayoutsPane() {
       return;
     }
     if (takenSlots.map(s => s.toUpperCase()).includes(slot)) {
-      if (!confirm(t("layouts.slotExists", { slot }))) return;
+      if (!(await confirm({ title: t("layouts.overwriteTitle"), body: t("layouts.slotExists", { slot }), danger: true }))) return;
     }
     setSavingNew(true);
     try {
@@ -334,7 +337,7 @@ export default function LayoutsPane() {
   };
 
   const onDelete = async (m: LayoutCardModel) => {
-    if (!confirm(t("layouts.deleteConfirm", { name: m.name, path: m.preset.path }))) return;
+    if (!(await confirm({ title: t("layouts.deleteTitle"), body: t("layouts.deleteConfirm", { name: m.name, path: m.preset.path }), danger: true }))) return;
     setBusyId(m.id);
     try {
       await api.presetsDelete(m.preset.kind, m.preset.slot);
@@ -400,10 +403,11 @@ export default function LayoutsPane() {
     const suggested = sameKindSlots.includes(originalSlot)
       ? nextFreeSlot(sameKindSlots, parsed.preset.kind)
       : originalSlot;
-    const input = window.prompt(
-      t("layouts.importPrompt", { file: file.name, suggested }),
-      suggested,
-    );
+    const input = await prompt({
+      title: t("layouts.importPromptTitle"),
+      body: t("layouts.importPrompt", { file: file.name, suggested }),
+      defaultValue: suggested,
+    });
     if (input == null) return; // cancelled
     const slot = input.trim().toUpperCase();
     if (!/^[A-Z]$/.test(slot)) {
@@ -411,7 +415,7 @@ export default function LayoutsPane() {
       return;
     }
     if (sameKindSlots.includes(slot)) {
-      if (!confirm(t("layouts.slotExists", { slot }))) return;
+      if (!(await confirm({ title: t("layouts.overwriteTitle"), body: t("layouts.slotExists", { slot }), danger: true }))) return;
     }
 
     try {

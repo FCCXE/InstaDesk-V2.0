@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useConfirm } from "../common/ConfirmDialog";
 
 export type MonitorId = "M1" | "M2" | "M3" | "M4";
 
@@ -24,6 +25,7 @@ export default function EditLayoutDrawer({
   onClose,
 }: EditLayoutDrawerProps) {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const [name, setName] = useState("");
   const [monitors, setMonitors] = useState<MonitorId[]>([]);
   const [notes, setNotes] = useState("");
@@ -64,8 +66,8 @@ export default function EditLayoutDrawer({
     });
   }
 
-  function handleCancel() {
-    if (touched && !window.confirm(t("editLayout.confirmDiscard"))) return;
+  async function handleCancel() {
+    if (touched && !(await confirm({ title: t("editLayout.confirmDiscard"), danger: true }))) return;
     onClose();
   }
 

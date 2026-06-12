@@ -7,6 +7,7 @@ import {
   type QuickPresetListItem,
   type SavedQuickPreset,
 } from '../../services/api'
+import { useConfirm } from '../common/ConfirmDialog'
 
 type EditMode =
   | { mode: 'list' }
@@ -21,6 +22,7 @@ function dispatchChanged() {
 
 export default function QuickPresetsManager({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()
+  const confirm = useConfirm()
   const [qps, setQps] = useState<QuickPresetListItem[] | null>(null)
   const [layouts, setLayouts] = useState<PresetListItem[] | null>(null)
   const [view, setView] = useState<EditMode>({ mode: 'list' })
@@ -110,7 +112,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
   }
 
   const onDelete = async (slot: string) => {
-    if (!window.confirm(t('quickPresets.confirmDelete', { slot }))) return
+    if (!(await confirm({ title: t('quickPresets.confirmDeleteTitle'), body: t('quickPresets.confirmDelete', { slot }), danger: true }))) return
     setErr(null); setInfo(null); setBusy(true)
     try {
       await api.quickPresetsDelete(slot)

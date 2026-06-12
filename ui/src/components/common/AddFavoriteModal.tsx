@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { addFavorite, seedEmoji, type Favorite } from "../../services/FavoritesService";
 import { api, inTauri, type BrowseEntry } from "../../services/api";
+import { useConfirm } from "./ConfirmDialog";
 
 function inferTitle(p: string): string {
   const base = p.replace(/\\/g, "/").split("/").pop() || "Custom App";
@@ -18,6 +19,7 @@ export default function AddFavoriteModal({
   onAdded: (fav: Favorite) => void;
 }) {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const [tab, setTab] = useState<"url" | "app">("url");
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
@@ -130,7 +132,7 @@ export default function AddFavoriteModal({
           return;
         }
         if (!/\.(exe|lnk|bat|cmd)$/i.test(p)) {
-          const proceed = confirm(t("addFavorite.confirmExt"));
+          const proceed = await confirm({ title: t("addFavorite.confirmExtTitle"), body: t("addFavorite.confirmExt") });
           if (!proceed) return;
         }
         const fav = addFavorite({ kind: "app", title: ttl, pathOrUrl: p, icon: seedEmoji(ttl) });
