@@ -9,6 +9,7 @@ import SettingsPane from "./settings/SettingsPane";
 import { useAppState } from "../state/AppState";
 
 /* App catalog — used to surface the default args hint under the per-cell override input */
+import { api } from "../services/api";
 import { APP_CATALOG } from "../services/appsCatalog";
 
 /* Favorites + History services (persisted storage) */
@@ -1037,8 +1038,8 @@ function HelpPane() {
   const [openId, setOpenId] = useState<string | null>("quickStart");
   const [manualErr, setManualErr] = useState<string | null>(null);
   const openManual = () => {
-    // Native open in the desktop app (window.open is blocked in the webview);
-    // new tab in web preview. Surface any failure so it isn't silent.
+    // Opens the language-matched PDF in the OS default viewer (native command);
+    // surfaces any failure inline so it isn't silent.
     setManualErr(null);
     api.openManual(i18n.language ?? "en").catch((e) => {
       setManualErr(String((e as Error)?.message ?? e));
