@@ -1,0 +1,191 @@
+<!doctype html>
+<!--
+  InstaDesk — User Manual (English) · SOURCE.
+  This HTML is the version-controlled source for the downloadable PDF.
+  Build it to PDF with:  node docs/manual/build-manual.mjs
+  Screenshots: replace each <div class="shot" data-shot="..."> placeholder with
+  <img class="shot" src="img/<name>.png" alt="..."> once captured (see img/README.md).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>InstaDesk — User Manual</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  :root {
+    --fg: #16202e; --muted: #5b6675; --line: #d9dee6;
+    --accent: #199cff; --raised: #f4f7fb;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font: 11pt/1.55 -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--fg); margin: 0;
+  }
+  h1, h2, h3 { line-height: 1.2; color: #0d1622; }
+  h2 { font-size: 19pt; margin: 0 0 4mm; padding-bottom: 2mm; border-bottom: 2px solid var(--accent); break-before: page; }
+  h2:first-of-type { break-before: avoid; }
+  h3 { font-size: 13pt; margin: 7mm 0 2mm; color: #103a5e; }
+  p { margin: 0 0 3mm; }
+  a { color: var(--accent); text-decoration: none; }
+  ol, ul { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin: 0 0 1.5mm; }
+  code, kbd { font-family: "Cascadia Code", Consolas, monospace; font-size: 9.5pt; background: var(--raised); border: 1px solid var(--line); border-radius: 3px; padding: 0 1mm; }
+  .lead { font-size: 12pt; color: #33445a; }
+  .note { background: var(--raised); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 4px; padding: 3mm 4mm; margin: 0 0 4mm; }
+  .note b { color: #0d1622; }
+  .shot { display: block; width: 100%; min-height: 38mm; margin: 3mm 0 2mm; border: 1.5px dashed #9fb2c8; border-radius: 6px; background: repeating-linear-gradient(45deg, #f7fafd, #f7fafd 6px, #eef3f9 6px, #eef3f9 12px); color: #5b6675; font-size: 9.5pt; display: flex; align-items: center; justify-content: center; text-align: center; padding: 6mm; }
+  figure { margin: 0 0 4mm; break-inside: avoid; }
+  figcaption { font-size: 9pt; color: var(--muted); margin-top: 1.5mm; text-align: center; }
+  /* Cover */
+  .cover { break-after: page; padding-top: 40mm; text-align: center; }
+  .cover .logo { font-size: 30pt; font-weight: 800; letter-spacing: -0.5pt; color: #0d1622; }
+  .cover .logo span { color: var(--accent); }
+  .cover .sub { font-size: 14pt; color: #33445a; margin-top: 4mm; }
+  .cover .meta { margin-top: 30mm; font-size: 10pt; color: var(--muted); }
+  /* TOC */
+  .toc { break-after: page; }
+  .toc h2 { break-before: avoid; }
+  .toc ol { list-style: none; padding: 0; }
+  .toc > ol > li { margin: 0 0 2mm; font-weight: 600; }
+  .toc a { color: #16202e; }
+  .toc .num { color: var(--accent); display: inline-block; width: 9mm; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="logo">Insta<span>Desk</span></div>
+  <div class="sub">Multi-monitor launcher &amp; window-tiling — User Manual</div>
+  <div class="meta">FcXe Studios · v0.1 · English</div>
+</section>
+
+<nav class="toc">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#intro"><span class="num">1</span> What is InstaDesk?</a></li>
+    <li><a href="#concepts"><span class="num">2</span> Core concepts</a></li>
+    <li><a href="#tour"><span class="num">3</span> The interface, at a glance</a></li>
+    <li><a href="#quickstart"><span class="num">4</span> Quick start: your first layout</a></li>
+    <li><a href="#grid"><span class="num">5</span> The grid &amp; assigning apps</a></li>
+    <li><a href="#apps"><span class="num">6</span> Apps, URLs &amp; Favorites</a></li>
+    <li><a href="#layouts"><span class="num">7</span> Layouts</a></li>
+    <li><a href="#quickpresets"><span class="num">8</span> Quick Presets</a></li>
+    <li><a href="#snap"><span class="num">9</span> Snap</a></li>
+    <li><a href="#settings"><span class="num">10</span> Monitors &amp; Settings</a></li>
+    <li><a href="#troubleshooting"><span class="num">11</span> Tips &amp; troubleshooting</a></li>
+  </ol>
+</nav>
+
+<h2 id="intro">1 · What is InstaDesk?</h2>
+<p class="lead">InstaDesk turns the tedious morning ritual — opening the same apps and dragging every window into place across several monitors — into a single click.</p>
+<p>You arrange apps on a visual grid for each monitor, save that arrangement as a <b>Layout</b>, and from then on one <b>Apply</b> launches every app and tiles it exactly where you put it. You can keep many layouts (work, design, trading, streaming…), bundle several into a <b>Quick Preset</b>, or ad-hoc <b>Snap</b> a single window into place.</p>
+<div class="note"><b>Is it hard?</b> No — the learning curve is quick. But InstaDesk is a power tool with real depth (per-monitor grids, custom launch arguments, browser tab groups). This manual walks every feature; the in-app <b>Help</b> tab is the short version.</div>
+
+<h2 id="concepts">2 · Core concepts</h2>
+<p>Five ideas are all you need:</p>
+<h3>Monitor</h3>
+<p>You arrange one display at a time. The <b>Monitor</b> selector (left panel) chooses which; the <b>Display Array</b> shows how your screens are physically laid out.</p>
+<h3>Grid &amp; cells</h3>
+<p>Each monitor is divided into a grid of <b>cells</b> (e.g. 6×6). You can set a different grid density per monitor.</p>
+<h3>Region</h3>
+<p>A rectangular block of cells you assign one app to. A region can be a single cell or a wide band — for example the left half of a monitor.</p>
+<h3>Layout</h3>
+<p>A saved set of regions across all your monitors — the heart of InstaDesk. Apply it to launch and tile everything.</p>
+<h3>Quick Preset</h3>
+<p>A bundle of several Layouts you apply together in one click.</p>
+
+<h2 id="tour">3 · The interface, at a glance</h2>
+<div class="shot" data-shot="overview">[ Screenshot: the full InstaDesk window — left panel, centre grid, right panel, bottom bar ]</div>
+<ul>
+  <li><b>Left panel</b> — Quick Presets, the Monitor selector, and the Display Array.</li>
+  <li><b>Centre</b> — the workspace grid for the selected monitor, where you select cells and see assignments.</li>
+  <li><b>Right panel</b> — tabs for <b>Apps</b>, <b>Layouts</b>, <b>Settings</b>, and <b>Help</b>.</li>
+  <li><b>Bottom bar</b> — <b>Snap</b>, <b>Clear Present Grid</b>, <b>Clear All Grids</b>, and the per-monitor <b>Grid</b> size.</li>
+</ul>
+
+<h2 id="quickstart">4 · Quick start: your first layout</h2>
+<ol>
+  <li>Pick a monitor in the left panel.</li>
+  <li>In the centre grid, <b>drag across cells</b> to select a region (say, the left half).</li>
+  <li>Open the <b>Apps</b> tab, choose an app (e.g. Chrome), and click <b>Assign to Selection</b>.</li>
+  <li>Select another region and assign a second app. Repeat for other monitors via the Monitor selector.</li>
+  <li>Open the <b>Layouts</b> tab → <b>+ New Layout</b>, pick a slot letter, and save.</li>
+  <li>Click <b>Apply</b> on the layout card — InstaDesk launches each app and tiles it into place.</li>
+</ol>
+<div class="shot" data-shot="quickstart-assign">[ Screenshot: cells selected on the grid with the Apps tab open and "Assign to Selection" highlighted ]</div>
+
+<h2 id="grid">5 · The grid &amp; assigning apps</h2>
+<h3>Selecting &amp; assigning</h3>
+<p>Drag across cells to select a rectangular region, then click <b>Assign to Selection</b> in the Apps tab. Use <b>Unassign Selection</b> to clear it. Regions must be rectangles.</p>
+<h3>Grid size (per monitor)</h3>
+<p>The <b>Grid</b> selector in the bottom bar sets the density of the <i>current</i> monitor — 6×6 for broad zones, 10×10 for fine control. Each monitor remembers its own size. Changing it on a monitor that already has apps asks for confirmation, since it re-shapes that grid.</p>
+<h3>Custom launch arguments</h3>
+<p>Give a cell its own launch arguments in the Apps tab — for example a folder path for File Explorer, so two regions open two <i>different</i> folders of the same app. This is how you place several distinct windows of one program.</p>
+<div class="shot" data-shot="grid-args">[ Screenshot: the per-cell arguments field in the Apps tab ]</div>
+<h3>Clearing</h3>
+<p><b>Clear Present Grid</b> empties the current monitor; <b>Clear All Grids</b> empties every monitor (with a confirmation). Saved Layouts are never affected by clearing.</p>
+
+<h2 id="apps">6 · Apps, URLs &amp; Favorites</h2>
+<p>The right-panel <b>Apps</b> tab has three sub-tabs.</p>
+<h3>Apps</h3>
+<p>Pick from the built-in catalog, or click <b>Browse…</b> to add any program's <code>.exe</code>. Added programs are remembered in <b>App History</b> for reuse.</p>
+<h3>URLs — the URL Builder</h3>
+<p>Build a group of browser tabs that open together in their own window:</p>
+<ol>
+  <li>Choose a <b>Browser</b>. Click <b>+ Add Browser</b> to pick from the browsers detected on your PC, or browse for a browser's <code>.exe</code>.</li>
+  <li>Add a <b>Tab Group</b>, give it a title, and add the URLs.</li>
+  <li>Set the <b>open behavior</b> (one window, per group, or per URL) and <b>Save</b>. The group then behaves like any app you can assign to the grid.</li>
+</ol>
+<div class="shot" data-shot="url-builder">[ Screenshot: the URL Builder with a browser chosen and a tab group of URLs ]</div>
+<h3>Favorites</h3>
+<p>Keep your most-used apps and URLs one click away.</p>
+
+<h2 id="layouts">7 · Layouts</h2>
+<p>A Layout stores which apps go where, across <i>all</i> your monitors.</p>
+<ul>
+  <li><b>Apply</b> — launches and tiles everything in the layout.</li>
+  <li><b>Edit</b> — reopens the layout on the grid so you can rearrange and re-save.</li>
+  <li><b>Export / Import</b> — share a layout as a <code>.json</code> file.</li>
+</ul>
+<div class="note">If a saved app has no program or URL configured, only that one app is skipped on save (with a warning) — the rest of the layout still saves normally.</div>
+<div class="shot" data-shot="layouts">[ Screenshot: the Layouts tab with several layout cards and Apply/Edit/Export/Delete ]</div>
+
+<h2 id="quickpresets">8 · Quick Presets</h2>
+<p>A Quick Preset bundles several Layouts so you can apply them all together with one click — ideal for a full multi-monitor workspace assembled from reusable pieces.</p>
+<ol>
+  <li>Click <b>Manage QPs</b> in the left panel.</li>
+  <li>Create a preset and add the Layouts it should include.</li>
+  <li>Back on the main screen, pick the Quick Preset and click <b>Apply</b>.</li>
+</ol>
+
+<h2 id="snap">9 · Snap</h2>
+<p>Snap places a <i>single, already-open</i> window into a region — no Layout required.</p>
+<ol>
+  <li>Click <b>Snap → M1</b> in the bottom bar (the number is the active monitor).</li>
+  <li>A grid popup appears on that monitor.</li>
+  <li>Click a region; the window you last used snaps into it.</li>
+</ol>
+<div class="note">Some apps enforce their own position (certain CCTV / video tools) and may refuse to be moved.</div>
+
+<h2 id="settings">10 · Monitors &amp; Settings</h2>
+<p>Use the <b>Monitor</b> selector to switch which display you're arranging; the <b>Display Array</b> shows their physical layout. The <b>Settings</b> tab offers:</p>
+<ul>
+  <li><b>Theme</b> — Light, Dark, or System.</li>
+  <li><b>Language</b> — English or Español.</li>
+  <li><b>Default grid size</b> — the size new/cleared monitors start at.</li>
+  <li><b>Window margin</b> — a bezel-aware gap so tiled windows don't sit under your monitor frames.</li>
+</ul>
+<div class="shot" data-shot="settings">[ Screenshot: the Settings tab — theme, language, default grid, margin ]</div>
+
+<h2 id="troubleshooting">11 · Tips &amp; troubleshooting</h2>
+<ul>
+  <li><b>An app won't tile.</b> Some apps (certain CCTV / video tools) place their own windows. Close and relaunch them, or leave them out of the layout.</li>
+  <li><b>Only one window opens.</b> Single-instance apps (e.g. Outlook, Teams) open just one window; assigning them to several cells won't create copies.</li>
+  <li><b>A shortcut won't launch.</b> Windows shortcuts (<code>.lnk</code>) can't be launched directly — point to the real <code>.exe</code> in the Apps tab instead.</li>
+  <li><b>An app fails to launch.</b> Check its path in the Apps tab and use <b>Browse…</b> to correct it.</li>
+  <li><b>My added browser disappeared / opened the wrong browser.</b> Use <b>+ Add Browser</b> and pick a detected browser (or browse to its <code>.exe</code>) so InstaDesk has its real program path.</li>
+</ul>
+
+</body>
+</html>

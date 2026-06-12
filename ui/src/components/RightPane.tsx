@@ -1033,8 +1033,13 @@ const HELP_SECTIONS = [
 ] as const;
 
 function HelpPane() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [openId, setOpenId] = useState<string | null>("quickStart");
+  const openManual = () => {
+    const lang = i18n.language?.toLowerCase().startsWith("es") ? "ES" : "EN";
+    // Served from ui/public/manual; bundled as an app resource in Step 2.4.
+    window.open(`manual/InstaDesk-Manual-${lang}.pdf`, "_blank");
+  };
   return (
     <div className="flex h-full flex-col overflow-hidden p-3">
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-line bg-surface">
@@ -1067,6 +1072,21 @@ function HelpPane() {
                 </div>
               );
             })}
+          </div>
+          <div className="mt-3 rounded-xl border border-line bg-raised p-3">
+            <div className="flex items-start gap-2">
+              <span className="text-base leading-none" aria-hidden>📖</span>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs text-muted">{t("help.manualNote")}</div>
+                <button
+                  type="button"
+                  onClick={openManual}
+                  className="mt-2 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 dark:text-sky-300"
+                >
+                  {t("help.openManual")}
+                </button>
+              </div>
+            </div>
           </div>
           <div className="mt-3 px-1 text-[10px] text-muted">{t("help.version")}</div>
         </div>

@@ -218,6 +218,8 @@
     "title": "Help",
     "subtitle": "How InstaDesk works — a quick reference.",
     "version": "InstaDesk v0.1 — FcXe Studios",
+    "manualNote": "Prefer a full illustrated guide? Open the complete PDF manual, with step-by-step screenshots.",
+    "openManual": "Open manual (PDF)",
     "sections": {
       "quickStart": {
         "title": "Quick start",
