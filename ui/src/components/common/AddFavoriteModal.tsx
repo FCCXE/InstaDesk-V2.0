@@ -1,24 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { addFavorite, seedEmoji, type Favorite } from "../../services/FavoritesService";
-import { api, type BrowseEntry } from "../../services/api";
-
-/** Tauri-aware dynamic loader that is safe in web preview (Vite). When
- *  available (Tauri build), prefer the OS-native picker. Otherwise the
- *  in-app server-driven file browser takes over. */
-type OpenDialogFn = (opts?: any) => Promise<string | string[] | null>;
-async function loadTauriOpen(): Promise<OpenDialogFn | null> {
-  const isTauri = typeof window !== "undefined" && (window as any).__TAURI__ != null;
-  if (!isTauri) return null;
-  try {
-    const base = "@tauri-apps/api";
-    const mod: any = await import(/* @vite-ignore */ (base + "/dialog"));
-    return (mod?.open ?? null) as OpenDialogFn | null;
-  } catch {
-    const globalOpen = (window as any).__TAURI__?.dialog?.open;
-    return typeof globalOpen === "function" ? (globalOpen as OpenDialogFn) : null;
-  }
-}
+import { api, inTauri, type BrowseEntry } from "../../services/api";
 
 function inferTitle(p: string): string {
   const base = p.replace(/\\/g, "/").split("/").pop() || "Custom App";
@@ -164,23 +147,15 @@ export default function AddFavoriteModal({
 
   const onBrowse = async () => {
     setErr(null);
-    const openFn = await loadTauriOpen();
-    if (openFn) {
-      const picked = await openFn({
-        title: "Select an application",
-        multiple: false,
-        directory: false,
-        filters: [
-          { name: "Executables", extensions: ["exe", "lnk", "bat", "cmd"] },
-          { name: "All files", extensions: ["*"] },
-        ],
-      });
-      if (!picked || Array.isArray(picked)) return;
-      const p = String(picked);
-      setPath(p);
-      if (!title.trim()) setTitle(inferTitle(p));
+    if (inTauri()) {
+      // Desktop — native OS file picker (rfd via pick_exe).
+      const picked = await api.pickExe(t("browseApp.pickerTitle"), ["exe", "lnk", "bat", "cmd"]);
+      if (!picked) return; // cancelled
+      setPath(picked);
+      if (!title.trim()) setTitle(inferTitle(picked));
       return;
     }
+    // Web/dev — in-app server-driven file browser.
     setBrowseOpen(true);
   };
 
