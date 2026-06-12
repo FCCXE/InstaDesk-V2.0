@@ -34,7 +34,7 @@
   .lead { font-size: 12pt; color: #33445a; }
   .note { background: var(--raised); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 4px; padding: 3mm 4mm; margin: 0 0 4mm; }
   .note b { color: #0d1622; }
-  .shot { display: block; width: 100%; min-height: 38mm; margin: 3mm 0 2mm; border: 1.5px dashed #9fb2c8; border-radius: 6px; background: repeating-linear-gradient(45deg, #f7fafd, #f7fafd 6px, #eef3f9 6px, #eef3f9 12px); color: #5b6675; font-size: 9.5pt; display: flex; align-items: center; justify-content: center; text-align: center; padding: 6mm; }
+  .shot { display: block; width: 100%; height: auto; margin: 3mm 0 4mm; border: 1px solid var(--line); border-radius: 6px; break-inside: avoid; }
   figure { margin: 0 0 4mm; break-inside: avoid; }
   figcaption { font-size: 9pt; color: var(--muted); margin-top: 1.5mm; text-align: center; }
   /* Cover */
@@ -96,7 +96,7 @@
 <p>A bundle of several Layouts you apply together in one click.</p>
 
 <h2 id="tour">3 · The interface, at a glance</h2>
-<div class="shot" data-shot="overview">[ Screenshot: the full InstaDesk window — left panel, centre grid, right panel, bottom bar ]</div>
+<img class="shot" src="img/overview.png" alt="InstaDesk screenshot: overview" />
 <ul>
   <li><b>Left panel</b> — Quick Presets, the Monitor selector, and the Display Array.</li>
   <li><b>Centre</b> — the workspace grid for the selected monitor, where you select cells and see assignments.</li>
@@ -113,7 +113,7 @@
   <li>Open the <b>Layouts</b> tab → <b>+ New Layout</b>, pick a slot letter, and save.</li>
   <li>Click <b>Apply</b> on the layout card — InstaDesk launches each app and tiles it into place.</li>
 </ol>
-<div class="shot" data-shot="quickstart-assign">[ Screenshot: cells selected on the grid with the Apps tab open and "Assign to Selection" highlighted ]</div>
+<img class="shot" src="img/quickstart-assign.png" alt="InstaDesk screenshot: quickstart-assign" />
 
 <h2 id="grid">5 · The grid &amp; assigning apps</h2>
 <h3>Selecting &amp; assigning</h3>
@@ -122,7 +122,7 @@
 <p>The <b>Grid</b> selector in the bottom bar sets the density of the <i>current</i> monitor — 6×6 for broad zones, 10×10 for fine control. Each monitor remembers its own size. Changing it on a monitor that already has apps asks for confirmation, since it re-shapes that grid.</p>
 <h3>Custom launch arguments</h3>
 <p>Give a cell its own launch arguments in the Apps tab — for example a folder path for File Explorer, so two regions open two <i>different</i> folders of the same app. This is how you place several distinct windows of one program.</p>
-<div class="shot" data-shot="grid-args">[ Screenshot: the per-cell arguments field in the Apps tab ]</div>
+<img class="shot" src="img/grid-args.png" alt="InstaDesk screenshot: grid-args" />
 <h3>Clearing</h3>
 <p><b>Clear Present Grid</b> empties the current monitor; <b>Clear All Grids</b> empties every monitor (with a confirmation). Saved Layouts are never affected by clearing.</p>
 
@@ -137,7 +137,7 @@
   <li>Add a <b>Tab Group</b>, give it a title, and add the URLs.</li>
   <li>Set the <b>open behavior</b> (one window, per group, or per URL) and <b>Save</b>. The group then behaves like any app you can assign to the grid.</li>
 </ol>
-<div class="shot" data-shot="url-builder">[ Screenshot: the URL Builder with a browser chosen and a tab group of URLs ]</div>
+<img class="shot" src="img/url-builder.png" alt="InstaDesk screenshot: url-builder" />
 <h3>Favorites</h3>
 <p>Keep your most-used apps and URLs one click away.</p>
 
@@ -149,7 +149,7 @@
   <li><b>Export / Import</b> — share a layout as a <code>.json</code> file.</li>
 </ul>
 <div class="note">If a saved app has no program or URL configured, only that one app is skipped on save (with a warning) — the rest of the layout still saves normally.</div>
-<div class="shot" data-shot="layouts">[ Screenshot: the Layouts tab with several layout cards and Apply/Edit/Export/Delete ]</div>
+<img class="shot" src="img/layouts.png" alt="InstaDesk screenshot: layouts" />
 
 <h2 id="quickpresets">8 · Quick Presets</h2>
 <p>A Quick Preset bundles several Layouts so you can apply them all together with one click — ideal for a full multi-monitor workspace assembled from reusable pieces.</p>
@@ -176,7 +176,7 @@
   <li><b>Default grid size</b> — the size new/cleared monitors start at.</li>
   <li><b>Window margin</b> — a bezel-aware gap so tiled windows don't sit under your monitor frames.</li>
 </ul>
-<div class="shot" data-shot="settings">[ Screenshot: the Settings tab — theme, language, default grid, margin ]</div>
+<img class="shot" src="img/settings.png" alt="InstaDesk screenshot: settings" />
 
 <h2 id="troubleshooting">11 · Tips &amp; troubleshooting</h2>
 <ul>
