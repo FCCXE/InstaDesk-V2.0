@@ -285,4 +285,14 @@ export const api = {
   // where there's no native dialog — callers fall back accordingly).
   pickExe: (title?: string, extensions?: string[]): Promise<string | null> =>
     inTauri() ? invoke<string | null>('pick_exe', { title, extensions }) : Promise.resolve(null),
+
+  // Open the language-matched PDF manual. In the desktop app `window.open` is
+  // blocked, so open it natively (OS default PDF viewer); in web preview fall
+  // back to a new tab.
+  openManual: (lang: string): Promise<void> => {
+    if (inTauri()) return invoke<void>('open_manual', { lang })
+    const code = lang.toLowerCase().startsWith('es') ? 'ES' : 'EN'
+    window.open(`/manual/InstaDesk-Manual-${code}.pdf`, '_blank')
+    return Promise.resolve()
+  },
 }

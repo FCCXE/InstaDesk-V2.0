@@ -23,6 +23,7 @@ pub fn run() {
       backend::snap_popup,
       backend::list_browsers,
       backend::pick_exe,
+      backend::open_manual,
     ])
     // Single-instance must be registered FIRST: a second launch of InstaDesk
     // focuses the already-running window instead of spawning another copy.

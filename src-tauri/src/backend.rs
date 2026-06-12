@@ -1102,6 +1102,52 @@ pub fn pick_exe(title: Option<String>, extensions: Option<Vec<String>>) -> Optio
         .map(|p| p.to_string_lossy().into_owned())
 }
 
+/// Open the bundled PDF user manual (language-matched) in the OS default PDF
+/// viewer. `window.open` is blocked in the desktop webview, so the UI calls this
+/// instead. Dev resolves the manual by walking up from the exe to
+/// `ui/public/manual/`; Step 2.4 will swap that for the bundled resource dir.
+#[tauri::command]
+pub fn open_manual(lang: String) -> Result<(), String> {
+    let l = if lang.to_lowercase().starts_with("es") { "ES" } else { "EN" };
+    let file = format!("InstaDesk-Manual-{}.pdf", l);
+    let path = manual_path(&file).ok_or_else(|| format!("Manual not found: {file}"))?;
+    open_with_default(&path)
+}
+
+fn manual_path(file: &str) -> Option<PathBuf> {
+    if let Ok(dir) = std::env::var("INSTADESK_MANUAL_DIR") {
+        let p = PathBuf::from(dir).join(file);
+        if p.exists() {
+            return Some(p);
+        }
+    }
+    let exe = std::env::current_exe().ok()?;
+    for anc in exe.ancestors() {
+        let p = anc.join("ui").join("public").join("manual").join(file);
+        if p.exists() {
+            return Some(p);
+        }
+    }
+    None
+}
+
+#[cfg(windows)]
+fn open_with_default(path: &Path) -> Result<(), String> {
+    // rundll32 FileProtocolHandler opens any file with its associated app —
+    // dependency-free and reliable for PDFs.
+    std::process::Command::new("rundll32.exe")
+        .arg("url.dll,FileProtocolHandler")
+        .arg(path)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
+#[cfg(not(windows))]
+fn open_with_default(_path: &Path) -> Result<(), String> {
+    Err("Opening files is only supported on Windows.".into())
+}
+
 #[cfg(windows)]
 mod browsers {
     use super::BrowserInfo;

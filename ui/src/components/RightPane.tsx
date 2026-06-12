@@ -1036,9 +1036,9 @@ function HelpPane() {
   const { t, i18n } = useTranslation();
   const [openId, setOpenId] = useState<string | null>("quickStart");
   const openManual = () => {
-    const lang = i18n.language?.toLowerCase().startsWith("es") ? "ES" : "EN";
-    // Served from ui/public/manual; bundled as an app resource in Step 2.4.
-    window.open(`manual/InstaDesk-Manual-${lang}.pdf`, "_blank");
+    // Native open in the desktop app (window.open is blocked in the webview);
+    // new tab in web preview. See api.openManual.
+    void api.openManual(i18n.language ?? "en");
   };
   return (
     <div className="flex h-full flex-col overflow-hidden p-3">
