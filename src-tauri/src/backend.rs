@@ -73,3 +73,31 @@ pub fn health() -> HealthResponse {
         data_dir: data_dir.to_string_lossy().into_owned(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn health_reports_ok_and_resolves_paths() {
+        let h = health();
+        assert!(h.ok);
+        assert!(h.mode == "dll");
+        assert_eq!(h.timeout_sec, 45);
+        assert!(!h.agent_path.is_empty(), "agent path should resolve");
+        assert!(!h.data_dir.is_empty(), "data dir should resolve");
+        // In this dev tree the WinAgent DLL exists under the outer repo, so the
+        // walk-up resolution should locate it (mirrors the Python server).
+        assert!(
+            h.agent_exists,
+            "agent dll should be found — resolved to: {}",
+            h.agent_path
+        );
+        // serde must emit camelCase keys matching the TS HealthResponse.
+        let json = serde_json::to_string(&h).unwrap();
+        assert!(json.contains("\"agentPath\""));
+        assert!(json.contains("\"agentExists\""));
+        assert!(json.contains("\"timeoutSec\""));
+        assert!(json.contains("\"dataDir\""));
+    }
+}
