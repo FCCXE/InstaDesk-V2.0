@@ -108,6 +108,9 @@ export type ApiMonitor = {
 
 export type MonitorsResponse = { ok: boolean; monitors: ApiMonitor[] }
 
+// An installed browser detected on the machine (URL Builder "Add Browser").
+export type BrowserInfo = { name: string; path: string }
+
 // ---- Quick Presets ---------------------------------------------------------
 // A Quick Preset is an ordered bundle of saved Layouts (general/single).
 // Apply runs them sequentially on the server (one /presets/run per layout).
@@ -271,4 +274,9 @@ export const api = {
       stdout: string
       stderr: string
     }>('POST', '/snap/popup', { monitor, gridSize, marginPx }),
+
+  // Installed-browser detection. Native (registry) in the desktop shell; in the
+  // web preview there's no detection, so return [] (UI falls back to defaults).
+  listBrowsers: (): Promise<BrowserInfo[]> =>
+    inTauri() ? invoke<BrowserInfo[]>('list_browsers') : Promise.resolve([]),
 }

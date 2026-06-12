@@ -34,3 +34,5 @@ tauri-plugin-window-state = "2"
 # transitive windows dep, so no duplicate version is pulled.
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Accessibility", "Win32_UI_WindowsAndMessaging"] }
+# Installed-browser detection (URL Builder picker) — reads StartMenuInternet.
+winreg = "0.52"

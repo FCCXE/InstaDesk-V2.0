@@ -1015,9 +1015,128 @@ mod foreground {
     }
 }
 
+/// One installed browser: a friendly name + the real executable path. Serialized
+/// camelCase to match the TS `BrowserInfo` the URL-Builder picker consumes.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BrowserInfo {
+    pub name: String,
+    pub path: String,
+}
+
+/// List the browsers actually installed on this machine. Reads the Windows
+/// registry `SOFTWARE\Clients\StartMenuInternet` (HKLM + HKCU) — the canonical
+/// registered-browser list — resolving each to its real exe. Feeds the URL
+/// Builder "Add Browser" picker so users pick a browser that exists (and that
+/// URL groups can truly launch) instead of typing a label. Empty on non-Windows.
+#[tauri::command]
+pub fn list_browsers() -> Vec<BrowserInfo> {
+    #[cfg(windows)]
+    {
+        browsers::detect()
+    }
+    #[cfg(not(windows))]
+    {
+        Vec::new()
+    }
+}
+
+#[cfg(windows)]
+mod browsers {
+    use super::BrowserInfo;
+    use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
+    use winreg::RegKey;
+
+    // Extract the exe from a `shell\open\command` string — typically a quoted
+    // path, optionally followed by args: `"C:\...\chrome.exe" -- "%1"`.
+    pub(crate) fn exe_from_command(cmd: &str) -> Option<String> {
+        let cmd = cmd.trim();
+        if cmd.is_empty() {
+            return None;
+        }
+        let path = if let Some(rest) = cmd.strip_prefix('"') {
+            rest.split('"').next().unwrap_or("").to_string() // up to closing quote
+        } else if let Some(i) = cmd.to_lowercase().find(".exe") {
+            cmd[..i + 4].to_string() // unquoted: up to and including ".exe"
+        } else {
+            cmd.split_whitespace().next().unwrap_or("").to_string()
+        };
+        let path = path.trim().to_string();
+        if path.is_empty() {
+            None
+        } else {
+            Some(path)
+        }
+    }
+
+    fn read_hive(hive: RegKey, out: &mut Vec<BrowserInfo>) {
+        let smi = match hive.open_subkey(r"SOFTWARE\Clients\StartMenuInternet") {
+            Ok(k) => k,
+            Err(_) => return,
+        };
+        for sub in smi.enum_keys().flatten() {
+            let key = match smi.open_subkey(&sub) {
+                Ok(k) => k,
+                Err(_) => continue,
+            };
+            let cmd: String = match key
+                .open_subkey(r"shell\open\command")
+                .and_then(|c| c.get_value(""))
+            {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            let path = match exe_from_command(&cmd) {
+                Some(p) => p,
+                None => continue,
+            };
+            // Friendly name: subkey default value → Capabilities\ApplicationName
+            // → the registry key id as a last resort.
+            let name: String = key
+                .get_value::<String, _>("")
+                .ok()
+                .filter(|s| !s.trim().is_empty())
+                .or_else(|| {
+                    key.open_subkey("Capabilities")
+                        .ok()
+                        .and_then(|c| c.get_value::<String, _>("ApplicationName").ok())
+                })
+                .filter(|s| !s.trim().is_empty())
+                .unwrap_or_else(|| sub.clone());
+            out.push(BrowserInfo { name, path });
+        }
+    }
+
+    pub fn detect() -> Vec<BrowserInfo> {
+        let mut out: Vec<BrowserInfo> = Vec::new();
+        read_hive(RegKey::predef(HKEY_LOCAL_MACHINE), &mut out);
+        read_hive(RegKey::predef(HKEY_CURRENT_USER), &mut out);
+        // HKLM + HKCU often list the same browser — dedupe by exe path.
+        let mut seen = std::collections::HashSet::new();
+        out.retain(|b| seen.insert(b.path.to_lowercase()));
+        out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+        out
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(windows)]
+    #[test]
+    fn exe_from_command_parses_quoted_and_bare() {
+        use super::browsers::exe_from_command;
+        assert_eq!(
+            exe_from_command(r#""C:\Program Files\Google\Chrome\Application\chrome.exe" -- "%1""#),
+            Some(r"C:\Program Files\Google\Chrome\Application\chrome.exe".to_string())
+        );
+        assert_eq!(
+            exe_from_command(r"C:\Windows\System32\notepad.exe /arg"),
+            Some(r"C:\Windows\System32\notepad.exe".to_string())
+        );
+        assert_eq!(exe_from_command("   "), None);
+    }
 
     #[test]
     fn health_reports_ok_and_resolves_paths() {
