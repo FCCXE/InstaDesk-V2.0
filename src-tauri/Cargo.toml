@@ -25,6 +25,8 @@ tokio = { version = "1", features = ["process", "time"] }
 tempfile = "3"
 futures = "0.3"
 log = "0.4"
+# Native file-open dialog (Browse-for-.exe in the browser picker). Cross-platform.
+rfd = "0.15"
 tauri = { version = "2.11.2", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-single-instance = "2"

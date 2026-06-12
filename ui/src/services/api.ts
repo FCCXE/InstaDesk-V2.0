@@ -279,4 +279,9 @@ export const api = {
   // web preview there's no detection, so return [] (UI falls back to defaults).
   listBrowsers: (): Promise<BrowserInfo[]> =>
     inTauri() ? invoke<BrowserInfo[]>('list_browsers') : Promise.resolve([]),
+
+  // Native "pick a .exe" dialog (browser picker fallback). Returns the chosen
+  // path or null (cancelled / web preview where there's no native dialog).
+  pickExe: (): Promise<string | null> =>
+    inTauri() ? invoke<string | null>('pick_exe') : Promise.resolve(null),
 }

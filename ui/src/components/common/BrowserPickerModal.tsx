@@ -8,22 +8,6 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, type BrowserInfo } from '../../services/api'
 
-// Mirror BrowseAppModal's loader so the "Browse for .exe" fallback uses the same
-// native file dialog (no-op outside Tauri / if the dialog plugin is unavailable).
-type OpenDialogFn = (opts?: any) => Promise<string | string[] | null>
-async function loadTauriOpen(): Promise<OpenDialogFn | null> {
-  const isTauri = typeof window !== 'undefined' && (window as any).__TAURI__ != null
-  if (!isTauri) return null
-  try {
-    const base = '@tauri-apps/api'
-    const mod: any = await import(/* @vite-ignore */ (base + '/dialog'))
-    return (mod?.open ?? null) as OpenDialogFn | null
-  } catch {
-    const globalOpen = (window as any).__TAURI__?.dialog?.open
-    return typeof globalOpen === 'function' ? (globalOpen as OpenDialogFn) : null
-  }
-}
-
 function inferName(p: string): string {
   const base = p.replace(/\\/g, '/').split('/').pop() || ''
   return base.replace(/\.exe$/i, '').trim() || 'Browser'
@@ -86,13 +70,7 @@ export default function BrowserPickerModal({
   }
 
   const browseForExe = async () => {
-    const openDlg = await loadTauriOpen()
-    if (!openDlg) return
-    const res = await openDlg({
-      multiple: false,
-      filters: [{ name: 'Programs', extensions: ['exe'] }],
-    })
-    const path = Array.isArray(res) ? res[0] : res
+    const path = await api.pickExe()
     if (path) pick({ name: inferName(path), path })
   }
 

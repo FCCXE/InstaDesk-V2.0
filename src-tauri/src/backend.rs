@@ -1041,6 +1041,19 @@ pub fn list_browsers() -> Vec<BrowserInfo> {
     }
 }
 
+/// Open a native "pick a program" file dialog filtered to .exe and return the
+/// chosen path (None if cancelled). Backs the browser picker's "Browse for
+/// .exe…" fallback for browsers that registry detection didn't surface. Native
+/// (rfd) so it needs no JS dialog plugin or capability wiring.
+#[tauri::command]
+pub fn pick_exe() -> Option<String> {
+    rfd::FileDialog::new()
+        .set_title("Select a browser")
+        .add_filter("Programs", &["exe"])
+        .pick_file()
+        .map(|p| p.to_string_lossy().into_owned())
+}
+
 #[cfg(windows)]
 mod browsers {
     use super::BrowserInfo;
