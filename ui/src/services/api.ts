@@ -13,7 +13,7 @@ const API_BASE: string =
   (import.meta as any)?.env?.VITE_API_BASE ?? 'http://127.0.0.1:17866'
 
 // Tauri v2 injects `__TAURI_INTERNALS__` on the window. True ⇒ desktop shell.
-function inTauri(): boolean {
+export function inTauri(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
 }
 
@@ -280,8 +280,9 @@ export const api = {
   listBrowsers: (): Promise<BrowserInfo[]> =>
     inTauri() ? invoke<BrowserInfo[]>('list_browsers') : Promise.resolve([]),
 
-  // Native "pick a .exe" dialog (browser picker fallback). Returns the chosen
-  // path or null (cancelled / web preview where there's no native dialog).
-  pickExe: (): Promise<string | null> =>
-    inTauri() ? invoke<string | null>('pick_exe') : Promise.resolve(null),
+  // Native "pick a program file" dialog. Optional title + allowed extensions
+  // (default ["exe"]). Returns the chosen path or null (cancelled / web preview
+  // where there's no native dialog — callers fall back accordingly).
+  pickExe: (title?: string, extensions?: string[]): Promise<string | null> =>
+    inTauri() ? invoke<string | null>('pick_exe', { title, extensions }) : Promise.resolve(null),
 }

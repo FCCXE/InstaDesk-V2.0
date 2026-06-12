@@ -1041,15 +1041,16 @@ pub fn list_browsers() -> Vec<BrowserInfo> {
     }
 }
 
-/// Open a native "pick a program" file dialog filtered to .exe and return the
-/// chosen path (None if cancelled). Backs the browser picker's "Browse for
-/// .exe…" fallback for browsers that registry detection didn't surface. Native
-/// (rfd) so it needs no JS dialog plugin or capability wiring.
+/// Open a native "pick a program file" dialog and return the chosen path (None
+/// if cancelled). `title` and `extensions` (default ["exe"]) are caller-supplied
+/// so both the browser picker (Browse-for-.exe) and the Apps Browse modal can
+/// share it. Native (rfd) — no JS dialog plugin or capability wiring needed.
 #[tauri::command]
-pub fn pick_exe() -> Option<String> {
+pub fn pick_exe(title: Option<String>, extensions: Option<Vec<String>>) -> Option<String> {
+    let exts = extensions.unwrap_or_else(|| vec!["exe".to_string()]);
     rfd::FileDialog::new()
-        .set_title("Select a browser")
-        .add_filter("Programs", &["exe"])
+        .set_title(title.unwrap_or_else(|| "Select a program".to_string()))
+        .add_filter("Programs", &exts)
         .pick_file()
         .map(|p| p.to_string_lossy().into_owned())
 }
