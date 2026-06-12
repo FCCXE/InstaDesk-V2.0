@@ -237,6 +237,9 @@ export default function LayoutsPane() {
         .map(([m, titles]) => `M${m}: ${titles.join(", ")}`)
         .join(" • ");
       flash({ kind: "ok", msg: t("layouts.savedChanges", { name, count: perMonitor.size, summary }) });
+      if (built.warnings.length > 0) {
+        window.setTimeout(() => flash({ kind: "err", msg: built.warnings.join(" ") }), 200);
+      }
       setEditingLayoutId(null);
       window.dispatchEvent(new CustomEvent("insta:presets-changed"));
     } catch (e) {
@@ -314,6 +317,11 @@ export default function LayoutsPane() {
         .map(([m, titles]) => `M${m}: ${titles.join(", ")}`)
         .join(" • ");
       flash({ kind: "ok", msg: t("layouts.savedLayout", { slot, count: perMonitor.size, summary }) });
+      // Surface any apps that were skipped (no exe/url) so the save isn't
+      // silently lossy — mirrors the import-warning pattern above.
+      if (built.warnings.length > 0) {
+        window.setTimeout(() => flash({ kind: "err", msg: built.warnings.join(" ") }), 200);
+      }
       // Saving a NEW layout (via the explicit slot prompt) ends any prior
       // edit session, since the user has just committed to a different slot.
       setEditingLayoutId(null);
