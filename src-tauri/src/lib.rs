@@ -44,6 +44,9 @@ pub fn run() {
             .build(),
         )?;
       }
+      // Resolve the bundled agent / manuals / app-data paths once (production);
+      // dev runs fall through to the dev-tree fallbacks.
+      backend::init_paths(app.handle());
       // Track the last-focused non-InstaDesk window so Snap targets it.
       backend::start_foreground_tracker();
       Ok(())

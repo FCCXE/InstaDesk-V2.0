@@ -8,6 +8,53 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
+use tauri::path::BaseDirectory;
+use tauri::{AppHandle, Manager};
+
+// ----------------------------------------------------------------------------
+// Production path resolution (Step 2.4). In a packaged build there is no outer
+// dev repo to walk up to: the WinAgent ships as a bundled resource (self-
+// contained exe) and the manuals ship as bundled resources, while presets live
+// in the OS per-user app-data dir. These are resolved ONCE at startup via the
+// Tauri path API (which needs the AppHandle) and cached here; the free path
+// helpers below read them, so no command signature has to thread the handle.
+// In `tauri dev` / `cargo test` (no setup() / no bundled resources) the OnceLocks
+// stay empty and resolution falls back to the dev tree exactly as before.
+// ----------------------------------------------------------------------------
+static RESOLVED_AGENT: OnceLock<PathBuf> = OnceLock::new();
+static RESOLVED_DATA: OnceLock<PathBuf> = OnceLock::new();
+static RESOLVED_MANUAL_DIR: OnceLock<PathBuf> = OnceLock::new();
+
+/// Resolve and cache the production paths from the bundle. Called once from
+/// `setup()`. Each lookup is gated on the target actually existing, so in a dev
+/// run (no staged resources) the caches stay empty and the dev fallbacks win.
+pub fn init_paths(app: &AppHandle) {
+    // Bundled WinAgent sidecar exe (a `bundle.resources` entry).
+    if let Ok(p) = app
+        .path()
+        .resolve("binaries/InstaDesk.WinAgent.exe", BaseDirectory::Resource)
+    {
+        if p.exists() {
+            let _ = RESOLVED_AGENT.set(p);
+        }
+    }
+    // Bundled manuals directory (resource).
+    if let Ok(p) = app.path().resolve("manual", BaseDirectory::Resource) {
+        if p.exists() {
+            let _ = RESOLVED_MANUAL_DIR.set(p);
+        }
+    }
+    // Presets/quick-presets store: the OS per-user app-data dir, in RELEASE only.
+    // Debug builds keep using the dev `outer/data` so existing dev presets stay
+    // visible while developing; only the shipped app migrates to app-data.
+    if !cfg!(debug_assertions) {
+        if let Ok(p) = app.path().app_data_dir() {
+            let _ = fs::create_dir_all(&p);
+            let _ = RESOLVED_DATA.set(p);
+        }
+    }
+}
 
 // ----------------------------------------------------------------------------
 // Shared storage helpers — mirror the Python server's DATA_DIR layout exactly,
@@ -21,6 +68,9 @@ fn data_dir() -> PathBuf {
     if let Some(d) = std::env::var_os("INSTADESK_DATA_DIR") {
         return PathBuf::from(d);
     }
+    if let Some(p) = RESOLVED_DATA.get() {
+        return p.clone();
+    }
     outer_root().unwrap_or_default().join("data")
 }
 
@@ -32,21 +82,64 @@ fn quickpresets_dir() -> PathBuf {
     data_dir().join("quickpresets")
 }
 
-/// Path to the C# WinAgent DLL (the worker the agent-invoking commands shell out
-/// to via `dotnet`). `AGENT_PATH` env overrides, matching the Python server.
-/// Step 2.4 swaps this for the bundled self-contained sidecar exe.
+/// Path to the C# WinAgent worker. Resolution order:
+///   1. `AGENT_PATH` env override (tests / manual overrides).
+///   2. The bundled self-contained sidecar exe (packaged build, set in setup()).
+///   3. Dev fallback: walk up to the outer repo's published agent — prefer the
+///      self-contained `publish/sidecar` exe, else the framework-dependent
+///      `publish/dll` DLL (run via `dotnet`).
+/// A `.dll` result is invoked through `dotnet`; a `.exe` runs directly (see
+/// `agent_program`), so the same code path serves dev and production.
 fn agent_path() -> PathBuf {
-    std::env::var_os("AGENT_PATH")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            outer_root()
-                .unwrap_or_default()
-                .join("winagent")
-                .join("InstaDesk.WinAgent")
-                .join("publish")
-                .join("dll")
-                .join("InstaDesk.WinAgent.dll")
-        })
+    if let Some(p) = std::env::var_os("AGENT_PATH") {
+        return PathBuf::from(p);
+    }
+    if let Some(p) = RESOLVED_AGENT.get() {
+        return p.clone();
+    }
+    let Some(root) = outer_root() else {
+        return PathBuf::new();
+    };
+    let base = root.join("winagent").join("InstaDesk.WinAgent").join("publish");
+    let sidecar = base.join("sidecar").join("InstaDesk.WinAgent.exe");
+    if sidecar.exists() {
+        return sidecar;
+    }
+    base.join("dll").join("InstaDesk.WinAgent.dll")
+}
+
+/// True when the resolved agent is a framework-dependent DLL (must run via the
+/// machine `dotnet`), false for the self-contained sidecar exe (runs directly).
+fn agent_is_dll(agent: &Path) -> bool {
+    agent
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.eq_ignore_ascii_case("dll"))
+        .unwrap_or(false)
+}
+
+/// The (program, leading-args) to spawn for the agent: the exe directly, or
+/// `dotnet <dll>`. Callers append their own flag args after this.
+fn agent_program() -> (PathBuf, Vec<String>) {
+    let agent = agent_path();
+    if agent_is_dll(&agent) {
+        (PathBuf::from("dotnet"), vec![agent.to_string_lossy().into_owned()])
+    } else {
+        (agent, Vec::new())
+    }
+}
+
+/// Full (program, args) for a run, given the agent flag args.
+fn agent_invocation(flag_args: &[String]) -> (PathBuf, Vec<String>) {
+    let (prog, mut args) = agent_program();
+    args.extend_from_slice(flag_args);
+    (prog, args)
+}
+
+/// Human-readable command string for diagnostics (the `cmd` field in responses).
+fn agent_cmd_str(flag_args: &[String]) -> String {
+    let (prog, args) = agent_invocation(flag_args);
+    format!("{} {}", prog.display(), args.join(" "))
 }
 
 /// File mtime as an ISO-8601 (RFC3339, local tz) string — matches the Python
@@ -145,11 +238,12 @@ fn outer_root() -> Option<PathBuf> {
 pub fn health() -> HealthResponse {
     let agent = agent_path();
     let dir = data_dir();
+    let mode = if agent_is_dll(&agent) { "dll" } else { "exe" };
     HealthResponse {
         ok: true,
         agent_exists: agent.exists(),
         agent_path: agent.to_string_lossy().into_owned(),
-        mode: "dll".into(),
+        mode: mode.into(),
         timeout_sec: 45,
         cors: Vec::new(),
         data_dir: dir.to_string_lossy().into_owned(),
@@ -502,12 +596,10 @@ pub fn browse(path: Option<String>) -> Result<Value, String> {
 pub async fn monitors() -> Result<Value, String> {
     let agent = agent_path();
     if !agent.exists() {
-        return Err(format!("Agent DLL not found at {}", agent.display()));
+        return Err(format!("Agent not found at {}", agent.display()));
     }
-    let fut = tokio::process::Command::new("dotnet")
-        .arg(&agent)
-        .arg("--list-monitors")
-        .output();
+    let (prog, args) = agent_invocation(&["--list-monitors".to_string()]);
+    let fut = tokio::process::Command::new(&prog).args(&args).output();
     let out = match tokio::time::timeout(std::time::Duration::from_secs(10), fut).await {
         Ok(Ok(o)) => o,
         Ok(Err(e)) => return Err(format!("Failed to run agent: {e}")),
@@ -596,10 +688,10 @@ fn read_temp(mut f: std::fs::File) -> String {
     String::from_utf8_lossy(&buf).into_owned()
 }
 
-/// Build the `dotnet` arg list (agent path first) for one launch — mirrors
-/// the Python `_dotnet_cmd`.
-fn dotnet_args(body: &LaunchBody) -> Vec<String> {
-    let mut a: Vec<String> = vec![agent_path().to_string_lossy().into_owned()];
+/// Build the agent flag args for one launch — mirrors the Python `_dotnet_cmd`
+/// (minus the leading program/dll, which `agent_invocation` supplies).
+fn agent_flag_args(body: &LaunchBody) -> Vec<String> {
+    let mut a: Vec<String> = Vec::new();
     let nonempty = |s: &Option<String>| s.as_deref().filter(|x| !x.is_empty()).map(str::to_string);
     if let Some(p) = nonempty(&body.program) {
         a.push("--program".into());
@@ -685,10 +777,11 @@ async fn run_launch(body: &LaunchBody) -> Value {
     }
     let agent = agent_path();
     if !agent.exists() {
-        return json!({ "exitCode": 1, "stdout": "", "stderr": format!("Agent DLL not found at {}", agent.display()), "cmd": "" });
+        return json!({ "exitCode": 1, "stdout": "", "stderr": format!("Agent not found at {}", agent.display()), "cmd": "" });
     }
-    let args = dotnet_args(&body);
-    let cmd_str = format!("dotnet {}", args.join(" "));
+    let flags = agent_flag_args(&body);
+    let (prog, args) = agent_invocation(&flags);
+    let cmd_str = format!("{} {}", prog.display(), args.join(" "));
 
     macro_rules! tmp_or_err {
         ($e:expr) => {
@@ -703,7 +796,7 @@ async fn run_launch(body: &LaunchBody) -> Value {
     let so_read = tmp_or_err!(so.try_clone());
     let se_read = tmp_or_err!(se.try_clone());
 
-    let spawned = tokio::process::Command::new("dotnet")
+    let spawned = tokio::process::Command::new(&prog)
         .args(&args)
         .stdout(std::process::Stdio::from(so))
         .stderr(std::process::Stdio::from(se))
@@ -897,14 +990,16 @@ fn reset_tracker() {
 }
 
 /// Spawn the agent with temp-file stdio, wait on the process with a timeout,
-/// return (exit code, stdout, stderr, timeout-suffix).
-async fn run_agent(args: &[String], timeout_secs: u64) -> Result<(i32, String, String, &'static str), String> {
+/// return (exit code, stdout, stderr, timeout-suffix). `flag_args` are the agent
+/// flags; the program (`dotnet <dll>` or the exe) is supplied by `agent_invocation`.
+async fn run_agent(flag_args: &[String], timeout_secs: u64) -> Result<(i32, String, String, &'static str), String> {
+    let (prog, args) = agent_invocation(flag_args);
     let so = tempfile::tempfile().map_err(|e| e.to_string())?;
     let se = tempfile::tempfile().map_err(|e| e.to_string())?;
     let so_read = so.try_clone().map_err(|e| e.to_string())?;
     let se_read = se.try_clone().map_err(|e| e.to_string())?;
-    let mut child = tokio::process::Command::new("dotnet")
-        .args(args)
+    let mut child = tokio::process::Command::new(&prog)
+        .args(&args)
         .stdout(std::process::Stdio::from(so))
         .stderr(std::process::Stdio::from(se))
         .spawn()
@@ -929,11 +1024,10 @@ async fn run_agent(args: &[String], timeout_secs: u64) -> Result<(i32, String, S
 pub async fn snap_popup(monitor: i64, grid_size: Option<String>, margin_px: Option<i64>) -> Result<Value, String> {
     let agent = agent_path();
     if !agent.exists() {
-        return Err(format!("Agent DLL not found at {}", agent.display()));
+        return Err(format!("Agent not found at {}", agent.display()));
     }
     let grid_size = grid_size.unwrap_or_else(|| "6x6".into());
     let mut args: Vec<String> = vec![
-        agent.to_string_lossy().into_owned(),
         "--snap-popup".into(),
         "--monitor".into(),
         monitor.to_string(),
@@ -951,7 +1045,7 @@ pub async fn snap_popup(monitor: i64, grid_size: Option<String>, margin_px: Opti
         args.push("--target-hwnd".into());
         args.push(tracked.to_string());
     }
-    let cmd_str = format!("dotnet {}", args.join(" "));
+    let cmd_str = agent_cmd_str(&args);
 
     let (rc, out, err, tmsg) = run_agent(&args, 180).await?;
 
@@ -1104,8 +1198,8 @@ pub fn pick_exe(title: Option<String>, extensions: Option<Vec<String>>) -> Optio
 
 /// Open the bundled PDF user manual (language-matched) in the OS default PDF
 /// viewer. `window.open` is blocked in the desktop webview, so the UI calls this
-/// instead. Dev resolves the manual by walking up from the exe to
-/// `ui/public/manual/`; Step 2.4 will swap that for the bundled resource dir.
+/// instead. A packaged build resolves the manual from the bundled resource dir;
+/// dev falls back to walking up from the exe to `ui/public/manual/`.
 #[tauri::command]
 pub fn open_manual(lang: String) -> Result<(), String> {
     let l = if lang.to_lowercase().starts_with("es") { "ES" } else { "EN" };
@@ -1117,6 +1211,13 @@ pub fn open_manual(lang: String) -> Result<(), String> {
 fn manual_path(file: &str) -> Option<PathBuf> {
     if let Ok(dir) = std::env::var("INSTADESK_MANUAL_DIR") {
         let p = PathBuf::from(dir).join(file);
+        if p.exists() {
+            return Some(p);
+        }
+    }
+    // Packaged build: the manuals ship as bundled resources (set in setup()).
+    if let Some(dir) = RESOLVED_MANUAL_DIR.get() {
+        let p = dir.join(file);
         if p.exists() {
             return Some(p);
         }
@@ -1297,15 +1398,17 @@ mod tests {
     fn health_reports_ok_and_resolves_paths() {
         let h = health();
         assert!(h.ok);
-        assert!(h.mode == "dll");
+        // mode reflects how the agent runs: "exe" for the self-contained sidecar,
+        // "dll" for the framework-dependent dev build (run via dotnet).
+        assert!(h.mode == "exe" || h.mode == "dll", "unexpected mode: {}", h.mode);
         assert_eq!(h.timeout_sec, 45);
         assert!(!h.agent_path.is_empty(), "agent path should resolve");
         assert!(!h.data_dir.is_empty(), "data dir should resolve");
-        // In this dev tree the WinAgent DLL exists under the outer repo, so the
-        // walk-up resolution should locate it (mirrors the Python server).
+        // In this dev tree the published WinAgent exists under the outer repo, so
+        // the walk-up resolution should locate it (mirrors the Python server).
         assert!(
             h.agent_exists,
-            "agent dll should be found — resolved to: {}",
+            "agent should be found — resolved to: {}",
             h.agent_path
         );
         // serde must emit camelCase keys matching the TS HealthResponse.
