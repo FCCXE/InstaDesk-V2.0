@@ -651,11 +651,15 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     monitorId?: string,
     argsOverrides?: Record<string, string>,
   ) => {
-    const next = makeEmptyAssignments()
+    const targetId = monitorId ?? currentMonitorId
+    // Size the empty base to the TARGET monitor's grid, not a hardcoded 6×6 —
+    // otherwise any cell coordinate ≥ 6 is silently dropped (truncating layouts
+    // on larger grids). Mirrors the per-monitor sizing used elsewhere.
+    const size = gridSizeByMonitor[targetId] ?? defaultGridSize
+    const next = makeEmptyAssignments(size.cols, size.rows)
     for (const [k, app] of Object.entries(cells)) {
       if (k in next) next[k] = app as AppId
     }
-    const targetId = monitorId ?? currentMonitorId
     setAssignmentsByMonitor((prev) => ({ ...prev, [targetId]: next }))
     setArgsOverridesByMonitor((prev) => ({ ...prev, [targetId]: { ...(argsOverrides ?? {}) } }))
     setSelection(new Set())

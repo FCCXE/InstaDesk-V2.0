@@ -36,7 +36,12 @@ export default function MonitorSelector() {
   const { monitors, currentMonitorId, setCurrentMonitor, windowMargin } = useAppState()
   const { t } = useTranslation()
 
-  const current = monitors.find((m) => m.id === currentMonitorId)!
+  // Guard the lookup: if the selected id isn't in the live monitor set (e.g. a
+  // display was unplugged at runtime, or a persisted id no longer matches),
+  // fall back to the first monitor instead of crashing the whole pane on the
+  // `!` non-null assertion. Render nothing only when there are no monitors.
+  const current = monitors.find((m) => m.id === currentMonitorId) ?? monitors[0]
+  if (!current) return null
   const activeCount = monitors.filter((m) => m.active).length
   const roleLabel =
     current.role === 'Primary' ? t('monitor.primary')

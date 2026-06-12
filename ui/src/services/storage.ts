@@ -12,15 +12,25 @@ function hasLocalStorage(): boolean {
   }
 }
 
+// Guard against corrupted/hand-edited storage holding a syntactically-valid but
+// wrong-SHAPE value (e.g. `{}` under a key whose fallback is `[]`). Without this,
+// callers that immediately `.sort()` or `new Set(...)` the result would throw and
+// crash the pane. We only validate the coarse shape (array vs object vs
+// primitive), which is enough to prevent those failures.
+function shapeMatches(parsed: unknown, fallback: unknown): boolean {
+  if (Array.isArray(fallback)) return Array.isArray(parsed);
+  if (fallback !== null && typeof fallback === "object") {
+    return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed);
+  }
+  return typeof parsed === typeof fallback;
+}
+
 export function safeGet<T = Json>(key: string, fallback: T): T {
   try {
-    if (hasLocalStorage()) {
-      const raw = window.localStorage.getItem(key);
-      return raw ? (JSON.parse(raw) as T) : fallback;
-    } else {
-      const raw = mem.get(key);
-      return raw ? (JSON.parse(raw) as T) : fallback;
-    }
+    const raw = hasLocalStorage() ? window.localStorage.getItem(key) : mem.get(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return shapeMatches(parsed, fallback) ? (parsed as T) : fallback;
   } catch {
     return fallback;
   }

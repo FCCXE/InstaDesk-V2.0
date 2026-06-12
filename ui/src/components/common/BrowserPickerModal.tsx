@@ -70,8 +70,13 @@ export default function BrowserPickerModal({
   }
 
   const browseForExe = async () => {
-    const path = await api.pickExe(t('urls.addBrowserTitle'), ['exe'])
-    if (path) pick({ name: inferName(path), path })
+    setError(null)
+    try {
+      const path = await api.pickExe(t('urls.addBrowserTitle'), ['exe'])
+      if (path) pick({ name: inferName(path), path })
+    } catch {
+      setError(t('browseApp.pickerError'))
+    }
   }
 
   return (

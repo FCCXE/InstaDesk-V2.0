@@ -96,10 +96,14 @@ export default function BrowseAppModal({
     if (inTauri()) {
       // Desktop — native OS file picker (rfd via pick_exe). Accepts the same
       // launchable types Save allows (.exe/.bat/.cmd).
-      const picked = await api.pickExe(t("browseApp.pickerTitle"), ["exe", "bat", "cmd"]);
-      if (!picked) return; // cancelled
-      setPath(picked);
-      if (!title.trim()) setTitle(inferTitle(picked));
+      try {
+        const picked = await api.pickExe(t("browseApp.pickerTitle"), ["exe", "bat", "cmd"]);
+        if (!picked) return; // cancelled
+        setPath(picked);
+        if (!title.trim()) setTitle(inferTitle(picked));
+      } catch {
+        setErr(t("browseApp.pickerError"));
+      }
       return;
     }
     // Web/dev — open the in-app server-driven browser.

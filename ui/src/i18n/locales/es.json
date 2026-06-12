@@ -298,6 +298,7 @@
     "browse": "Examinar…",
     "browseHint": "Examinar abre un selector de carpetas integrado (enrutado por el servidor). En la versión Tauri se usa automáticamente el selector nativo del sistema.",
     "pickerTitle": "Selecciona una aplicación",
+    "pickerError": "No se pudo abrir el selector de archivos.",
     "up": "↑ Subir",
     "upTo": "Subir a {{path}}",
     "upToDrives": "Subir a la lista de unidades",

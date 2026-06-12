@@ -298,6 +298,7 @@
     "browse": "Browse…",
     "browseHint": "Browse opens an in-app folder picker (server-routed). Tauri build: native OS picker is used automatically.",
     "pickerTitle": "Select an application",
+    "pickerError": "Couldn't open the file picker.",
     "up": "↑ Up",
     "upTo": "Up to {{path}}",
     "upToDrives": "Up to drive list",

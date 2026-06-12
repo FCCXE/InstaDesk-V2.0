@@ -151,10 +151,14 @@ export default function AddFavoriteModal({
     setErr(null);
     if (inTauri()) {
       // Desktop — native OS file picker (rfd via pick_exe).
-      const picked = await api.pickExe(t("browseApp.pickerTitle"), ["exe", "lnk", "bat", "cmd"]);
-      if (!picked) return; // cancelled
-      setPath(picked);
-      if (!title.trim()) setTitle(inferTitle(picked));
+      try {
+        const picked = await api.pickExe(t("browseApp.pickerTitle"), ["exe", "lnk", "bat", "cmd"]);
+        if (!picked) return; // cancelled
+        setPath(picked);
+        if (!title.trim()) setTitle(inferTitle(picked));
+      } catch {
+        setErr(t("browseApp.pickerError"));
+      }
       return;
     }
     // Web/dev — in-app server-driven file browser.
