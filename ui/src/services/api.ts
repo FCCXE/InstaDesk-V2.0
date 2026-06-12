@@ -1,9 +1,21 @@
-// InstaDesk FastAPI client
+// InstaDesk API client.
 // Path-relative-to-inner-repo: ui/src/services/api.ts
-// Server contract: see C:\FcXe Studios\Instadesk\server\main.py
+//
+// Migration (Phase-2 step 2.3, Option B): endpoints are being ported from the
+// Python FastAPI server (server/main.py) to native Tauri/Rust commands
+// (src-tauri/src/backend.rs). When running inside the Tauri desktop shell we
+// route a ported endpoint to its Rust `invoke` command; in the browser web
+// preview we keep hitting the Python bridge server over HTTP `fetch`. Both live
+// behind this single seam, so components never change. Ported so far: health.
+import { invoke } from '@tauri-apps/api/core'
 
 const API_BASE: string =
   (import.meta as any)?.env?.VITE_API_BASE ?? 'http://127.0.0.1:17866'
+
+// Tauri v2 injects `__TAURI_INTERNALS__` on the window. True ⇒ desktop shell.
+function inTauri(): boolean {
+  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window
+}
 
 export type HealthResponse = {
   ok: boolean
@@ -150,7 +162,11 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 export const api = {
   base: API_BASE,
-  health: () => request<HealthResponse>('GET', '/health'),
+  // PORTED to Rust (step 2.3): native command in the desktop shell, HTTP in web.
+  health: () =>
+    inTauri()
+      ? invoke<HealthResponse>('health')
+      : request<HealthResponse>('GET', '/health'),
   monitors: () => request<MonitorsResponse>('GET', '/monitors'),
   launch: (req: LaunchRequest) => request<LaunchResponse>('POST', '/launch', req),
   browse: (path?: string) =>
