@@ -1,4 +1,8 @@
 {
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel"
+  },
   "header": {
     "dashboard": "DASHBOARD",
     "live": "live",
@@ -49,7 +53,8 @@
     "clearCurrentNothing": "Nothing to clear",
     "clearAllGridsTitle": "Clear every monitor's grid — removes all {{count}} assigned cells across all monitors and resets each grid to the global default. Saved Layouts are not affected.",
     "clearAllGridsNothing": "All grids are already empty",
-    "clearAllGridsConfirm": "Clear the grids on ALL monitors?\n\nThis removes every assigned cell on every monitor and resets each grid to the default size. Saved Layouts are not affected.\n\nThis cannot be undone.",
+    "clearAllGridsConfirmTitle": "Clear all grids?",
+    "clearAllGridsConfirmBody": "This removes every assigned cell on every monitor and resets each grid to the default size. Saved Layouts are not affected.\n\nThis can't be undone.",
     "gridSelectTitle": "Grid size for M{{monitor}}. Changing this will clear that monitor's cells (saved Layouts are not affected).",
     "confirmSwitch": "Switching {{monitor}} from {{from}} to {{to}}",
     "confirmWillClear_one": "will clear {{count}} cell on {{monitor}}",

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppState, GRID_SIZE_PRESETS, type GridSize } from '../state/AppState'
 import { api } from '../services/api'
+import { useConfirm } from './common/ConfirmDialog'
 
 /**
  * Bottom controls strip.
@@ -42,6 +43,7 @@ export default function BottomControls() {
   } = useAppState()
 
   const { t } = useTranslation()
+  const confirm = useConfirm()
   const assignedCount = Object.values(assignments).filter(Boolean).length
   // Total assignments across ALL monitors — drives the "Clear All Grids"
   // enabled state so it's dimmed when there's nothing anywhere to clear.
@@ -207,8 +209,14 @@ export default function BottomControls() {
             the app-wide styled-dialog sweep replaces all of these together.) */}
         <button
           type="button"
-          onClick={() => {
-            if (window.confirm(t('bottomBar.clearAllGridsConfirm'))) clearAllGrids()
+          onClick={async () => {
+            const ok = await confirm({
+              title: t('bottomBar.clearAllGridsConfirmTitle'),
+              body: t('bottomBar.clearAllGridsConfirmBody'),
+              confirmLabel: t('bottomBar.clearAllGrids'),
+              danger: true,
+            })
+            if (ok) clearAllGrids()
           }}
           disabled={totalAssignedCount === 0}
           className="px-3 py-1.5 rounded-lg border border-red-300 bg-red-50 text-sm text-red-700 hover:bg-red-100 hover:border-red-400 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20 dark:hover:border-red-400/60"

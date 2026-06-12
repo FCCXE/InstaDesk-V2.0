@@ -1,4 +1,8 @@
 {
+  "common": {
+    "ok": "Aceptar",
+    "cancel": "Cancelar"
+  },
   "header": {
     "dashboard": "Panel de Control",
     "live": "en vivo",
@@ -49,7 +53,8 @@
     "clearCurrentNothing": "Nada que borrar",
     "clearAllGridsTitle": "Borra la cuadrícula de todos los monitores — elimina las {{count}} celdas asignadas en todos los monitores y restablece cada cuadrícula al predeterminado global. Los Diseños guardados no se ven afectados.",
     "clearAllGridsNothing": "Todas las cuadrículas ya están vacías",
-    "clearAllGridsConfirm": "¿Borrar las cuadrículas de TODOS los monitores?\n\nEsto elimina todas las celdas asignadas en cada monitor y restablece cada cuadrícula al tamaño predeterminado. Los Diseños guardados no se ven afectados.\n\nEsta acción no se puede deshacer.",
+    "clearAllGridsConfirmTitle": "¿Borrar todas las cuadrículas?",
+    "clearAllGridsConfirmBody": "Esto elimina todas las celdas asignadas en cada monitor y restablece cada cuadrícula al tamaño predeterminado. Los Diseños guardados no se ven afectados.\n\nEsta acción no se puede deshacer.",
     "gridSelectTitle": "Tamaño de cuadrícula para M{{monitor}}. Cambiarlo borrará las celdas de ese monitor (los Diseños guardados no se ven afectados).",
     "confirmSwitch": "Cambiando {{monitor}} de {{from}} a {{to}}",
     "confirmWillClear_one": "se borrará {{count}} celda en {{monitor}}",
