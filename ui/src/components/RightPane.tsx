@@ -1035,10 +1035,14 @@ const HELP_SECTIONS = [
 function HelpPane() {
   const { t, i18n } = useTranslation();
   const [openId, setOpenId] = useState<string | null>("quickStart");
+  const [manualErr, setManualErr] = useState<string | null>(null);
   const openManual = () => {
     // Native open in the desktop app (window.open is blocked in the webview);
-    // new tab in web preview. See api.openManual.
-    void api.openManual(i18n.language ?? "en");
+    // new tab in web preview. Surface any failure so it isn't silent.
+    setManualErr(null);
+    api.openManual(i18n.language ?? "en").catch((e) => {
+      setManualErr(String((e as Error)?.message ?? e));
+    });
   };
   return (
     <div className="flex h-full flex-col overflow-hidden p-3">
@@ -1085,6 +1089,11 @@ function HelpPane() {
                 >
                   {t("help.openManual")}
                 </button>
+                {manualErr && (
+                  <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[11px] text-red-700 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-300">
+                    {manualErr}
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -1135,12 +1135,28 @@ fn manual_path(file: &str) -> Option<PathBuf> {
 fn open_with_default(path: &Path) -> Result<(), String> {
     // rundll32 FileProtocolHandler opens any file with its associated app —
     // dependency-free and reliable for PDFs.
-    std::process::Command::new("rundll32.exe")
-        .arg("url.dll,FileProtocolHandler")
-        .arg(path)
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| e.to_string())
+    use windows::core::{w, HSTRING, PCWSTR};
+    use windows::Win32::UI::Shell::ShellExecuteW;
+    use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+    let file = HSTRING::from(path.as_os_str());
+    // ShellExecuteW returns an HINSTANCE > 32 on success (real signal, unlike a
+    // fire-and-forget spawn); ≤ 32 is an error code.
+    let hinst = unsafe {
+        ShellExecuteW(
+            None,
+            w!("open"),
+            PCWSTR(file.as_ptr()),
+            PCWSTR::null(),
+            PCWSTR::null(),
+            SW_SHOWNORMAL,
+        )
+    };
+    let code = hinst.0 as isize;
+    if code > 32 {
+        Ok(())
+    } else {
+        Err(format!("Could not open the manual (ShellExecute code {code}). Check that a PDF viewer is installed."))
+    }
 }
 
 #[cfg(not(windows))]
