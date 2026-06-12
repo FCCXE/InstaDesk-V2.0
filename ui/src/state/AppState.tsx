@@ -269,6 +269,8 @@ type AppStateContext = {
 
   // simple grid ops (operate on the CURRENT monitor's grid)
   clearGrid: () => void
+  // clears EVERY monitor's grid (destructive — gate behind a confirm)
+  clearAllGrids: () => void
   copyGrid: () => void
   pasteGrid: () => void
 
@@ -574,6 +576,15 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     setCurrentMonitorAssignments(makeEmptyAssignments(defaultGridSize.cols, defaultGridSize.rows))
     setCurrentMonitorArgs({})
   }
+  // Clear All Grids — wipes EVERY monitor's assignments + args, and drops all
+  // per-monitor grid-size overrides so each falls back to the global default
+  // (same "reset to default" model as clearGrid, applied across the board).
+  // Destructive across monitors, so callers gate it behind a confirm.
+  const clearAllGrids = () => {
+    setAssignmentsByMonitor({})
+    setArgsOverridesByMonitor({})
+    setGridSizeByMonitorState({})
+  }
   const copyGrid = () => {
     setClipboard({ ...assignments })
     setClipboardArgs({ ...(argsOverridesByMonitor[currentMonitorId] ?? {}) })
@@ -732,6 +743,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     assignSelected,
     unassignSelected,
     clearGrid,
+    clearAllGrids,
     copyGrid,
     pasteGrid,
     replaceGrid,

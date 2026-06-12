@@ -34,7 +34,8 @@ type SnapState =
 
 export default function BottomControls() {
   const {
-    selection, assignments, clearGrid, currentMonitorId,
+    selection, assignments, clearGrid, clearAllGrids, assignmentsByMonitor,
+    currentMonitorId,
     currentGridCols, currentGridRows, resizeMonitor,
     setGridSizeForMonitor, editingLayoutId,
     windowMargin,
@@ -42,6 +43,10 @@ export default function BottomControls() {
 
   const { t } = useTranslation()
   const assignedCount = Object.values(assignments).filter(Boolean).length
+  // Total assignments across ALL monitors — drives the "Clear All Grids"
+  // enabled state so it's dimmed when there's nothing anywhere to clear.
+  const totalAssignedCount = Object.values(assignmentsByMonitor)
+    .reduce((sum, cells) => sum + Object.values(cells).filter(Boolean).length, 0)
   const selCount = selection.size
 
   // Agent expects 1-based monitor indices; AppState uses "m{N}" ids.
@@ -192,10 +197,26 @@ export default function BottomControls() {
           disabled={assignedCount === 0}
           className="px-3 py-1.5 rounded-lg border border-line bg-raised text-sm text-fg hover:bg-line/60 disabled:cursor-not-allowed disabled:opacity-60"
           title={assignedCount > 0
-            ? t('bottomBar.clearAllTitle', { count: assignedCount, monitor: currentMonitorIndex })
-            : t('bottomBar.clearAllNothing')}
+            ? t('bottomBar.clearCurrentTitle', { count: assignedCount, monitor: currentMonitorIndex })
+            : t('bottomBar.clearCurrentNothing')}
         >
-          {t('bottomBar.clearAll')}
+          {t('bottomBar.clearCurrent')}
+        </button>
+        {/* Clear All Grids — wipes every monitor's grid. Destructive across
+            monitors, so it's gated behind a confirm. (Native confirm for now;
+            the app-wide styled-dialog sweep replaces all of these together.) */}
+        <button
+          type="button"
+          onClick={() => {
+            if (window.confirm(t('bottomBar.clearAllGridsConfirm'))) clearAllGrids()
+          }}
+          disabled={totalAssignedCount === 0}
+          className="px-3 py-1.5 rounded-lg border border-red-300 bg-red-50 text-sm text-red-700 hover:bg-red-100 hover:border-red-400 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20 dark:hover:border-red-400/60"
+          title={totalAssignedCount > 0
+            ? t('bottomBar.clearAllGridsTitle', { count: totalAssignedCount })
+            : t('bottomBar.clearAllGridsNothing')}
+        >
+          {t('bottomBar.clearAllGrids')}
         </button>
         {/* Per-monitor grid-size picker — operator decision δ (2026-06-09):
             sits in the bottom bar grouped with Snap and Clear All, both of
