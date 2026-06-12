@@ -5,7 +5,18 @@ pub fn run() {
   tauri::Builder::default()
     // Native commands ported from the Python server (step 2.3). The UI invokes
     // these in the desktop shell; the web preview still uses HTTP fetch.
-    .invoke_handler(tauri::generate_handler![backend::health])
+    .invoke_handler(tauri::generate_handler![
+      backend::health,
+      backend::presets_list,
+      backend::presets_get,
+      backend::presets_save,
+      backend::presets_delete,
+      backend::quickpresets_list,
+      backend::quickpresets_get,
+      backend::quickpresets_save,
+      backend::quickpresets_delete,
+      backend::browse,
+    ])
     // Single-instance must be registered FIRST: a second launch of InstaDesk
     // focuses the already-running window instead of spawning another copy.
     .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {

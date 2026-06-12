@@ -169,31 +169,53 @@ export const api = {
       : request<HealthResponse>('GET', '/health'),
   monitors: () => request<MonitorsResponse>('GET', '/monitors'),
   launch: (req: LaunchRequest) => request<LaunchResponse>('POST', '/launch', req),
+  // PORTED to Rust (step 2.3): file/OS endpoints route to native commands in
+  // the desktop shell; the web preview keeps HTTP. The agent-invoking *Run /
+  // monitors / launch / snapPopup stay on fetch until the agent-batch port.
   browse: (path?: string) =>
-    request<BrowseResponse>('GET',
-      `/browse${path !== undefined && path !== '' ? `?path=${encodeURIComponent(path)}` : ''}`),
-  presetsList: () => request<{ ok: boolean; presets: PresetListItem[] }>('GET', '/presets/list'),
+    inTauri()
+      ? invoke<BrowseResponse>('browse', { path: path ?? '' })
+      : request<BrowseResponse>('GET',
+          `/browse${path !== undefined && path !== '' ? `?path=${encodeURIComponent(path)}` : ''}`),
+  presetsList: () =>
+    inTauri()
+      ? invoke<{ ok: boolean; presets: PresetListItem[] }>('presets_list')
+      : request<{ ok: boolean; presets: PresetListItem[] }>('GET', '/presets/list'),
   presetsGet: (kind: PresetKind, slot: string) =>
-    request<{ ok: boolean; preset: SavedPreset; path: string }>(
-      'GET', `/presets/get?kind=${encodeURIComponent(kind)}&slot=${encodeURIComponent(slot)}`),
+    inTauri()
+      ? invoke<{ ok: boolean; preset: SavedPreset; path: string }>('presets_get', { kind, slot })
+      : request<{ ok: boolean; preset: SavedPreset; path: string }>(
+          'GET', `/presets/get?kind=${encodeURIComponent(kind)}&slot=${encodeURIComponent(slot)}`),
   presetsSave: (kind: PresetKind, slot: string, assignments: Assignment[]) =>
-    request<{ ok: boolean; path: string }>('POST', '/presets/save', { kind, slot, assignments }),
+    inTauri()
+      ? invoke<{ ok: boolean; path: string }>('presets_save', { kind, slot, assignments })
+      : request<{ ok: boolean; path: string }>('POST', '/presets/save', { kind, slot, assignments }),
   presetsRun: (kind: PresetKind, slot: string, marginPx?: number) =>
     request<{ ok: boolean; results: LaunchResponse[] }>('POST', '/presets/run', { kind, slot, marginPx }),
   presetsDelete: (kind: PresetKind, slot: string) =>
-    request<{ ok: boolean; deleted: string }>('DELETE', '/presets/delete', { kind, slot }),
+    inTauri()
+      ? invoke<{ ok: boolean; deleted: string }>('presets_delete', { kind, slot })
+      : request<{ ok: boolean; deleted: string }>('DELETE', '/presets/delete', { kind, slot }),
 
   // ---- Quick Presets ----
   quickPresetsList: () =>
-    request<{ ok: boolean; quickpresets: QuickPresetListItem[] }>('GET', '/quickpresets/list'),
+    inTauri()
+      ? invoke<{ ok: boolean; quickpresets: QuickPresetListItem[] }>('quickpresets_list')
+      : request<{ ok: boolean; quickpresets: QuickPresetListItem[] }>('GET', '/quickpresets/list'),
   quickPresetsGet: (slot: string) =>
-    request<{ ok: boolean; quickpreset: SavedQuickPreset; path: string }>(
-      'GET', `/quickpresets/get?slot=${encodeURIComponent(slot)}`),
+    inTauri()
+      ? invoke<{ ok: boolean; quickpreset: SavedQuickPreset; path: string }>('quickpresets_get', { slot })
+      : request<{ ok: boolean; quickpreset: SavedQuickPreset; path: string }>(
+          'GET', `/quickpresets/get?slot=${encodeURIComponent(slot)}`),
   quickPresetsSave: (slot: string, name: string, layouts: QuickPresetLayoutRef[]) =>
-    request<{ ok: boolean; path: string; missingLayouts: string[] }>(
-      'POST', '/quickpresets/save', { slot, name, layouts }),
+    inTauri()
+      ? invoke<{ ok: boolean; path: string; missingLayouts: string[] }>('quickpresets_save', { slot, name, layouts })
+      : request<{ ok: boolean; path: string; missingLayouts: string[] }>(
+          'POST', '/quickpresets/save', { slot, name, layouts }),
   quickPresetsDelete: (slot: string) =>
-    request<{ ok: boolean; deleted: string }>('DELETE', '/quickpresets/delete', { slot }),
+    inTauri()
+      ? invoke<{ ok: boolean; deleted: string }>('quickpresets_delete', { slot })
+      : request<{ ok: boolean; deleted: string }>('DELETE', '/quickpresets/delete', { slot }),
   quickPresetsRun: (slot: string, marginPx?: number) =>
     request<QuickPresetRunResponse>('POST', '/quickpresets/run', { slot, marginPx }),
 
