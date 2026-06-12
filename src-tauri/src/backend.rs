@@ -388,7 +388,10 @@ pub fn quickpresets_save(slot: String, name: String, layouts: Vec<Value>) -> Res
         .map(|l| {
             let k = l.get("kind").and_then(|v| v.as_str()).unwrap_or("general").to_string();
             let s = l.get("slot").and_then(|v| v.as_str()).unwrap_or("").to_uppercase();
-            if !pdir.join(format!("{}_{}.json", k, s)).exists() {
+            // Validate before building a path from this caller-supplied layout ref
+            // (path-traversal hardening); an invalid ref counts as missing.
+            let valid = check_kind(&k).is_ok() && check_slot(&s).is_ok();
+            if !valid || !pdir.join(format!("{}_{}.json", k, s)).exists() {
                 missing.push(format!("{}/{}", k, s));
             }
             json!({ "kind": k, "slot": s })
@@ -729,6 +732,8 @@ async fn run_launch(body: &LaunchBody) -> Value {
 /// within each program (race-free for same-exe launches). Returns {ok, results}
 /// in the saved assignments[] order.
 async fn apply_preset(kind: &str, slot: &str, margin_px: Option<i64>) -> Result<Value, String> {
+    check_kind(kind)?;
+    check_slot(slot)?;
     let path = presets_dir().join(format!("{}_{}.json", kind, slot.to_uppercase()));
     if !path.exists() {
         return Err("Preset not found.".into());
@@ -813,6 +818,7 @@ pub async fn presets_run(kind: String, slot: String, margin_px: Option<i64>) -> 
 /// `POST /quickpresets/run` — applies each referenced Layout sequentially.
 #[tauri::command]
 pub async fn quickpresets_run(slot: String, margin_px: Option<i64>) -> Result<Value, String> {
+    check_slot(&slot)?;
     let path = quickpresets_dir().join(format!("QP_{}.json", slot.to_uppercase()));
     if !path.exists() {
         return Err("Quick Preset not found.".into());
