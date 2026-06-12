@@ -7,11 +7,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, type BrowserInfo } from '../../services/api'
-
-function inferName(p: string): string {
-  const base = p.replace(/\\/g, '/').split('/').pop() || ''
-  return base.replace(/\.exe$/i, '').trim() || 'Browser'
-}
+import { inferBrowserName } from '../../services/pathNames'
 
 export default function BrowserPickerModal({
   open,
@@ -73,7 +69,7 @@ export default function BrowserPickerModal({
     setError(null)
     try {
       const path = await api.pickExe(t('urls.addBrowserTitle'), ['exe'])
-      if (path) pick({ name: inferName(path), path })
+      if (path) pick({ name: inferBrowserName(path), path })
     } catch {
       setError(t('browseApp.pickerError'))
     }

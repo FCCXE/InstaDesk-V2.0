@@ -23,6 +23,12 @@ function dispatchChanged() {
 export default function QuickPresetsManager({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()
   const confirm = useConfirm()
+  // Esc closes the manager — matches the other modals' dismiss behavior.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
   const [qps, setQps] = useState<QuickPresetListItem[] | null>(null)
   const [layouts, setLayouts] = useState<PresetListItem[] | null>(null)
   const [view, setView] = useState<EditMode>({ mode: 'list' })
@@ -155,11 +161,11 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl rounded-2xl bg-surface p-5 shadow-xl ring-1 ring-line"
+        className="w-full max-w-2xl rounded-2xl border border-line bg-surface p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

@@ -3,11 +3,7 @@ import { useTranslation } from "react-i18next";
 import { addFavorite, seedEmoji, type Favorite } from "../../services/FavoritesService";
 import { api, inTauri, type BrowseEntry } from "../../services/api";
 import { useConfirm } from "./ConfirmDialog";
-
-function inferTitle(p: string): string {
-  const base = p.replace(/\\/g, "/").split("/").pop() || "Custom App";
-  return base.replace(/\.(exe|lnk|bat|cmd)$/i, "").trim() || "Custom App";
-}
+import { inferTitle } from "../../services/pathNames";
 
 export default function AddFavoriteModal({
   open,
@@ -187,7 +183,10 @@ export default function AddFavoriteModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-3">
+    <div
+      className="fixed inset-0 z-[100] grid place-items-center bg-black/40 p-3"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+    >
       <div className="w-[560px] max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-surface p-4 shadow-xl">
         <div className="mb-3 flex items-center justify-between">
           <div className="text-base font-semibold text-fg">{t("addFavorite.title")}</div>
