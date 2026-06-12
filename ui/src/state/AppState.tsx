@@ -239,7 +239,57 @@ export type UrlOpenMode = 'single' | 'per-group' | 'per-url'
 export type UrlGroup = { id: string; title: string; urls: string[] }
 export type UrlBuilderDraft = { browser: string | null; tabGroups: UrlGroup[]; openMode: UrlOpenMode }
 
-const INITIAL_BROWSERS = ['Chrome', 'Edge', 'Firefox']
+// A browser the user can pick for a URL group. `path` is the real exe (from
+// native detection or a Browse-for-.exe pick); name-only legacy entries have no
+// path and fall back to the system default browser at launch.
+export type BrowserEntry = { name: string; path?: string }
+
+const INITIAL_BROWSERS: BrowserEntry[] = [{ name: 'Chrome' }, { name: 'Edge' }, { name: 'Firefox' }]
+
+// Persisted so detected/added browsers (and their exe paths) survive reloads —
+// without this, launch can't resolve which browser to open.
+const BROWSERS_STORAGE_KEY = 'instadesk:browsers'
+
+function loadBrowsers(): BrowserEntry[] {
+  if (typeof window === 'undefined') return INITIAL_BROWSERS
+  try {
+    const raw = window.localStorage.getItem(BROWSERS_STORAGE_KEY)
+    if (!raw) return INITIAL_BROWSERS
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return INITIAL_BROWSERS
+    const clean = parsed
+      .filter((b): b is BrowserEntry => b && typeof b.name === 'string')
+      .map(b => ({ name: b.name, path: typeof b.path === 'string' ? b.path : undefined }))
+    return clean.length ? clean : INITIAL_BROWSERS
+  } catch {
+    return INITIAL_BROWSERS
+  }
+}
+
+function saveBrowsers(value: BrowserEntry[]) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(BROWSERS_STORAGE_KEY, JSON.stringify(value))
+  } catch {
+    // localStorage may throw (private mode / quota) — persistence is best-effort.
+  }
+}
+
+// Merge browser entries, deduping by exe path (case-insensitive) when present,
+// else by lowercased name. Detected entries (with paths) take precedence over
+// name-only legacy/default entries for the same browser.
+function mergeBrowsers(existing: BrowserEntry[], incoming: BrowserEntry[]): BrowserEntry[] {
+  const byKey = new Map<string, BrowserEntry>()
+  const keyOf = (b: BrowserEntry) => (b.path ? `path:${b.path.toLowerCase()}` : `name:${b.name.toLowerCase()}`)
+  for (const b of [...existing, ...incoming]) {
+    const k = keyOf(b)
+    const prev = byKey.get(k)
+    // Prefer the entry that carries a path.
+    if (!prev || (!prev.path && b.path)) byKey.set(k, b)
+  }
+  return [...byKey.values()].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
+}
+
 const newGroup = (idSeed: number): UrlGroup => ({ id: `g${idSeed}`, title: '', urls: ['', ''] })
 
 /* ============================================================================
@@ -369,9 +419,9 @@ type AppStateContext = {
 
   // URL Builder
   urlBuilder: UrlBuilderDraft
-  browsers: string[]
+  browsers: BrowserEntry[]
   setUrlBrowser: (name: string | null) => void
-  addBrowser: (name: string) => void
+  addBrowser: (entry: BrowserEntry) => void
   addTabGroup: () => void
   setTabTitle: (groupId: string, title: string) => void
   setUrlLine: (groupId: string, index: number, value: string) => void
@@ -685,7 +735,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   const getPendingPreset = (monitorId: string) => pendingPresetByMonitor[monitorId] ?? null
 
   /* ---------- URL Builder ---------- */
-  const [browsers, setBrowsers] = useState<string[]>(INITIAL_BROWSERS)
+  const [browsers, setBrowsers] = useState<BrowserEntry[]>(loadBrowsers)
   const [groupSeed, setGroupSeed] = useState(2)
   const [urlBuilder, setUrlBuilder] = useState<UrlBuilderDraft>({
     browser: null,
@@ -693,9 +743,30 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     openMode: 'single',
   })
 
+  // On mount, detect the browsers actually installed (native registry read) and
+  // fold them in — dropping the name-only defaults, keeping any user-added
+  // (path-bearing) customs. Seeds the picker with real, launchable browsers.
+  useEffect(() => {
+    let alive = true
+    api.listBrowsers().then(detected => {
+      if (!alive || detected.length === 0) return
+      setBrowsers(prev => {
+        const customs = prev.filter(b => b.path) // keep Browse-added; drop fake name-only defaults
+        const merged = mergeBrowsers(detected, customs)
+        saveBrowsers(merged)
+        return merged
+      })
+    }).catch(() => { /* detection is best-effort */ })
+    return () => { alive = false }
+  }, [])
+
   const setUrlBrowser = (name: string | null) => setUrlBuilder(prev => ({ ...prev, browser: name }))
-  const addBrowser = (name: string) =>
-    setBrowsers(prev => (prev.includes(name) ? prev : [...prev, name]))
+  const addBrowser = (entry: BrowserEntry) =>
+    setBrowsers(prev => {
+      const merged = mergeBrowsers(prev, [entry])
+      saveBrowsers(merged)
+      return merged
+    })
 
   const addTabGroup = () => setUrlBuilder(prev => {
     const id = groupSeed + 1

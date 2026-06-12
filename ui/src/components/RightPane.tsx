@@ -39,6 +39,7 @@ import {
 /* Modals */
 import AddFavoriteModal from "./common/AddFavoriteModal";
 import BrowseAppModal from "./common/BrowseAppModal";
+import BrowserPickerModal from "./common/BrowserPickerModal";
 
 /* Helper */
 import TruncateText from "./common/TruncateText";
@@ -784,6 +785,7 @@ function UrlsBuilderPane() {
   } = useAppState();
   const { t } = useTranslation();
 
+  const [showBrowserPicker, setShowBrowserPicker] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
   const showFlash = (msg: string) => {
     setFlash(msg);
@@ -842,8 +844,8 @@ function UrlsBuilderPane() {
           >
             <option value="">{t("urls.choose")}</option>
             {browsers.map((b) => (
-              <option key={b} value={b}>
-                {b}
+              <option key={b.name} value={b.name}>
+                {b.name}
               </option>
             ))}
           </select>
@@ -855,10 +857,7 @@ function UrlsBuilderPane() {
         <div className="mb-3 flex flex-col gap-2">
           <GhostBtn
             className="w-full text-center"
-            onClick={() => {
-              const name = prompt(t("urls.addBrowserPrompt"));
-              if (name && name.trim()) addBrowser(name.trim());
-            }}
+            onClick={() => setShowBrowserPicker(true)}
           >
             {t("urls.addBrowser")}
           </GhostBtn>
@@ -929,6 +928,15 @@ function UrlsBuilderPane() {
           </div>
         )}
       </div>
+
+      <BrowserPickerModal
+        open={showBrowserPicker}
+        onClose={() => setShowBrowserPicker(false)}
+        onPick={(entry) => {
+          addBrowser(entry);
+          setUrlBrowser(entry.name); // picking a browser also selects it
+        }}
+      />
     </div>
   );
 }
