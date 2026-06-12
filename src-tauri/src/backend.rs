@@ -821,9 +821,7 @@ pub async fn quickpresets_run(slot: String, margin_px: Option<i64>) -> Result<Va
 // ----------------------------------------------------------------------------
 
 /// Tight filter: matches ONLY the InstaDesk dashboard window or the agent's own
-/// overlay form — those must never be tracked as a snap target. (Used by the
-/// foreground tracker, added next.)
-#[allow(dead_code)]
+/// overlay form — those must never be tracked as a snap target.
 fn looks_like_instadesk_title(title: &str) -> bool {
     let t = title.to_lowercase();
     t.contains("127.0.0.1:17866")
@@ -934,6 +932,87 @@ pub async fn snap_popup(monitor: i64, grid_size: Option<String>, margin_px: Opti
         "stderr": err,
         "cmd": cmd_str,
     }))
+}
+
+/// Start the foreground-window tracker (records the last-focused non-InstaDesk
+/// window so snap can target it via --target-hwnd). Win32 SetWinEventHook +
+/// message pump on a dedicated thread, mirroring the Python server. No-op on
+/// non-Windows. Called once at app startup.
+pub fn start_foreground_tracker() {
+    #[cfg(windows)]
+    foreground::start();
+}
+
+#[cfg(windows)]
+mod foreground {
+    use super::{looks_like_instadesk_title, set_tracker_target};
+    use windows::Win32::Foundation::HWND;
+    use windows::Win32::UI::Accessibility::{SetWinEventHook, UnhookWinEvent, HWINEVENTHOOK};
+    use windows::Win32::UI::WindowsAndMessaging::{
+        GetMessageW, GetWindowTextLengthW, GetWindowTextW, EVENT_SYSTEM_FOREGROUND, MSG,
+        OBJID_WINDOW, WINEVENT_OUTOFCONTEXT, WINEVENT_SKIPOWNPROCESS,
+    };
+
+    fn window_title(hwnd: HWND) -> String {
+        unsafe {
+            let len = GetWindowTextLengthW(hwnd);
+            if len <= 0 {
+                return String::new();
+            }
+            let mut buf = vec![0u16; (len + 1) as usize];
+            let n = GetWindowTextW(hwnd, &mut buf);
+            if n <= 0 {
+                return String::new();
+            }
+            String::from_utf16_lossy(&buf[..n as usize])
+        }
+    }
+
+    // SetWinEventHook callback — fires on every foreground change. Promotes a
+    // window to the snap target only if it's a real window with a title that
+    // isn't InstaDesk's own dashboard/overlay.
+    unsafe extern "system" fn hook_proc(
+        _hook: HWINEVENTHOOK,
+        event: u32,
+        hwnd: HWND,
+        id_object: i32,
+        _id_child: i32,
+        _thread: u32,
+        _time: u32,
+    ) {
+        if event != EVENT_SYSTEM_FOREGROUND || hwnd.0.is_null() || id_object != OBJID_WINDOW.0 {
+            return;
+        }
+        let title = window_title(hwnd);
+        if title.is_empty() || looks_like_instadesk_title(&title) {
+            return;
+        }
+        set_tracker_target(hwnd.0 as isize);
+    }
+
+    pub fn start() {
+        let _ = std::thread::Builder::new()
+            .name("foreground-hook".into())
+            .spawn(|| unsafe {
+                let hook = SetWinEventHook(
+                    EVENT_SYSTEM_FOREGROUND,
+                    EVENT_SYSTEM_FOREGROUND,
+                    None,
+                    Some(hook_proc),
+                    0,
+                    0,
+                    WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS,
+                );
+                if hook.is_invalid() {
+                    return;
+                }
+                // Out-of-context hooks deliver callbacks on this thread; we just
+                // need to pump messages so deliveries can happen.
+                let mut msg = MSG::default();
+                while GetMessageW(&mut msg, None, 0, 0).0 > 0 {}
+                let _ = UnhookWinEvent(hook);
+            });
+    }
 }
 
 #[cfg(test)]

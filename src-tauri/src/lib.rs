@@ -41,6 +41,8 @@ pub fn run() {
             .build(),
         )?;
       }
+      // Track the last-focused non-InstaDesk window so Snap targets it.
+      backend::start_foreground_tracker();
       Ok(())
     })
     .run(tauri::generate_context!())
