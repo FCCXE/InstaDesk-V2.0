@@ -1019,13 +1019,57 @@ function FavoritesPane() {
 /*                                    Help                                    */
 /* -------------------------------------------------------------------------- */
 
+// Collapsible quick-reference. Section ids map to help.sections.<id>.title/body
+// in the locale files (EN+ES). First section open by default.
+const HELP_SECTIONS = [
+  "quickStart",
+  "grid",
+  "apps",
+  "layouts",
+  "quickPresets",
+  "snap",
+  "monitorsSettings",
+  "troubleshooting",
+] as const;
+
 function HelpPane() {
   const { t } = useTranslation();
+  const [openId, setOpenId] = useState<string | null>("quickStart");
   return (
     <div className="flex h-full flex-col overflow-hidden p-3">
-      <div className="rounded-2xl border border-line bg-surface p-4">
-        <div className="text-base font-semibold text-fg">{t("help.title")}</div>
-        <div className="mt-2 text-sm text-muted">{t("help.body")}</div>
+      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-line bg-surface">
+        <div className="shrink-0 border-b border-line p-4">
+          <div className="text-base font-semibold text-fg">{t("help.title")}</div>
+          <div className="mt-1 text-xs text-muted">{t("help.subtitle")}</div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+          <div className="flex flex-col gap-2">
+            {HELP_SECTIONS.map((id) => {
+              const isOpen = openId === id;
+              return (
+                <div key={id} className="overflow-hidden rounded-xl border border-line bg-raised">
+                  <button
+                    type="button"
+                    onClick={() => setOpenId(isOpen ? null : id)}
+                    aria-expanded={isOpen}
+                    className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm font-medium text-fg hover:bg-line/40"
+                  >
+                    <span>{t(`help.sections.${id}.title`)}</span>
+                    <span className={`shrink-0 text-muted transition-transform ${isOpen ? "rotate-90" : ""}`} aria-hidden>
+                      ›
+                    </span>
+                  </button>
+                  {isOpen && (
+                    <p className="whitespace-pre-line border-t border-line px-3 py-2.5 text-xs leading-relaxed text-muted">
+                      {t(`help.sections.${id}.body`)}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 px-1 text-[10px] text-muted">{t("help.version")}</div>
+        </div>
       </div>
     </div>
   );

@@ -216,7 +216,42 @@
   },
   "help": {
     "title": "Ayuda",
-    "body": "Esto es una maqueta solo visual para la Fase A. No se realizan acciones del sistema. Usa las pestañas de arriba para previsualizar la interfaz de Apps, Diseños y Configuración. Para soporte, abre el README del proyecto."
+    "subtitle": "Cómo funciona InstaDesk — una guía rápida.",
+    "version": "InstaDesk v0.1 — FcXe Studios",
+    "sections": {
+      "quickStart": {
+        "title": "Inicio rápido",
+        "body": "• Elige un monitor en el panel izquierdo y arrastra sobre la cuadrícula central para seleccionar celdas.\n• En la pestaña Apps, elige una aplicación y pulsa «Asignar a la selección» para colocarla en esas celdas.\n• Guarda la disposición como un Diseño (pestaña Diseños → + Nuevo diseño).\n• Pulsa Aplicar en un Diseño para abrir cada aplicación y colocarla en su sitio."
+      },
+      "grid": {
+        "title": "La cuadrícula y la asignación de apps",
+        "body": "• Arrastra sobre las celdas para seleccionar una región rectangular y luego asígnale una aplicación.\n• Cambia la densidad de la cuadrícula de un monitor con el selector Cuadrícula de la barra inferior (p. ej. 6×6, 8×8, 10×10).\n• Da a una celda argumentos de inicio personalizados en la pestaña Apps —por ejemplo, una ruta de carpeta para el Explorador de archivos— para abrir distintas ventanas de la misma aplicación.\n• «Borrar cuadrícula actual» borra el monitor actual; «Borrar todas las cuadrículas» borra todos los monitores (con confirmación)."
+      },
+      "apps": {
+        "title": "Apps, URLs y Favoritos",
+        "body": "• Apps: elige del catálogo integrado o pulsa Examinar… para añadir el .exe de cualquier programa.\n• URLs: crea un grupo de pestañas del navegador, elige un navegador (+ Añadir navegador detecta los instalados en tu PC) y guárdalo como un elemento ejecutable.\n• Favoritos: ten a un clic tus apps y URLs más usadas.\n• El Historial de aplicaciones recuerda los programas que has añadido para reutilizarlos."
+      },
+      "layouts": {
+        "title": "Diseños",
+        "body": "• Un Diseño guarda qué aplicaciones van dónde, en todos tus monitores.\n• Aplicar abre y coloca todo; Editar lo reabre en la cuadrícula; Exportar / Importar lo comparte como un archivo .json.\n• Si una app guardada no tiene programa ni URL configurados, solo esa app se omite (con un aviso) y el resto se guarda igual."
+      },
+      "quickPresets": {
+        "title": "Preajustes rápidos",
+        "body": "• Un Preajuste rápido agrupa varios Diseños para aplicarlos todos juntos con un clic.\n• Créalos y gestiónalos desde «Gestionar PR» en el panel izquierdo; luego elige uno y pulsa Aplicar."
+      },
+      "snap": {
+        "title": "Ajuste (Snap)",
+        "body": "• Ajustar → M1 toma la última ventana que usaste y la ajusta en la región que elijas — sin necesidad de un Diseño.\n• Aparece una cuadrícula emergente en el monitor elegido; pulsa una región para colocar la ventana ahí.\n• Algunas apps imponen su propia posición y pueden negarse a moverse."
+      },
+      "monitorsSettings": {
+        "title": "Monitores y Configuración",
+        "body": "• Usa el selector de Monitor para cambiar qué pantalla estás organizando; la Disposición de pantallas muestra cómo están colocadas.\n• Configuración te permite cambiar el tema (Claro / Oscuro / Sistema), el idioma (English / Español), el tamaño de cuadrícula predeterminado y un margen de bisel para que las ventanas no queden bajo los marcos del monitor."
+      },
+      "troubleshooting": {
+        "title": "Consejos y resolución de problemas",
+        "body": "• Algunas apps (ciertas herramientas de CCTV / vídeo) colocan sus propias ventanas y no se ajustan — ciérralas y vuelve a abrirlas, o déjalas fuera del diseño.\n• Las apps de instancia única (p. ej. Outlook, Teams) abren una sola ventana; asignarlas a varias celdas no crea copias.\n• Los accesos directos de Windows (.lnk) no se pueden abrir directamente — apunta al .exe real.\n• Si una app no abre, revisa su ruta en la pestaña Apps y usa Examinar… para corregirla."
+      }
+    }
   },
   "layouts": {
     "title": "Diseños",

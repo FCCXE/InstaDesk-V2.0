@@ -216,7 +216,42 @@
   },
   "help": {
     "title": "Help",
-    "body": "This is a visuals-only shell for Phase A. No OS actions are performed. Use the tabs above to preview Apps, Layouts, and Settings UI. For support, open the project README."
+    "subtitle": "How InstaDesk works — a quick reference.",
+    "version": "InstaDesk v0.1 — FcXe Studios",
+    "sections": {
+      "quickStart": {
+        "title": "Quick start",
+        "body": "• Pick a monitor in the left panel, then drag across the centre grid to select cells.\n• In the Apps tab, choose an app and click “Assign to Selection” to place it in those cells.\n• Save the arrangement as a Layout (Layouts tab → + New Layout).\n• Click Apply on a Layout to launch every app and tile it into place."
+      },
+      "grid": {
+        "title": "The grid & assigning apps",
+        "body": "• Drag across cells to select a rectangular region, then assign an app to it.\n• Change a monitor's grid density with the Grid selector in the bottom bar (e.g. 6×6, 8×8, 10×10).\n• Give a cell custom launch arguments in the Apps tab — for example a folder path for File Explorer — to open different windows of the same app.\n• Clear Present Grid clears the current monitor; Clear All Grids clears every monitor (with a confirmation)."
+      },
+      "apps": {
+        "title": "Apps, URLs & Favorites",
+        "body": "• Apps: pick from the built-in catalog, or click Browse… to add any program's .exe.\n• URLs: build a group of browser tabs, choose a browser (+ Add Browser detects the browsers installed on your PC), and save it as a launchable item.\n• Favorites: keep your most-used apps and URLs one click away.\n• App History remembers programs you've added so you can reuse them later."
+      },
+      "layouts": {
+        "title": "Layouts",
+        "body": "• A Layout stores which apps go where, across all your monitors.\n• Apply launches and tiles everything; Edit reopens it on the grid; Export / Import share it as a .json file.\n• If a saved app has no program or URL configured, that one app is skipped (with a warning) and the rest still save."
+      },
+      "quickPresets": {
+        "title": "Quick Presets",
+        "body": "• A Quick Preset bundles several Layouts so you can apply them all together in one click.\n• Create and manage them from “Manage QPs” in the left panel, then pick one and click Apply."
+      },
+      "snap": {
+        "title": "Snap",
+        "body": "• Snap → M1 grabs the window you last used and snaps it into a region you choose — no Layout needed.\n• A grid popup appears on the chosen monitor; click a region to place the window there.\n• Some apps enforce their own position and may refuse to be moved."
+      },
+      "monitorsSettings": {
+        "title": "Monitors & Settings",
+        "body": "• Use the Monitor selector to switch which display you're arranging; the Display Array shows how they're laid out.\n• Settings lets you switch theme (Light / Dark / System), language (English / Español), the default grid size, and a bezel margin so tiled windows don't sit under your monitor frames."
+      },
+      "troubleshooting": {
+        "title": "Tips & troubleshooting",
+        "body": "• Some apps (certain CCTV / video tools) place their own windows and won't tile — close and relaunch them, or leave them out of the layout.\n• Single-instance apps (e.g. Outlook, Teams) open just one window; assigning them to several cells won't create copies.\n• Windows shortcuts (.lnk) can't be launched directly — point to the real .exe instead.\n• If an app won't launch, check its path in the Apps tab and use Browse… to fix it."
+      }
+    }
   },
   "layouts": {
     "title": "Layouts",
