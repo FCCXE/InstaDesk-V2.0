@@ -656,7 +656,7 @@ function AppsAppsPane() {
                   ) : editMode && r.seedId && r.isHiddenSeed ? (
                     <GhostBtn
                       onClick={() => onShowSeed(r)}
-                      className="ml-2 h-7 whitespace-nowrap border-emerald-200 bg-emerald-50 px-2 text-emerald-700 hover:bg-emerald-100"
+                      className="ml-2 h-7 whitespace-nowrap border-emerald-200 bg-emerald-50 px-2 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-300 dark:hover:bg-emerald-500/25"
                       title={t("apps.restoreTitle", { label: r.label })}
                     >
                       {t("apps.restore")}

@@ -179,9 +179,14 @@ export default function WorkspaceGrid() {
                 const style = assigned ? instanceStyleFor(assigned, instanceIdx) : null
 
                 const baseClasses = 'border rounded transition-colors flex items-center justify-center text-[10px] font-medium overflow-hidden'
+                // The catalog `fill` values are light pastels (e.g. bg-sky-50);
+                // on the dark board they look out of place and the dark cell
+                // text becomes unreadable. In dark mode neutralize the fill to a
+                // faint tint and lighten the text — the colored ring + dot still
+                // carry each app's hue, so cells stay distinguishable.
                 const classes = style
-                  ? `${baseClasses} ${style.fill} ${style.ring} text-slate-700`
-                  : `${baseClasses} ${highlighted ? 'border-blue-300' : 'border-line'} text-muted`
+                  ? `${baseClasses} ${style.fill} dark:bg-white/[0.07] ${style.ring} text-slate-700 dark:text-slate-200`
+                  : `${baseClasses} ${highlighted ? 'border-blue-300 dark:border-primary/60' : 'border-line'} text-muted`
 
                 // Tooltip: when there are multiple instances of this app,
                 // surface the args so the user can identify each region
@@ -209,7 +214,7 @@ export default function WorkspaceGrid() {
                     {assigned && (
                       <span className="truncate px-1">
                         {totalInst > 1 && (
-                          <span className="mr-1 inline-flex items-center justify-center rounded bg-white/70 px-1 text-[9px] font-semibold text-slate-600 ring-1 ring-slate-300">
+                          <span className="mr-1 inline-flex items-center justify-center rounded bg-white/70 px-1 text-[9px] font-semibold text-slate-600 ring-1 ring-slate-300 dark:bg-white/15 dark:text-slate-200 dark:ring-white/20">
                             #{instanceIdx + 1}
                           </span>
                         )}

@@ -244,7 +244,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                           type="button"
                           onClick={() => onDelete(q.slot)}
                           disabled={busy}
-                          className="rounded-md border border-red-200 px-2 py-1 text-[11px] text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          className="rounded-md border border-red-200 px-2 py-1 text-[11px] text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/15"
                         >
                           {t('layouts.delete')}
                         </button>
@@ -351,7 +351,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                           <button
                             type="button"
                             onClick={() => removeLayoutAt(i)}
-                            className="ml-1 rounded-md border border-red-200 px-2 py-0.5 text-[11px] text-red-600 hover:bg-red-50"
+                            className="ml-1 rounded-md border border-red-200 px-2 py-0.5 text-[11px] text-red-600 hover:bg-red-50 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/15"
                           >
                             {t('quickPresets.remove')}
                           </button>

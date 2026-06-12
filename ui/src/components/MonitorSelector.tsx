@@ -357,7 +357,7 @@ export default function MonitorSelector() {
         <div className="mt-3 rounded-xl border border-line bg-raised p-3 shadow-sm">
           <div className="flex items-center justify-between text-[13px]">
             <div className="flex items-center gap-2">
-              <span className={`inline-block size-2 rounded-full ${current.active ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+              <span className={`inline-block size-2 rounded-full ${current.active ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-600'}`} />
               <span>{current.name}</span>
             </div>
             <span

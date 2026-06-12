@@ -447,7 +447,7 @@ export default function LayoutsPane() {
               <span className="text-sm font-medium text-amber-900 dark:text-amber-200">
                 {t("layouts.editingName", { name: editingLayout.name })}
               </span>
-              <span className="text-[11px] text-amber-700">
+              <span className="text-[11px] text-amber-700 dark:text-amber-300">
                 {t("layouts.editingHint")}
               </span>
               <div className="flex-1" />
@@ -458,7 +458,7 @@ export default function LayoutsPane() {
                 className={[
                   "h-8 rounded-lg px-3 text-xs font-semibold shadow",
                   assignedCount === 0
-                    ? "cursor-not-allowed bg-amber-200 text-amber-700"
+                    ? "cursor-not-allowed bg-amber-200 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
                     : "bg-amber-600 text-white hover:bg-amber-700",
                   savingEdits ? "opacity-60 cursor-wait" : "",
                 ].join(" ")}

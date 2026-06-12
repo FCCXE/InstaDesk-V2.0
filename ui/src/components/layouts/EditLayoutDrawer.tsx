@@ -110,7 +110,7 @@ export default function EditLayoutDrawer({
           <input
             className={`mt-1 h-9 w-full rounded-md border px-3 text-sm outline-none ${
               errors.name && touched
-                ? "border-rose-400 focus:ring-2 focus:ring-rose-200"
+                ? "border-rose-400 focus:ring-2 focus:ring-rose-200 dark:border-rose-500/50 dark:focus:ring-rose-500/30"
                 : "border-line focus:ring-2 focus:ring-ring"
             }`}
             value={name}
@@ -121,7 +121,7 @@ export default function EditLayoutDrawer({
             placeholder={t("editLayout.namePlaceholder")}
             maxLength={60}
           />
-          {errors.name && touched && <p className="mt-1 text-xs text-rose-600">{errors.name}</p>}
+          {errors.name && touched && <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{errors.name}</p>}
 
           <div className="mt-5">
             <div className="text-xs font-medium text-muted">{t("editLayout.monitorsLabel")}</div>
@@ -145,7 +145,7 @@ export default function EditLayoutDrawer({
               })}
             </div>
             {errors.monitors && touched && (
-              <p className="mt-2 text-xs text-rose-600">{errors.monitors}</p>
+              <p className="mt-2 text-xs text-rose-600 dark:text-rose-400">{errors.monitors}</p>
             )}
           </div>
 

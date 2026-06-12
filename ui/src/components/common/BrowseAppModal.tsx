@@ -285,7 +285,7 @@ export default function BrowseAppModal({
                     key={j.label}
                     type="button"
                     onClick={() => navigateTo(j.path)}
-                    className="h-6 rounded-full border border-line bg-raised px-2 text-[10px] text-muted hover:bg-sky-50 hover:text-sky-700 hover:border-sky-200"
+                    className="h-6 rounded-full border border-line bg-raised px-2 text-[10px] text-muted hover:bg-sky-50 hover:text-sky-700 hover:border-sky-200 dark:hover:bg-sky-500/15 dark:hover:text-sky-300 dark:hover:border-sky-500/40"
                     title={j.path}
                   >
                     {j.label}
@@ -294,7 +294,7 @@ export default function BrowseAppModal({
               </div>
 
               {browseErr && (
-                <div className="mb-2 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700">
+                <div className="mb-2 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-300">
                   {browseErr}
                 </div>
               )}
@@ -318,8 +318,8 @@ export default function BrowseAppModal({
                       onClick={() => onPickEntry(e)}
                       className={[
                         "flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs",
-                        e.isDir ? "text-fg hover:bg-sky-50" :
-                        e.isExe ? "text-emerald-700 hover:bg-emerald-50" :
+                        e.isDir ? "text-fg hover:bg-sky-50 dark:hover:bg-sky-500/15" :
+                        e.isExe ? "text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-500/15" :
                         "text-muted hover:bg-raised",
                       ].join(" ")}
                       title={
@@ -333,7 +333,7 @@ export default function BrowseAppModal({
                       </span>
                       <span className="truncate">{e.name}</span>
                       {notLaunchable && (
-                        <span className="ml-auto shrink-0 rounded-full border border-amber-200 bg-amber-50 px-1.5 text-[9px] uppercase tracking-wide text-amber-700">
+                        <span className="ml-auto shrink-0 rounded-full border border-amber-200 bg-amber-50 px-1.5 text-[9px] uppercase tracking-wide text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300">
                           {t("browseApp.notLaunchableBadge")}
                         </span>
                       )}

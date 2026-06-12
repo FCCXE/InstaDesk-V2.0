@@ -33,7 +33,7 @@ export default function TopChrome() {
   }, [])
 
   const dot =
-    status.kind === 'checking' ? { color: 'bg-gray-300', label: t('header.checkingServer') } :
+    status.kind === 'checking' ? { color: 'bg-gray-300 dark:bg-slate-600', label: t('header.checkingServer') } :
     status.kind === 'ok' && status.data.agentExists ? { color: 'bg-emerald-500', label: t('header.serverOk', { path: status.data.agentPath }) } :
     status.kind === 'ok' ? { color: 'bg-amber-500', label: t('header.agentMissing', { path: status.data.agentPath }) } :
     { color: 'bg-red-500', label: t('header.serverUnreachable', { base: api.base, reason: status.reason }) }
