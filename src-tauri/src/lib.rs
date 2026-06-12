@@ -17,6 +17,9 @@ pub fn run() {
       backend::quickpresets_delete,
       backend::browse,
       backend::monitors,
+      backend::launch,
+      backend::presets_run,
+      backend::quickpresets_run,
     ])
     // Single-instance must be registered FIRST: a second launch of InstaDesk
     // focuses the already-running window instead of spawning another copy.

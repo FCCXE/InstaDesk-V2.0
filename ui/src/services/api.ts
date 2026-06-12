@@ -172,7 +172,10 @@ export const api = {
     inTauri()
       ? invoke<MonitorsResponse>('monitors')
       : request<MonitorsResponse>('GET', '/monitors'),
-  launch: (req: LaunchRequest) => request<LaunchResponse>('POST', '/launch', req),
+  launch: (req: LaunchRequest) =>
+    inTauri()
+      ? invoke<LaunchResponse>('launch', { body: req })
+      : request<LaunchResponse>('POST', '/launch', req),
   // PORTED to Rust (step 2.3): file/OS endpoints route to native commands in
   // the desktop shell; the web preview keeps HTTP. The agent-invoking *Run /
   // monitors / launch / snapPopup stay on fetch until the agent-batch port.
@@ -195,7 +198,9 @@ export const api = {
       ? invoke<{ ok: boolean; path: string }>('presets_save', { kind, slot, assignments })
       : request<{ ok: boolean; path: string }>('POST', '/presets/save', { kind, slot, assignments }),
   presetsRun: (kind: PresetKind, slot: string, marginPx?: number) =>
-    request<{ ok: boolean; results: LaunchResponse[] }>('POST', '/presets/run', { kind, slot, marginPx }),
+    inTauri()
+      ? invoke<{ ok: boolean; results: LaunchResponse[] }>('presets_run', { kind, slot, marginPx })
+      : request<{ ok: boolean; results: LaunchResponse[] }>('POST', '/presets/run', { kind, slot, marginPx }),
   presetsDelete: (kind: PresetKind, slot: string) =>
     inTauri()
       ? invoke<{ ok: boolean; deleted: string }>('presets_delete', { kind, slot })
@@ -221,7 +226,9 @@ export const api = {
       ? invoke<{ ok: boolean; deleted: string }>('quickpresets_delete', { slot })
       : request<{ ok: boolean; deleted: string }>('DELETE', '/quickpresets/delete', { slot }),
   quickPresetsRun: (slot: string, marginPx?: number) =>
-    request<QuickPresetRunResponse>('POST', '/quickpresets/run', { slot, marginPx }),
+    inTauri()
+      ? invoke<QuickPresetRunResponse>('quickpresets_run', { slot, marginPx })
+      : request<QuickPresetRunResponse>('POST', '/quickpresets/run', { slot, marginPx }),
 
   // ---- Quick Snap (Divvy-style ad-hoc) ----
   // Opens a native overlay popup on the target monitor. The agent finds

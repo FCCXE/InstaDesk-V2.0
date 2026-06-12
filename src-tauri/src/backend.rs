@@ -497,6 +497,325 @@ pub async fn monitors() -> Result<Value, String> {
     serde_json::from_str(line).map_err(|e| format!("Agent returned non-JSON: {e}"))
 }
 
+// ----------------------------------------------------------------------------
+// Launch / apply — spawn the agent to place windows. Mirrors the Python
+// _dotnet_cmd / _run_launch / _apply_preset, including TEMP-FILE stdio (the
+// agent's spawned apps inherit its handles → pipes would block forever) and
+// the parallel-across-program / serial-within-program apply ordering.
+// ----------------------------------------------------------------------------
+
+#[derive(Debug, Default, Clone, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LaunchBody {
+    // (assignment `type` is read from the raw JSON in apply_preset, not here)
+    pub program: Option<String>,
+    pub url: Option<String>,
+    pub title: Option<String>,
+    pub args: Option<String>,
+    pub single_instance: Option<bool>,
+    pub urls: Option<Vec<String>>,
+    #[serde(default = "default_monitor")]
+    pub monitor: i64,
+    #[serde(default = "default_grid")]
+    pub grid: String,
+    #[serde(default = "default_grid_size")]
+    pub grid_size: String,
+    pub no_move: Option<bool>,
+    pub no_dpi: Option<bool>,
+    pub frame_mode: Option<String>,
+    pub activate: Option<bool>,
+    pub topmost: Option<bool>,
+    pub wait_ready_ms: Option<i64>,
+    pub margin_px: Option<i64>,
+}
+fn default_monitor() -> i64 {
+    1
+}
+fn default_grid() -> String {
+    "1,1,3,3".into()
+}
+fn default_grid_size() -> String {
+    "6x6".into()
+}
+
+fn default_browser() -> String {
+    std::env::var("DEFAULT_BROWSER_PATH")
+        .unwrap_or_else(|_| r"C:\Program Files\Google\Chrome\Application\chrome.exe".to_string())
+}
+
+/// Read a temp file (the agent's captured stdout/stderr) to a lossy string.
+fn read_temp(mut f: std::fs::File) -> String {
+    use std::io::{Read, Seek, SeekFrom};
+    let _ = f.seek(SeekFrom::Start(0));
+    let mut buf = Vec::new();
+    let _ = f.read_to_end(&mut buf);
+    String::from_utf8_lossy(&buf).into_owned()
+}
+
+/// Build the `dotnet` arg list (agent path first) for one launch — mirrors
+/// the Python `_dotnet_cmd`.
+fn dotnet_args(body: &LaunchBody) -> Vec<String> {
+    let mut a: Vec<String> = vec![agent_path().to_string_lossy().into_owned()];
+    let nonempty = |s: &Option<String>| s.as_deref().filter(|x| !x.is_empty()).map(str::to_string);
+    if let Some(p) = nonempty(&body.program) {
+        a.push("--program".into());
+        a.push(expand_env_vars(&p));
+    }
+    if let Some(t) = nonempty(&body.title) {
+        a.push("--title".into());
+        a.push(t);
+    }
+    if let Some(u) = nonempty(&body.url) {
+        a.push("--url".into());
+        a.push(u);
+    }
+    if let Some(g) = nonempty(&body.args) {
+        a.push("--args".into());
+        a.push(g);
+    }
+    if body.single_instance == Some(true) {
+        a.push("--single-instance".into());
+        a.push("true".into());
+    }
+    if let Some(urls) = &body.urls {
+        if !urls.is_empty() {
+            a.push("--urls".into());
+            a.push(urls.join(" "));
+        }
+    }
+    a.push("--monitor".into());
+    a.push(body.monitor.to_string());
+    a.push("--grid".into());
+    a.push(body.grid.clone());
+    a.push("--grid-size".into());
+    a.push(body.grid_size.clone());
+    if body.no_move == Some(true) {
+        a.push("--no-move".into());
+    }
+    if body.no_dpi == Some(true) {
+        a.push("--no-dpi".into());
+    }
+    if let Some(fm) = nonempty(&body.frame_mode) {
+        a.push("--frameMode".into());
+        a.push(fm);
+    }
+    if body.activate == Some(false) {
+        a.push("--activate".into());
+        a.push("false".into());
+    }
+    if body.topmost == Some(true) {
+        a.push("--topmost".into());
+        a.push("true".into());
+    }
+    if let Some(w) = body.wait_ready_ms {
+        a.push("--waitReady".into());
+        a.push(w.to_string());
+    }
+    if let Some(m) = body.margin_px {
+        if m > 0 {
+            a.push("--cell-margin-px".into());
+            a.push(m.to_string());
+        }
+    }
+    a
+}
+
+/// Run one launch through the agent. Returns a LaunchResponse-shaped Value.
+/// Uses temp files for the agent's stdio (inherited by its spawned apps), and
+/// waits on the AGENT process (not pipe EOF) with a 45s timeout.
+async fn run_launch(body: &LaunchBody) -> Value {
+    let mut body = body.clone();
+    let has_prog = body.program.as_deref().map(|s| !s.is_empty()).unwrap_or(false);
+    let has_url = body.url.as_deref().map(|s| !s.is_empty()).unwrap_or(false);
+    if !has_prog && has_url {
+        body.program = Some(default_browser());
+    }
+    if let Some(p) = body.program.as_deref() {
+        if p.to_lowercase().ends_with(".lnk") {
+            return json!({
+                "exitCode": 1, "stdout": "",
+                "stderr": format!("[InstaDesk] Shortcut files (.lnk) are not supported: {p}\nEdit the Layout in the Apps tab — remove the Custom entry that points to this .lnk and re-assign using the catalog app (which uses the .exe directly), then re-save the Layout."),
+                "cmd": "",
+            });
+        }
+    }
+    let agent = agent_path();
+    if !agent.exists() {
+        return json!({ "exitCode": 1, "stdout": "", "stderr": format!("Agent DLL not found at {}", agent.display()), "cmd": "" });
+    }
+    let args = dotnet_args(&body);
+    let cmd_str = format!("dotnet {}", args.join(" "));
+
+    macro_rules! tmp_or_err {
+        ($e:expr) => {
+            match $e {
+                Ok(v) => v,
+                Err(e) => return json!({ "exitCode": 1, "stdout": "", "stderr": e.to_string(), "cmd": cmd_str }),
+            }
+        };
+    }
+    let so = tmp_or_err!(tempfile::tempfile());
+    let se = tmp_or_err!(tempfile::tempfile());
+    let so_read = tmp_or_err!(so.try_clone());
+    let se_read = tmp_or_err!(se.try_clone());
+
+    let spawned = tokio::process::Command::new("dotnet")
+        .args(&args)
+        .stdout(std::process::Stdio::from(so))
+        .stderr(std::process::Stdio::from(se))
+        .spawn();
+    let mut child = match spawned {
+        Ok(c) => c,
+        Err(e) => return json!({ "exitCode": 1, "stdout": "", "stderr": format!("Failed to run agent: {e}"), "cmd": cmd_str }),
+    };
+
+    let (rc, timeout_msg) = match tokio::time::timeout(std::time::Duration::from_secs(45), child.wait()).await {
+        Ok(Ok(status)) => (status.code().unwrap_or(1), ""),
+        Ok(Err(_)) => (1, ""),
+        Err(_) => {
+            let _ = child.kill().await;
+            (124, "\nTIMEOUT")
+        }
+    };
+
+    let out = read_temp(so_read);
+    let mut err = read_temp(se_read);
+    err.push_str(timeout_msg);
+    json!({ "exitCode": rc, "stdout": out, "stderr": err, "cmd": cmd_str })
+}
+
+/// Read a preset and apply every assignment — parallel across programs, serial
+/// within each program (race-free for same-exe launches). Returns {ok, results}
+/// in the saved assignments[] order.
+async fn apply_preset(kind: &str, slot: &str, margin_px: Option<i64>) -> Result<Value, String> {
+    let path = presets_dir().join(format!("{}_{}.json", kind, slot.to_uppercase()));
+    if !path.exists() {
+        return Err("Preset not found.".into());
+    }
+    let raw: Value = fs::read_to_string(&path)
+        .map_err(|e| e.to_string())
+        .and_then(|s| serde_json::from_str(&s).map_err(|e| e.to_string()))?;
+    let assignments = raw.get("assignments").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+
+    let mut bodies: Vec<LaunchBody> = Vec::new();
+    for a in &assignments {
+        let has_url = a.get("url").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false);
+        let has_prog = a.get("program").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false);
+        let atype = a
+            .get("type")
+            .and_then(|v| v.as_str())
+            .map(String::from)
+            .unwrap_or_else(|| if has_url && !has_prog { "url".into() } else { "program".into() });
+        let mut body: LaunchBody = serde_json::from_value(a.clone()).unwrap_or_default();
+        if atype == "program" {
+            body.url = None;
+        } else {
+            body.program = None;
+        }
+        // Preset defaults: gapless (frameless), activate, brief wait-ready.
+        if body.frame_mode.is_none() {
+            body.frame_mode = Some("frameless".into());
+        }
+        if body.activate.is_none() {
+            body.activate = Some(true);
+        }
+        if body.topmost.is_none() {
+            body.topmost = Some(false);
+        }
+        if body.wait_ready_ms.is_none() {
+            body.wait_ready_ms = Some(120);
+        }
+        body.margin_px = margin_px;
+        bodies.push(body);
+    }
+    if bodies.is_empty() {
+        return Ok(json!({ "ok": true, "results": [] }));
+    }
+
+    // Group by program (url-only bodies together); run groups concurrently,
+    // each group's launches serially.
+    let mut groups: std::collections::BTreeMap<String, Vec<(usize, LaunchBody)>> =
+        std::collections::BTreeMap::new();
+    for (i, b) in bodies.into_iter().enumerate() {
+        let key = b.program.as_deref().map(|s| s.to_lowercase()).unwrap_or_else(|| "url-only".into());
+        groups.entry(key).or_default().push((i, b));
+    }
+    let group_futs: Vec<_> = groups
+        .into_values()
+        .map(|items| async move {
+            let mut out: Vec<(usize, Value)> = Vec::new();
+            for (idx, body) in items {
+                out.push((idx, run_launch(&body).await));
+            }
+            out
+        })
+        .collect();
+    let group_outputs = futures::future::join_all(group_futs).await;
+    let mut flat: Vec<(usize, Value)> = group_outputs.into_iter().flatten().collect();
+    flat.sort_by_key(|(i, _)| *i);
+    let results: Vec<Value> = flat.into_iter().map(|(_, r)| r).collect();
+    Ok(json!({ "ok": true, "results": results }))
+}
+
+/// `POST /launch`
+#[tauri::command]
+pub async fn launch(body: LaunchBody) -> Result<Value, String> {
+    Ok(run_launch(&body).await)
+}
+
+/// `POST /presets/run`
+#[tauri::command]
+pub async fn presets_run(kind: String, slot: String, margin_px: Option<i64>) -> Result<Value, String> {
+    apply_preset(&kind, &slot, margin_px).await
+}
+
+/// `POST /quickpresets/run` — applies each referenced Layout sequentially.
+#[tauri::command]
+pub async fn quickpresets_run(slot: String, margin_px: Option<i64>) -> Result<Value, String> {
+    let path = quickpresets_dir().join(format!("QP_{}.json", slot.to_uppercase()));
+    if !path.exists() {
+        return Err("Quick Preset not found.".into());
+    }
+    let raw: Value = fs::read_to_string(&path)
+        .map_err(|e| e.to_string())
+        .and_then(|s| serde_json::from_str(&s).map_err(|e| e.to_string()))?;
+    let layouts = raw.get("layouts").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+    let qp_name = raw
+        .get("name")
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+        .map(String::from)
+        .unwrap_or_else(|| format!("Quick Preset {}", slot.to_uppercase()));
+
+    let mut per_layout: Vec<Value> = Vec::new();
+    for r in &layouts {
+        let kind = r.get("kind").and_then(|v| v.as_str()).unwrap_or("general").to_string();
+        let lslot = r.get("slot").and_then(|v| v.as_str()).unwrap_or("").to_uppercase();
+        if lslot.len() != 1 || !lslot.chars().next().map(|c| c.is_ascii_alphabetic()).unwrap_or(false) {
+            per_layout.push(json!({ "kind": kind, "slot": lslot, "ok": false, "error": "Invalid layout slot in Quick Preset." }));
+            continue;
+        }
+        if !presets_dir().join(format!("{}_{}.json", kind, lslot)).exists() {
+            per_layout.push(json!({ "kind": kind, "slot": lslot, "ok": false, "error": format!("Layout {}/{} no longer exists.", kind, lslot) }));
+            continue;
+        }
+        match apply_preset(&kind, &lslot, margin_px).await {
+            Ok(res) => per_layout.push(json!({
+                "kind": kind, "slot": lslot, "ok": true,
+                "results": res.get("results").cloned().unwrap_or_else(|| json!([])),
+            })),
+            Err(e) => per_layout.push(json!({ "kind": kind, "slot": lslot, "ok": false, "error": e })),
+        }
+    }
+    let succeeded = per_layout.iter().filter(|x| x.get("ok") == Some(&json!(true))).count();
+    Ok(json!({
+        "ok": true,
+        "quickpreset": { "slot": slot.to_uppercase(), "name": qp_name },
+        "summary": format!("{}/{} Layouts applied", succeeded, per_layout.len()),
+        "layouts": per_layout,
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
