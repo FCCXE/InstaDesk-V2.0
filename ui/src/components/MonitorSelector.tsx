@@ -36,18 +36,6 @@ export default function MonitorSelector() {
   const { monitors, currentMonitorId, setCurrentMonitor, windowMargin } = useAppState()
   const { t } = useTranslation()
 
-  // Guard the lookup: if the selected id isn't in the live monitor set (e.g. a
-  // display was unplugged at runtime, or a persisted id no longer matches),
-  // fall back to the first monitor instead of crashing the whole pane on the
-  // `!` non-null assertion. Render nothing only when there are no monitors.
-  const current = monitors.find((m) => m.id === currentMonitorId) ?? monitors[0]
-  if (!current) return null
-  const activeCount = monitors.filter((m) => m.active).length
-  const roleLabel =
-    current.role === 'Primary' ? t('monitor.primary')
-    : current.role === 'Secondary' ? t('monitor.secondary')
-    : current.role
-
   /* -------------------- Quick Presets + Layouts (real data) -------------------- */
   const [layouts, setLayouts] = useState<PresetListItem[] | null>(null)
   const [quickpresets, setQuickpresets] = useState<QuickPresetListItem[] | null>(null)
@@ -191,6 +179,17 @@ export default function MonitorSelector() {
     applyState.kind === 'ok' ? 'text-emerald-600 dark:text-emerald-400' :
     applyState.kind === 'busy' ? 'text-sky-600 dark:text-sky-400' :
     'text-muted'
+
+  // Resolve the displayed monitor AFTER all hooks (Rules of Hooks): fall back to
+  // the first monitor if the selected id isn't in the live set (display unplugged
+  // / stale id), and render nothing only when there are no monitors at all.
+  const current = monitors.find((m) => m.id === currentMonitorId) ?? monitors[0]
+  if (!current) return null
+  const activeCount = monitors.filter((m) => m.active).length
+  const roleLabel =
+    current.role === 'Primary' ? t('monitor.primary')
+    : current.role === 'Secondary' ? t('monitor.secondary')
+    : current.role
 
   return (
     <aside className="h-full overflow-y-auto rounded-2xl border border-line bg-surface p-4 shadow-sm">

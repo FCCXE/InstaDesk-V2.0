@@ -128,7 +128,7 @@
     "custom": "Custom",
     "clearCustomTitle": "Clear Custom",
     "clearCustomConfirm": "Clear all Custom history items? This cannot be undone.",
-    "clearCustomTitle": "Clear custom history?",
+    "clearCustomConfirmTitle": "Clear custom history?",
     "deleteUrlGroupConfirm": "Delete URL group \"{{label}}\"?",
     "deleteFavoriteConfirm": "Delete favorite \"{{label}}\"?",
     "deleteHistoryConfirm": "Delete \"{{label}}\" from history?",

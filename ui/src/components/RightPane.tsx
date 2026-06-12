@@ -371,7 +371,7 @@ function AppsAppsPane() {
     setFavorites(listFavorites());
   };
   const onClearCustom = async () => {
-    if (!(await confirm({ title: t("apps.clearCustomTitle"), body: t("apps.clearCustomConfirm"), danger: true }))) return;
+    if (!(await confirm({ title: t("apps.clearCustomConfirmTitle"), body: t("apps.clearCustomConfirm"), danger: true }))) return;
     clearHistory();
     setHistory(listHistory());
     setSelectedApp(null);
@@ -684,7 +684,7 @@ function AppsAppsPane() {
                       <span className="truncate" title={r.urlGroup!.name}>{r.urlGroup!.name}</span>
                     </div>
                     <div className="mb-1.5 text-[10px] uppercase tracking-wide text-muted">
-                      {t("apps.browserLabel")} <span className="font-mono text-cyan-700">{r.urlGroup!.browser}</span>
+                      {t("apps.browserLabel")} <span className="font-mono text-cyan-700 dark:text-cyan-300">{r.urlGroup!.browser}</span>
                       <span className="ml-2 text-muted">• {t("apps.urlCount", { count: r.urlGroup!.urls.length })}</span>
                     </div>
                     {r.urlGroup!.urls.length === 0 ? (
@@ -696,7 +696,7 @@ function AppsAppsPane() {
                             <span className="shrink-0 select-none text-[10px] font-mono text-muted">{i + 1}.</span>
                             <button
                               type="button"
-                              className="min-w-0 flex-1 truncate text-left text-[11px] text-fg hover:text-cyan-700"
+                              className="min-w-0 flex-1 truncate text-left text-[11px] text-fg hover:text-cyan-700 dark:hover:text-cyan-300"
                               title={t("apps.clickToCopy", { url: u })}
                               onClick={(e) => {
                                 e.stopPropagation();

@@ -146,9 +146,10 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             <div
               role={state.mode === 'confirm' ? 'alertdialog' : 'dialog'}
               aria-modal="true"
+              aria-labelledby="insta-dialog-title"
               className="w-[460px] max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-surface p-5 shadow-xl"
             >
-              <h2 className="text-base font-semibold text-fg">{opts.title}</h2>
+              <h2 id="insta-dialog-title" className="text-base font-semibold text-fg">{opts.title}</h2>
               {opts.body && (
                 <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted">
                   {opts.body}
@@ -158,6 +159,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                 <input
                   ref={inputRef}
                   type="text"
+                  aria-label={opts.title}
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder={state.opts.placeholder}

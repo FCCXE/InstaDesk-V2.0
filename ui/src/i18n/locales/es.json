@@ -128,7 +128,7 @@
     "custom": "Personalizado",
     "clearCustomTitle": "Borrar personalizado",
     "clearCustomConfirm": "¿Borrar todos los elementos personalizados del historial? Esta acción no se puede deshacer.",
-    "clearCustomTitle": "¿Borrar el historial personalizado?",
+    "clearCustomConfirmTitle": "¿Borrar el historial personalizado?",
     "deleteUrlGroupConfirm": "¿Eliminar el grupo de URLs \"{{label}}\"?",
     "deleteFavoriteConfirm": "¿Eliminar el favorito \"{{label}}\"?",
     "deleteHistoryConfirm": "¿Eliminar \"{{label}}\" del historial?",

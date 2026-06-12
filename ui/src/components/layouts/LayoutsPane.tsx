@@ -174,7 +174,7 @@ export default function LayoutsPane() {
       const switchTo = parsed.firstMonitorId && monitors.some(mm => mm.id === parsed.firstMonitorId)
         ? parsed.firstMonitorId
         : undefined;
-      replaceGridMulti(parsed.cellsByMonitorId, switchTo, parsed.argsByMonitorId);
+      replaceGridMulti(parsed.cellsByMonitorId, switchTo, parsed.argsByMonitorId, parsed.gridSizeByMonitorId);
       // Remember which Layout the user is editing so the inline 'Save changes'
       // button knows which slot to overwrite without re-prompting.
       setEditingLayoutId(m.id);

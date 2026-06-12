@@ -336,6 +336,7 @@ type AppStateContext = {
     cellsByMonitorId: Record<string, Record<string, string>>,
     switchTo?: string,
     argsByMonitorId?: Record<string, Record<string, string>>,
+    sizeByMonitorId?: Record<string, GridSize>,
   ) => void
 
   // multi-monitor read access — the saved-layout flow needs the assignments
@@ -673,11 +674,18 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     cellsByMonitorId: Record<string, Record<string, string>>,
     switchTo?: string,
     argsByMonitorId?: Record<string, Record<string, string>>,
+    sizeByMonitorId?: Record<string, GridSize>,
   ) => {
     const next: Record<string, Assignments> = {}
     const nextArgs: Record<string, Record<string, string>> = {}
     for (const [monId, cells] of Object.entries(cellsByMonitorId)) {
-      const a: Assignments = makeEmptyAssignments()
+      // Size each monitor's empty base to the LOADED grid — not a hardcoded 6×6,
+      // which would silently drop any cell with row/col ≥ 6 (truncating layouts
+      // authored on larger grids → data loss on Save). The loaded sizes are
+      // passed explicitly because gridSizeByMonitor state may not have flushed
+      // within the same render tick.
+      const size = sizeByMonitorId?.[monId] ?? gridSizeByMonitor[monId] ?? defaultGridSize
+      const a: Assignments = makeEmptyAssignments(size.cols, size.rows)
       for (const [k, app] of Object.entries(cells)) {
         if (k in a) a[k] = app as AppId
       }
