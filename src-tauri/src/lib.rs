@@ -1,5 +1,51 @@
 mod backend;
 
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri::{AppHandle, Manager};
+
+/// Bring the main window to the foreground (used by the tray click + menu).
+fn focus_main(app: &AppHandle) {
+  if let Some(w) = app.get_webview_window("main") {
+    let _ = w.unminimize();
+    let _ = w.show();
+    let _ = w.set_focus();
+  }
+}
+
+/// Build the InstaDesk system-tray icon with a Show/Quit menu.
+fn build_tray(app: &AppHandle) -> tauri::Result<()> {
+  let show = MenuItem::with_id(app, "show", "Show InstaDesk", true, None::<&str>)?;
+  let quit = MenuItem::with_id(app, "quit", "Quit InstaDesk", true, None::<&str>)?;
+  let menu = Menu::with_items(app, &[&show, &quit])?;
+
+  let mut builder = TrayIconBuilder::with_id("main")
+    .tooltip("InstaDesk")
+    .menu(&menu)
+    .show_menu_on_left_click(false)
+    .on_menu_event(|app, event| match event.id.as_ref() {
+      "show" => focus_main(app),
+      "quit" => app.exit(0),
+      _ => {}
+    })
+    .on_tray_icon_event(|tray, event| {
+      if let TrayIconEvent::Click {
+        button: MouseButton::Left,
+        button_state: MouseButtonState::Up,
+        ..
+      } = event
+      {
+        focus_main(tray.app_handle());
+      }
+    });
+  // Use the app's window icon (the InstaDesk emblem) as the tray image.
+  if let Some(icon) = app.default_window_icon().cloned() {
+    builder = builder.icon(icon);
+  }
+  builder.build(app)?;
+  Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -28,7 +74,6 @@ pub fn run() {
     // Single-instance must be registered FIRST: a second launch of InstaDesk
     // focuses the already-running window instead of spawning another copy.
     .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-      use tauri::Manager;
       if let Some(w) = app.get_webview_window("main") {
         let _ = w.unminimize();
         let _ = w.set_focus();
@@ -49,6 +94,10 @@ pub fn run() {
       backend::init_paths(app.handle());
       // Track the last-focused non-InstaDesk window so Snap targets it.
       backend::start_foreground_tracker();
+      // System-tray icon (InstaDesk emblem): left-click shows/focuses the window;
+      // the menu offers Show + Quit. Closing the window still exits the app (we
+      // don't hide-to-tray) — this just gives InstaDesk a visible tray presence.
+      build_tray(app.handle())?;
       Ok(())
     })
     .run(tauri::generate_context!())
