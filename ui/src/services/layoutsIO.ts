@@ -25,6 +25,7 @@ export type ExportedLayout = {
   };
   kind: PresetKind;
   slot: string;
+  name?: string;        // custom Layout name, round-tripped on export/import
   assignments: Assignment[];
 };
 
@@ -39,6 +40,7 @@ export function buildExportPayload(preset: SavedPreset): ExportedLayout {
     },
     kind: preset.kind,
     slot: preset.slot,
+    name: (preset.name ?? "").trim() || undefined,
     assignments: preset.assignments,
   };
 }
@@ -63,7 +65,7 @@ export function exportLayoutAsFile(preset: SavedPreset): void {
 }
 
 export type ParsedImport =
-  | { ok: true; preset: { kind: PresetKind; slot: string; assignments: Assignment[] } }
+  | { ok: true; preset: { kind: PresetKind; slot: string; name?: string; assignments: Assignment[] } }
   | { ok: false; error: string };
 
 /** Parse + lightly validate an imported JSON file. Errors are surfaced
@@ -140,11 +142,13 @@ export function parseImportedLayout(jsonText: string): ParsedImport {
     }
   }
 
+  const nameRaw = typeof obj.name === "string" ? obj.name.trim() : "";
   return {
     ok: true,
     preset: {
       kind: kind as PresetKind,
       slot: slotRaw.toString().toUpperCase(),
+      name: nameRaw || undefined,
       assignments: assignments as Assignment[],
     },
   };

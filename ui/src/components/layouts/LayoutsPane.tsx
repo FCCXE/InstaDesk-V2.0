@@ -39,7 +39,9 @@ function presetToCard(p: PresetListItem): LayoutCardModel | null {
   if (!kind || !slot) return null;
   return {
     id: `${kind}_${slot}`,
-    name: `${kind === "general" ? "Layout" : "Single"} ${slot}`,
+    // Custom name if the Layout has one; else a raw "Layout {slot}" placeholder
+    // (localizedLayouts re-derives the localized fallback for display).
+    name: (p.name ?? "").trim() || `${kind === "general" ? "Layout" : "Single"} ${slot}`,
     monitors: [], // populated later when we read the preset's assignments
     preset: { ...p, slot },
     updatedISO: p.updatedAt,
@@ -83,9 +85,15 @@ export default function LayoutsPane() {
   // English name (presetToCard runs outside the component, with no t in
   // scope); we re-derive the display name here so it tracks the active
   // language without a server refetch on every toggle.
+  // A Layout's display name: the user's custom name if set, otherwise a
+  // localized "Layout {slot}" / "Single {slot}" fallback (so unnamed Layouts
+  // still track the active language).
   const displayName = useCallback(
-    (kind: string, slot: string) =>
-      `${kind === "general" ? t("layouts.layout") : t("layouts.single")} ${(slot || "").toUpperCase()}`,
+    (p: { kind: string; slot: string; name?: string }) => {
+      const custom = (p.name ?? "").trim();
+      if (custom) return custom;
+      return `${p.kind === "general" ? t("layouts.layout") : t("layouts.single")} ${(p.slot || "").toUpperCase()}`;
+    },
     [t]
   );
 
@@ -105,7 +113,7 @@ export default function LayoutsPane() {
   // switch updates names everywhere (card titles AND flash messages) without
   // a refetch. State checks (loading / empty) still use raw `layouts`.
   const localizedLayouts = useMemo(
-    () => layouts?.map(m => ({ ...m, name: displayName(m.preset.kind, m.preset.slot) })) ?? null,
+    () => layouts?.map(m => ({ ...m, name: displayName(m.preset) })) ?? null,
     [layouts, displayName]
   );
 
@@ -228,7 +236,10 @@ export default function LayoutsPane() {
     }
     setSavingEdits(true);
     try {
-      await api.presetsSave(kind, slot, built.assignments);
+      // Preserve the Layout's existing custom name (raw, may be "") when
+      // overwriting — `name` above is the localized display label and must not
+      // be frozen in as a custom name for unnamed Layouts.
+      await api.presetsSave(kind, slot, built.assignments, editingLayout.preset.name);
       const perMonitor = new Map<number, string[]>();
       for (const a of built.assignments) {
         const list = perMonitor.get(a.monitor) ?? [];
@@ -293,21 +304,20 @@ export default function LayoutsPane() {
       flash({ kind: "err", msg: t("layouts.nothingToSave") });
       return;
     }
-    const takenSlots = (layouts ?? []).filter(l => l.preset.kind === "general").map(l => l.preset.slot);
-    const suggested = nextFreeSlot(takenSlots, "general");
-    const input = await prompt({ title: t("layouts.slotPromptTitle"), body: t("layouts.slotPrompt", { suggested }), defaultValue: suggested });
-    if (input == null) return; // user cancelled
-    const slot = input.trim().toUpperCase();
-    if (!/^[A-Z]$/.test(slot)) {
-      flash({ kind: "err", msg: t("layouts.invalidSlot", { input }) });
+    // The slot letter is the internal id and is auto-assigned; the user names
+    // the Layout instead. 26 letters → 26 saved Layouts per kind.
+    const takenSlots = (layouts ?? []).filter(l => l.preset.kind === "general").map(l => l.preset.slot.toUpperCase());
+    if (new Set(takenSlots).size >= 26) {
+      flash({ kind: "err", msg: t("layouts.maxLayouts") });
       return;
     }
-    if (takenSlots.map(s => s.toUpperCase()).includes(slot)) {
-      if (!(await confirm({ title: t("layouts.overwriteTitle"), body: t("layouts.slotExists", { slot }), danger: true }))) return;
-    }
+    const slot = nextFreeSlot(takenSlots, "general");
+    const input = await prompt({ title: t("layouts.namePromptTitle"), body: t("layouts.namePrompt"), defaultValue: "" });
+    if (input == null) return; // user cancelled
+    const name = input.trim();
     setSavingNew(true);
     try {
-      await api.presetsSave("general", slot, built.assignments);
+      await api.presetsSave("general", slot, built.assignments, name);
       // Group assignments by monitor for a friendly summary.
       const perMonitor = new Map<number, string[]>();
       for (const a of built.assignments) {
@@ -319,7 +329,8 @@ export default function LayoutsPane() {
         .sort((a, b) => a[0] - b[0])
         .map(([m, titles]) => `M${m}: ${titles.join(", ")}`)
         .join(" • ");
-      flash({ kind: "ok", msg: t("layouts.savedLayout", { slot, count: perMonitor.size, summary }) });
+      const shownName = displayName({ kind: "general", slot, name });
+      flash({ kind: "ok", msg: t("layouts.savedLayout", { name: shownName, count: perMonitor.size, summary }) });
       // Surface any apps that were skipped (no exe/url) so the save isn't
       // silently lossy — mirrors the import-warning pattern above.
       if (built.warnings.length > 0) {
@@ -333,6 +344,28 @@ export default function LayoutsPane() {
       flash({ kind: "err", msg: (e as Error).message });
     } finally {
       setSavingNew(false);
+    }
+  };
+
+  // Rename a Layout: prompt for a new name, then re-save the SAME slot +
+  // assignments with it (slot/id and content unchanged). Empty clears back to
+  // the default localized label.
+  const onRename = async (m: LayoutCardModel) => {
+    const current = (m.preset.name ?? "").trim();
+    const input = await prompt({ title: t("layouts.renameTitle"), body: t("layouts.renamePrompt"), defaultValue: current });
+    if (input == null) return; // cancelled
+    const name = input.trim();
+    setBusyId(m.id);
+    try {
+      const res = await api.presetsGet(m.preset.kind, m.preset.slot);
+      const assignments = res.preset.assignments ?? [];
+      await api.presetsSave(m.preset.kind, m.preset.slot, assignments, name);
+      flash({ kind: "ok", msg: t("layouts.renamed", { name: displayName({ kind: m.preset.kind, slot: m.preset.slot, name }) }) });
+      broadcastChanged();
+    } catch (e) {
+      flash({ kind: "err", msg: (e as Error).message });
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -419,7 +452,7 @@ export default function LayoutsPane() {
     }
 
     try {
-      await api.presetsSave(parsed.preset.kind, slot, parsed.preset.assignments);
+      await api.presetsSave(parsed.preset.kind, slot, parsed.preset.assignments, parsed.preset.name);
       flash({
         kind: "ok",
         msg: t("layouts.imported", {
@@ -593,6 +626,7 @@ export default function LayoutsPane() {
               onDelete={() => onDelete(m)}
               onLoad={() => onLoad(m)}
               onExport={() => onExport(m)}
+              onRename={() => onRename(m)}
               onTogglePreview={() => setPreviewedLayout(previewedLayoutId === m.id ? null : m.id)}
             />
           ))}
@@ -605,7 +639,7 @@ export default function LayoutsPane() {
 }
 
 function LayoutCard({
-  model, busy, isEditing, isPreviewed, onApply, onDelete, onLoad, onExport, onTogglePreview,
+  model, busy, isEditing, isPreviewed, onApply, onDelete, onLoad, onExport, onRename, onTogglePreview,
 }: {
   model: LayoutCardModel;
   busy: boolean;
@@ -615,6 +649,7 @@ function LayoutCard({
   onDelete: () => void;
   onLoad: () => void;
   onExport: () => void;
+  onRename: () => void;
   onTogglePreview: () => void;
 }) {
   const { t } = useTranslation();
@@ -641,6 +676,16 @@ function LayoutCard({
             <div className="truncate text-base font-semibold text-fg" title={model.name}>
               {model.name}
             </div>
+            <button
+              type="button"
+              onClick={onRename}
+              disabled={busy}
+              title={t("layouts.renameTitle")}
+              aria-label={t("layouts.renameTitle")}
+              className="shrink-0 rounded-md border border-line bg-raised px-1.5 text-xs leading-5 text-muted hover:text-fg disabled:opacity-50"
+            >
+              <span aria-hidden>✎</span>
+            </button>
             {isEditing && (
               <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-amber-300 bg-amber-50 px-2 text-[10px] font-semibold text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/15 dark:text-amber-200">
                 {t("layouts.editingBadge")}
