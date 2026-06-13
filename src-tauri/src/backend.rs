@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Manager};
+use tauri_plugin_autostart::ManagerExt;
 
 // ----------------------------------------------------------------------------
 // Production path resolution (Step 2.4). In a packaged build there is no outer
@@ -54,6 +55,45 @@ pub fn init_paths(app: &AppHandle) {
             let _ = RESOLVED_DATA.set(p);
         }
     }
+}
+
+// ----------------------------------------------------------------------------
+// "Launch on system start" (Settings → General). Wraps the autostart plugin's
+// AutoLaunch manager in our own commands so the UI drives it via invoke() like
+// every other native feature — no JS plugin or capability wiring.
+// ----------------------------------------------------------------------------
+
+/// Whether InstaDesk is registered to launch at Windows sign-in.
+#[tauri::command]
+pub fn autostart_is_enabled(app: AppHandle) -> Result<bool, String> {
+    app.autolaunch().is_enabled().map_err(|e| e.to_string())
+}
+
+/// Enable/disable launch-at-startup (writes/removes the Run-key entry).
+#[tauri::command]
+pub fn autostart_set(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let m = app.autolaunch();
+    let r = if enabled { m.enable() } else { m.disable() };
+    r.map_err(|e| e.to_string())
+}
+
+/// Default-ON on first run: enable autostart ONCE (release only — we don't want a
+/// dev exe in the user's startup), then never touch it again so the user's later
+/// choice sticks. A marker file in the app-data dir records the one-time default.
+pub fn ensure_autostart_default(app: &AppHandle) {
+    if cfg!(debug_assertions) {
+        return;
+    }
+    let Ok(dir) = app.path().app_data_dir() else {
+        return;
+    };
+    let marker = dir.join(".autostart-initialized");
+    if marker.exists() {
+        return;
+    }
+    let _ = app.autolaunch().enable();
+    let _ = fs::create_dir_all(&dir);
+    let _ = fs::write(&marker, b"1");
 }
 
 // ----------------------------------------------------------------------------

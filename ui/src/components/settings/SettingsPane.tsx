@@ -1,8 +1,9 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useAppState, GRID_SIZE_PRESETS, WINDOW_MARGIN_PRESETS } from "../../state/AppState";
 import { useTheme, type ThemeSetting } from "../../state/ThemeProvider";
 import { useTranslation } from "react-i18next";
 import { setLang, type Lang } from "../../i18n";
+import { api } from "../../services/api";
 
 /**
  * SettingsPane
@@ -21,6 +22,29 @@ export default function SettingsPane() {
   // Currently-selected preset key, for the <select>'s value prop.
   const selectedKey = `${defaultGridSize.cols}x${defaultGridSize.rows}`;
 
+  // Launch-on-system-start: reflects the real Windows startup registration.
+  // Reads the live state on mount; toggling writes it via the backend.
+  const [autostartOn, setAutostartOn] = useState(true);
+  const [autostartBusy, setAutostartBusy] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    api.autostartGet().then(v => { if (alive) setAutostartOn(v); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  const onToggleAutostart = async () => {
+    if (autostartBusy) return;
+    const next = !autostartOn;
+    setAutostartBusy(true);
+    try {
+      await api.autostartSet(next);
+      setAutostartOn(next); // only flip on success
+    } catch {
+      // leave the toggle as-is on failure (no silent false-positive)
+    } finally {
+      setAutostartBusy(false);
+    }
+  };
+
   return (
     <div className="flex h-full flex-col overflow-hidden p-3">
       {/* Title */}
@@ -32,7 +56,7 @@ export default function SettingsPane() {
           <Section title={t("settings.general")}>
             <Row>
               <Label>{t("settings.launchOnStart")}</Label>
-              <Toggle on />
+              <Toggle on={autostartOn} busy={autostartBusy} onToggle={onToggleAutostart} />
             </Row>
             <Row>
               <Label>{t("settings.theme")}</Label>
@@ -134,21 +158,35 @@ function Label({ children }: { children: ReactNode }) {
   return <div className="text-sm text-fg">{children}</div>;
 }
 
-function Toggle({ on = true }: { on?: boolean }) {
+function Toggle({
+  on = true,
+  busy = false,
+  onToggle,
+}: {
+  on?: boolean;
+  busy?: boolean;
+  onToggle?: () => void;
+}) {
   return (
-    <div
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      disabled={busy || !onToggle}
+      onClick={onToggle}
       className={[
-        "relative h-6 w-[46px] cursor-not-allowed rounded-full border",
+        "relative h-6 w-[46px] rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-ring",
+        onToggle ? "cursor-pointer" : "cursor-not-allowed",
+        busy ? "opacity-60" : "",
         on ? "border-sky-200 bg-sky-100 dark:border-primary/50 dark:bg-primary/40" : "border-line bg-raised",
       ].join(" ")}
-      aria-disabled
     >
-      <div
+      <span
         className={[
           "absolute top-[2px] h-[20px] w-[22px] rounded-full border bg-white transition-all",
           on ? "right-[2px] border-sky-200" : "left-[2px] border-line",
         ].join(" ")}
       />
-    </div>
+    </button>
   );
 }

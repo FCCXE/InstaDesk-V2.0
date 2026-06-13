@@ -297,4 +297,11 @@ export const api = {
     window.open(`/manual/InstaDesk-Manual-${code}.pdf`, '_blank')
     return Promise.resolve()
   },
+
+  // Launch-on-system-start (Settings → General). Web preview has no startup
+  // registration, so it reports false / no-ops.
+  autostartGet: (): Promise<boolean> =>
+    inTauri() ? invoke<boolean>('autostart_is_enabled') : Promise.resolve(false),
+  autostartSet: (enabled: boolean): Promise<void> =>
+    inTauri() ? invoke<void>('autostart_set', { enabled }) : Promise.resolve(),
 }

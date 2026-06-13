@@ -70,7 +70,15 @@ pub fn run() {
       backend::list_browsers,
       backend::pick_exe,
       backend::open_manual,
+      backend::autostart_is_enabled,
+      backend::autostart_set,
     ])
+    // Launch-on-system-start support (the Settings → General toggle drives this
+    // through backend::autostart_set / _is_enabled).
+    .plugin(tauri_plugin_autostart::init(
+      tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+      None,
+    ))
     // Single-instance must be registered FIRST: a second launch of InstaDesk
     // focuses the already-running window instead of spawning another copy.
     .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
@@ -94,6 +102,9 @@ pub fn run() {
       backend::init_paths(app.handle());
       // Track the last-focused non-InstaDesk window so Snap targets it.
       backend::start_foreground_tracker();
+      // Launch-on-start defaults ON the first time the packaged app runs; the
+      // user can turn it off in Settings and that choice is respected after.
+      backend::ensure_autostart_default(app.handle());
       // System-tray icon (InstaDesk emblem): left-click shows/focuses the window;
       // the menu offers Show + Quit. Closing the window still exits the app (we
       // don't hide-to-tray) — this just gives InstaDesk a visible tray presence.
