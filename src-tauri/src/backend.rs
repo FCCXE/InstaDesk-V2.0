@@ -142,6 +142,26 @@ fn agent_cmd_str(flag_args: &[String]) -> String {
     format!("{} {}", prog.display(), args.join(" "))
 }
 
+/// A `tokio` Command to run the agent with `flag_args`, configured to NEVER show a
+/// console window. The installed GUI app has no console of its own, so spawning the
+/// agent would otherwise pop a black console window per call — and a close/Ctrl
+/// event on that window kills the agent mid-snap (STATUS_CONTROL_C_EXIT, the "Snap
+/// error" the user saw). CREATE_NO_WINDOW prevents both. The agent's WinForms Snap
+/// overlay is a normal top-level window, not a console, so it still appears. (The
+/// agent is also published as WinExe — belt-and-suspenders.)
+fn agent_command(flag_args: &[String]) -> tokio::process::Command {
+    let (prog, args) = agent_invocation(flag_args);
+    let mut cmd = tokio::process::Command::new(&prog);
+    cmd.args(&args);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.as_std_mut().creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd
+}
+
 /// File mtime as an ISO-8601 (RFC3339, local tz) string — matches the Python
 /// `datetime.fromtimestamp(mtime).isoformat()` for the UI's `updatedAt`.
 fn mtime_iso(path: &Path) -> String {
@@ -598,8 +618,7 @@ pub async fn monitors() -> Result<Value, String> {
     if !agent.exists() {
         return Err(format!("Agent not found at {}", agent.display()));
     }
-    let (prog, args) = agent_invocation(&["--list-monitors".to_string()]);
-    let fut = tokio::process::Command::new(&prog).args(&args).output();
+    let fut = agent_command(&["--list-monitors".to_string()]).output();
     let out = match tokio::time::timeout(std::time::Duration::from_secs(10), fut).await {
         Ok(Ok(o)) => o,
         Ok(Err(e)) => return Err(format!("Failed to run agent: {e}")),
@@ -780,8 +799,7 @@ async fn run_launch(body: &LaunchBody) -> Value {
         return json!({ "exitCode": 1, "stdout": "", "stderr": format!("Agent not found at {}", agent.display()), "cmd": "" });
     }
     let flags = agent_flag_args(&body);
-    let (prog, args) = agent_invocation(&flags);
-    let cmd_str = format!("{} {}", prog.display(), args.join(" "));
+    let cmd_str = agent_cmd_str(&flags);
 
     macro_rules! tmp_or_err {
         ($e:expr) => {
@@ -796,8 +814,7 @@ async fn run_launch(body: &LaunchBody) -> Value {
     let so_read = tmp_or_err!(so.try_clone());
     let se_read = tmp_or_err!(se.try_clone());
 
-    let spawned = tokio::process::Command::new(&prog)
-        .args(&args)
+    let spawned = agent_command(&flags)
         .stdout(std::process::Stdio::from(so))
         .stderr(std::process::Stdio::from(se))
         .spawn();
@@ -993,13 +1010,11 @@ fn reset_tracker() {
 /// return (exit code, stdout, stderr, timeout-suffix). `flag_args` are the agent
 /// flags; the program (`dotnet <dll>` or the exe) is supplied by `agent_invocation`.
 async fn run_agent(flag_args: &[String], timeout_secs: u64) -> Result<(i32, String, String, &'static str), String> {
-    let (prog, args) = agent_invocation(flag_args);
     let so = tempfile::tempfile().map_err(|e| e.to_string())?;
     let se = tempfile::tempfile().map_err(|e| e.to_string())?;
     let so_read = so.try_clone().map_err(|e| e.to_string())?;
     let se_read = se.try_clone().map_err(|e| e.to_string())?;
-    let mut child = tokio::process::Command::new(&prog)
-        .args(&args)
+    let mut child = agent_command(flag_args)
         .stdout(std::process::Stdio::from(so))
         .stderr(std::process::Stdio::from(se))
         .spawn()
