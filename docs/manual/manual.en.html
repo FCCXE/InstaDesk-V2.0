@@ -35,6 +35,9 @@
   .note { background: var(--raised); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 4px; padding: 3mm 4mm; margin: 0 0 4mm; }
   .note b { color: #0d1622; }
   .shot { display: block; width: 100%; height: auto; margin: 3mm 0 4mm; border: 1px solid var(--line); border-radius: 6px; break-inside: avoid; }
+  table.caps { width: 100%; border-collapse: collapse; margin: 0 0 4mm; font-size: 10.5pt; break-inside: avoid; }
+  table.caps th, table.caps td { border: 1px solid var(--line); padding: 2mm 3mm; text-align: left; vertical-align: top; }
+  table.caps th { background: var(--raised); color: #0d1622; font-weight: 700; }
   figure { margin: 0 0 4mm; break-inside: avoid; }
   figcaption { font-size: 9pt; color: var(--muted); margin-top: 1.5mm; text-align: center; }
   /* Cover */
@@ -74,6 +77,7 @@
     <li><a href="#snap"><span class="num">9</span> Snap</a></li>
     <li><a href="#settings"><span class="num">10</span> Monitors &amp; Settings</a></li>
     <li><a href="#troubleshooting"><span class="num">11</span> Tips &amp; troubleshooting</a></li>
+    <li><a href="#limits"><span class="num">12</span> Limits &amp; capacities</a></li>
   </ol>
 </nav>
 
@@ -142,17 +146,18 @@
 <p>Keep your most-used apps and URLs one click away.</p>
 
 <h2 id="layouts">7 · Layouts</h2>
-<p>A Layout stores which apps go where, across <i>all</i> your monitors.</p>
+<p>A Layout stores which apps go where, across <i>all</i> your monitors. When you save with <b>+ New Layout</b>, give it a name you'll recognise — for example “Work”, “Trading”, or “Editing”. You can keep up to <b>26</b> saved Layouts at a time.</p>
 <ul>
   <li><b>Apply</b> — launches and tiles everything in the layout.</li>
   <li><b>Edit</b> — reopens the layout on the grid so you can rearrange and re-save.</li>
-  <li><b>Export / Import</b> — share a layout as a <code>.json</code> file.</li>
+  <li><b>Rename (✎)</b> — give a layout a new name; its contents stay the same.</li>
+  <li><b>Export / Import</b> — share a layout as a <code>.json</code> file (its name travels with it).</li>
 </ul>
 <div class="note">If a saved app has no program or URL configured, only that one app is skipped on save (with a warning) — the rest of the layout still saves normally.</div>
 <img class="shot" src="img/layouts.png" alt="InstaDesk screenshot: layouts" />
 
 <h2 id="quickpresets">8 · Quick Presets</h2>
-<p>A Quick Preset bundles several Layouts so you can apply them all together with one click — ideal for a full multi-monitor workspace assembled from reusable pieces.</p>
+<p>A Quick Preset bundles several Layouts so you can apply them all together with one click — ideal for a full multi-monitor workspace assembled from reusable pieces. You can keep up to <b>26</b> Quick Presets.</p>
 <ol>
   <li>Click <b>Manage QPs</b> in the left panel.</li>
   <li>Create a preset and add the Layouts it should include.</li>
@@ -186,6 +191,21 @@
   <li><b>An app fails to launch.</b> Check its path in the Apps tab and use <b>Browse…</b> to correct it.</li>
   <li><b>My added browser disappeared / opened the wrong browser.</b> Use <b>+ Add Browser</b> and pick a detected browser (or browse to its <code>.exe</code>) so InstaDesk has its real program path.</li>
 </ul>
+
+<h2 id="limits">12 · Limits &amp; capacities</h2>
+<p>At a glance, what InstaDesk can hold:</p>
+<table class="caps">
+  <tr><th>Item</th><th>Limit</th></tr>
+  <tr><td>Saved Layouts — multi-monitor</td><td>26</td></tr>
+  <tr><td>Saved Layouts — single-monitor</td><td>26</td></tr>
+  <tr><td>Quick Presets</td><td>26</td></tr>
+  <tr><td>Grid density (per monitor)</td><td>4×4, 6×6, 8×8 or 10×10</td></tr>
+  <tr><td>Windows placed per monitor (one Layout)</td><td>up to the grid size — 36 at 6×6, 100 at 10×10</td></tr>
+  <tr><td>Monitors</td><td>every monitor Windows detects</td></tr>
+  <tr><td>Window margin (bezel padding)</td><td>0–16 px</td></tr>
+  <tr><td>URLs per group · Favorites</td><td>no fixed limit</td></tr>
+</table>
+<div class="note">Reached 26 saved Layouts? Delete one to free a slot, or combine related Layouts into a Quick Preset. Higher limits are planned for a future update if customers need them.</div>
 
 </body>
 </html>

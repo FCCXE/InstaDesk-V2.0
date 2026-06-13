@@ -32,6 +32,9 @@
   .note { background: var(--raised); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 4px; padding: 3mm 4mm; margin: 0 0 4mm; }
   .note b { color: #0d1622; }
   .shot { display: block; width: 100%; height: auto; margin: 3mm 0 4mm; border: 1px solid var(--line); border-radius: 6px; break-inside: avoid; }
+  table.caps { width: 100%; border-collapse: collapse; margin: 0 0 4mm; font-size: 10.5pt; break-inside: avoid; }
+  table.caps th, table.caps td { border: 1px solid var(--line); padding: 2mm 3mm; text-align: left; vertical-align: top; }
+  table.caps th { background: var(--raised); color: #0d1622; font-weight: 700; }
   figure { margin: 0 0 4mm; break-inside: avoid; }
   figcaption { font-size: 9pt; color: var(--muted); margin-top: 1.5mm; text-align: center; }
   .cover { break-after: page; padding-top: 40mm; text-align: center; }
@@ -69,6 +72,7 @@
     <li><a href="#snap"><span class="num">9</span> Ajuste (Snap)</a></li>
     <li><a href="#settings"><span class="num">10</span> Monitores y Configuración</a></li>
     <li><a href="#troubleshooting"><span class="num">11</span> Consejos y resolución de problemas</a></li>
+    <li><a href="#limits"><span class="num">12</span> Límites y capacidades</a></li>
   </ol>
 </nav>
 
@@ -137,17 +141,18 @@
 <p>Ten a un clic tus apps y URLs más usadas.</p>
 
 <h2 id="layouts">7 · Diseños</h2>
-<p>Un Diseño guarda qué apps van dónde, en <i>todos</i> tus monitores.</p>
+<p>Un Diseño guarda qué apps van dónde, en <i>todos</i> tus monitores. Al guardar con <b>+ Nuevo diseño</b>, ponle un nombre que reconozcas — por ejemplo «Trabajo», «Trading» o «Edición». Puedes mantener hasta <b>26</b> diseños guardados a la vez.</p>
 <ul>
   <li><b>Aplicar</b> — abre y coloca todo lo del diseño.</li>
   <li><b>Editar</b> — reabre el diseño en la cuadrícula para reorganizar y volver a guardar.</li>
-  <li><b>Exportar / Importar</b> — comparte un diseño como archivo <code>.json</code>.</li>
+  <li><b>Renombrar (✎)</b> — dale un nuevo nombre a un diseño; su contenido no cambia.</li>
+  <li><b>Exportar / Importar</b> — comparte un diseño como archivo <code>.json</code> (su nombre viaja con él).</li>
 </ul>
 <div class="note">Si una app guardada no tiene programa ni URL configurados, solo esa app se omite al guardar (con un aviso) — el resto del diseño se guarda con normalidad.</div>
 <img class="shot" src="img/layouts.png" alt="InstaDesk screenshot: layouts" />
 
 <h2 id="quickpresets">8 · Preajustes rápidos</h2>
-<p>Un Preajuste rápido agrupa varios Diseños para aplicarlos todos juntos con un clic — ideal para un espacio multimonitor completo montado a partir de piezas reutilizables.</p>
+<p>Un Preajuste rápido agrupa varios Diseños para aplicarlos todos juntos con un clic — ideal para un espacio multimonitor completo montado a partir de piezas reutilizables. Puedes mantener hasta <b>26</b> Preajustes rápidos.</p>
 <ol>
   <li>Pulsa <b>Gestionar PR</b> en el panel izquierdo.</li>
   <li>Crea un preajuste y añade los Diseños que debe incluir.</li>
@@ -181,6 +186,23 @@
   <li><b>Una app no se abre.</b> Revisa su ruta en la pestaña Apps y usa <b>Examinar…</b> para corregirla.</li>
   <li><b>Mi navegador añadido desapareció / abrió el navegador equivocado.</b> Usa <b>+ Añadir navegador</b> y elige uno detectado (o busca su <code>.exe</code>) para que InstaDesk tenga su ruta de programa real.</li>
 </ul>
+
+<h2 id="limits">12 · Límites y capacidades</h2>
+<p>De un vistazo, lo que InstaDesk puede almacenar:</p>
+<table class="caps">
+  <tr><th>Elemento</th><th>Límite</th></tr>
+  <tr><td>Diseños guardados — multimonitor</td><td>26</td></tr>
+  <tr><td>Diseños guardados — monitor único</td><td>26</td></tr>
+  <tr><td>Preajustes rápidos</td><td>26</td></tr>
+  <tr><td>Densidad de cuadrícula (por monitor)</td><td>4×4, 6×6, 8×8 o 10×10</td></tr>
+  <tr><td>Ventanas por monitor (un Diseño)</td><td>hasta el tamaño de la cuadrícula — 36 en 6×6, 100 en 10×10</td></tr>
+  <tr><td>Monitores</td><td>todos los que Windows detecte</td></tr>
+  <tr><td>Margen de ventana (bisel)</td><td>0–16 px</td></tr>
+  <tr><td>URLs por grupo · Favoritos</td><td>sin límite fijo</td></tr>
+</table>
+<div class="note">¿Llegaste a 26 diseños guardados? Elimina uno para liberar un espacio, o combina diseños relacionados en un Preajuste rápido. Se planean límites mayores en una futura actualización si los clientes los necesitan.</div>
+
+</body>
 
 </body>
 </html>
