@@ -304,9 +304,11 @@ pub fn presets_list() -> Result<Value, String> {
                 (Some(k), Some(s)) => (k, s),
                 _ => continue,
             };
+            let name = raw.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
             items.push(json!({
                 "kind": kind,
                 "slot": slot.to_uppercase(),
+                "name": name,
                 "path": path.to_string_lossy(),
                 "updatedAt": mtime_iso(&path),
             }));
@@ -372,7 +374,12 @@ pub fn presets_get(kind: String, slot: String) -> Result<Value, String> {
 
 /// `POST /presets/save`
 #[tauri::command]
-pub fn presets_save(kind: String, slot: String, assignments: Vec<Value>) -> Result<Value, String> {
+pub fn presets_save(
+    kind: String,
+    slot: String,
+    name: Option<String>,
+    assignments: Vec<Value>,
+) -> Result<Value, String> {
     check_kind(&kind)?;
     check_slot(&slot)?;
     // Normalize each assignment's `type` (url if a url with no program, else program).
@@ -398,7 +405,11 @@ pub fn presets_save(kind: String, slot: String, assignments: Vec<Value>) -> Resu
     let dir = presets_dir();
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let path = dir.join(format!("{}_{}.json", kind, slot.to_uppercase()));
-    let payload = json!({ "kind": kind, "slot": slot, "assignments": norm });
+    // Optional custom display name (trimmed). Stored empty when the user didn't
+    // name it; the UI then falls back to a localized "Layout {slot}" label, so
+    // the default stays localized instead of being frozen to English here.
+    let name = name.map(|n| n.trim().to_string()).unwrap_or_default();
+    let payload = json!({ "kind": kind, "slot": slot, "name": name, "assignments": norm });
     fs::write(&path, serde_json::to_string_pretty(&payload).map_err(|e| e.to_string())?)
         .map_err(|e| e.to_string())?;
     Ok(json!({ "ok": true, "path": path.to_string_lossy() }))
@@ -1461,6 +1472,7 @@ mod tests {
         let save = presets_save(
             "general".into(),
             "z".into(),
+            Some("  My Test Layout  ".into()),
             vec![json!({ "program": "notepad.exe", "monitor": 1, "grid": "1,1,2,2", "gridSize": "6x6" })],
         )
         .unwrap();
@@ -1470,10 +1482,17 @@ mod tests {
         assert_eq!(got["preset"]["kind"], json!("general"));
         // `type` was normalized to "program" on save.
         assert_eq!(got["preset"]["assignments"][0]["type"], json!("program"));
+        // The custom name is persisted, trimmed.
+        assert_eq!(got["preset"]["name"], json!("My Test Layout"));
 
         let list = presets_list().unwrap();
-        let found = list["presets"].as_array().unwrap().iter().any(|p| p["slot"] == json!("Z"));
-        assert!(found, "saved preset should appear in the list");
+        let item = list["presets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|p| p["slot"] == json!("Z"));
+        assert!(item.is_some(), "saved preset should appear in the list");
+        assert_eq!(item.unwrap()["name"], json!("My Test Layout"), "list returns the custom name");
 
         let del = presets_delete("general".into(), "z".into()).unwrap();
         assert_eq!(del["ok"], json!(true));

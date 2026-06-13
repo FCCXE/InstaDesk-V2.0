@@ -75,6 +75,7 @@ export type PresetKind = 'general' | 'single'
 export type PresetListItem = {
   kind: PresetKind
   slot: string
+  name: string          // custom display name; "" when unnamed (UI falls back to "Layout {slot}")
   path: string
   updatedAt: string
 }
@@ -82,6 +83,7 @@ export type PresetListItem = {
 export type SavedPreset = {
   kind: PresetKind
   slot: string
+  name?: string         // present on layouts saved with the naming feature
   assignments: Assignment[]
 }
 
@@ -196,10 +198,10 @@ export const api = {
       ? invoke<{ ok: boolean; preset: SavedPreset; path: string }>('presets_get', { kind, slot })
       : request<{ ok: boolean; preset: SavedPreset; path: string }>(
           'GET', `/presets/get?kind=${encodeURIComponent(kind)}&slot=${encodeURIComponent(slot)}`),
-  presetsSave: (kind: PresetKind, slot: string, assignments: Assignment[]) =>
+  presetsSave: (kind: PresetKind, slot: string, assignments: Assignment[], name?: string) =>
     inTauri()
-      ? invoke<{ ok: boolean; path: string }>('presets_save', { kind, slot, assignments })
-      : request<{ ok: boolean; path: string }>('POST', '/presets/save', { kind, slot, assignments }),
+      ? invoke<{ ok: boolean; path: string }>('presets_save', { kind, slot, name, assignments })
+      : request<{ ok: boolean; path: string }>('POST', '/presets/save', { kind, slot, name, assignments }),
   presetsRun: (kind: PresetKind, slot: string, marginPx?: number) =>
     inTauri()
       ? invoke<{ ok: boolean; results: LaunchResponse[] }>('presets_run', { kind, slot, marginPx })
