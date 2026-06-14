@@ -309,4 +309,12 @@ export const api = {
   // Rust side reads at startup). Web preview no-ops.
   setTelemetryOptout: (optedOut: boolean): Promise<void> =>
     inTauri() ? invoke<void>('set_telemetry_optout', { optedOut }) : Promise.resolve(),
+
+  // Rebind a global hotkey (Settings → Global shortcuts). `code` is a DOM
+  // KeyboardEvent.code (e.g. "KeyD", "Digit1"). Web preview no-ops.
+  setHotkey: (
+    action: 'show' | 'snap',
+    parts: { ctrl: boolean; alt: boolean; shift: boolean; sup: boolean; code: string },
+  ): Promise<void> =>
+    inTauri() ? invoke<void>('set_hotkey', { action, ...parts }) : Promise.resolve(),
 }

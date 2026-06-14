@@ -8,6 +8,7 @@ import LayoutPreviewOverlay from './components/layouts/LayoutPreviewOverlay'
 
 // ✅ central state wrapper
 import { AppStateProvider } from './state/AppState'
+import { applySavedHotkeys } from './services/hotkeys'
 
 /**
  * Balanced fit (2026-06-11) — "maximize space, but only up to the construct's
@@ -64,6 +65,11 @@ function useBalancedFit() {
 
 export default function App() {
   const { s, preW, preH } = useBalancedFit()
+  // Re-apply any custom global-hotkey bindings the user saved (Rust registered
+  // the defaults at startup; this overrides Show/Snap if they were rebound).
+  useEffect(() => {
+    void applySavedHotkeys()
+  }, [])
   return (
     <AppStateProvider>
       <div className="h-dvh w-full overflow-hidden bg-bg flex items-center justify-center">

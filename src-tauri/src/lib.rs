@@ -57,6 +57,67 @@ const QUICKPRESET_DIGITS: [Code; 9] = [
   Code::Digit9,
 ];
 
+// Current (possibly user-rebound) Show / Snap hotkeys. Default to hotkey_show/snap;
+// the Settings rebinder updates them via set_hotkey. The QP digits stay fixed.
+static SHOW_HOTKEY: std::sync::LazyLock<std::sync::Mutex<Shortcut>> =
+  std::sync::LazyLock::new(|| std::sync::Mutex::new(hotkey_show()));
+static SNAP_HOTKEY: std::sync::LazyLock<std::sync::Mutex<Shortcut>> =
+  std::sync::LazyLock::new(|| std::sync::Mutex::new(hotkey_snap()));
+
+/// Build a Shortcut from JS-supplied parts (e.code + modifier booleans). None if
+/// the code isn't a known key.
+fn shortcut_from_parts(ctrl: bool, alt: bool, shift: bool, sup: bool, code: &str) -> Option<Shortcut> {
+  let mut mods = Modifiers::empty();
+  if ctrl {
+    mods |= Modifiers::CONTROL;
+  }
+  if alt {
+    mods |= Modifiers::ALT;
+  }
+  if shift {
+    mods |= Modifiers::SHIFT;
+  }
+  if sup {
+    mods |= Modifiers::SUPER;
+  }
+  let key: Code = code.parse().ok()?;
+  Some(Shortcut::new(
+    if mods.is_empty() { None } else { Some(mods) },
+    key,
+  ))
+}
+
+/// Rebind the Show or Snap global hotkey (called by Settings). Registers the new
+/// combo first (so a conflict leaves the old one working), then drops the old.
+#[tauri::command]
+fn set_hotkey(
+  app: AppHandle,
+  action: String,
+  ctrl: bool,
+  alt: bool,
+  shift: bool,
+  sup: bool,
+  code: String,
+) -> Result<(), String> {
+  let new_sc =
+    shortcut_from_parts(ctrl, alt, shift, sup, &code).ok_or_else(|| format!("Unknown key: {code}"))?;
+  let slot = match action.as_str() {
+    "show" => &SHOW_HOTKEY,
+    "snap" => &SNAP_HOTKEY,
+    _ => return Err(format!("Unknown action: {action}")),
+  };
+  let mut cur = slot.lock().map_err(|_| "lock".to_string())?;
+  if new_sc == *cur {
+    return Ok(());
+  }
+  let gs = app.global_shortcut();
+  gs.register(new_sc)
+    .map_err(|e| format!("That combination may already be in use ({e})."))?;
+  let _ = gs.unregister(*cur);
+  *cur = new_sc;
+  Ok(())
+}
+
 /// Build the InstaDesk system-tray icon with a Show/Quit menu.
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
   let show = MenuItem::with_id(app, "show", "Show InstaDesk", true, None::<&str>)?;
@@ -154,6 +215,7 @@ pub fn run() {
       backend::autostart_is_enabled,
       backend::autostart_set,
       backend::set_telemetry_optout,
+      set_hotkey,
     ])
     // Launch-on-system-start support (the Settings → General toggle drives this
     // through backend::autostart_set / _is_enabled).
@@ -175,9 +237,9 @@ pub fn run() {
           if event.state() != ShortcutState::Pressed {
             return;
           }
-          if shortcut == &hotkey_show() {
+          if SHOW_HOTKEY.lock().map(|s| shortcut == &*s).unwrap_or(false) {
             focus_main(app);
-          } else if shortcut == &hotkey_snap() {
+          } else if SNAP_HOTKEY.lock().map(|s| shortcut == &*s).unwrap_or(false) {
             let _ = app.emit("insta://hotkey/snap", ());
           } else if let Some(slot) = quickpreset_slot_for(shortcut) {
             let _ = app.emit("insta://hotkey/quickpreset", slot.to_string());
@@ -218,8 +280,12 @@ pub fn run() {
       // Register the default global hotkeys. Failures (e.g. a key already claimed
       // by another app) are ignored so startup never breaks.
       let gs = app.global_shortcut();
-      let _ = gs.register(hotkey_show());
-      let _ = gs.register(hotkey_snap());
+      if let Ok(s) = SHOW_HOTKEY.lock() {
+        let _ = gs.register(*s);
+      }
+      if let Ok(s) = SNAP_HOTKEY.lock() {
+        let _ = gs.register(*s);
+      }
       for code in QUICKPRESET_DIGITS {
         let _ = gs.register(Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), code));
       }

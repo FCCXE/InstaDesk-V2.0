@@ -6,6 +6,7 @@ import { setLang, type Lang } from "../../i18n";
 import { api, inTauri } from "../../services/api";
 import { telemetryConfigured, isOptedOut, setOptedOut } from "../../services/telemetry";
 import { checkForUpdate, installUpdate, type Update } from "../../services/updater";
+import { loadBinding, saveBinding, formatBinding, type HotkeyAction, type HotkeyParts } from "../../services/hotkeys";
 
 /**
  * SettingsPane
@@ -210,11 +211,11 @@ export default function SettingsPane() {
             <Section title={t("settings.shortcuts")}>
               <Row>
                 <Label title={t("settings.scHint")}>{t("settings.scShowDashboard")}</Label>
-                <span className="rounded border border-line bg-raised px-2 py-0.5 font-mono text-[11px] text-fg">Ctrl + Alt + D</span>
+                <HotkeyRebind action="show" />
               </Row>
               <Row>
                 <Label title={t("settings.scHint")}>{t("settings.scSnap")}</Label>
-                <span className="rounded border border-line bg-raised px-2 py-0.5 font-mono text-[11px] text-fg">Ctrl + Alt + S</span>
+                <HotkeyRebind action="snap" />
               </Row>
               <Row>
                 <Label title={t("settings.scHint")}>{t("settings.scQuickPreset")}</Label>
@@ -257,6 +258,50 @@ function Row({ children }: { children: ReactNode }) {
 
 function Label({ children, title }: { children: ReactNode; title?: string }) {
   return <div className="text-sm text-fg" title={title}>{children}</div>;
+}
+
+// Rebind control for a global hotkey: click to capture a new combo. Requires a
+// Ctrl/Alt/Win modifier; Esc cancels. Persists + re-registers natively.
+function HotkeyRebind({ action }: { action: HotkeyAction }) {
+  const { t } = useTranslation();
+  const [parts, setParts] = useState<HotkeyParts>(() => loadBinding(action));
+  const [capturing, setCapturing] = useState(false);
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    if (!capturing) return;
+    const handler = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.key === "Escape") { setCapturing(false); return; }
+      if (["Control", "Alt", "Shift", "Meta", "OS"].includes(e.key)) return; // modifier-only press
+      const next: HotkeyParts = { ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey, sup: e.metaKey, code: e.code };
+      if (!next.ctrl && !next.alt && !next.sup) { setErr(t("settings.scNeedMod")); return; }
+      setCapturing(false);
+      api.setHotkey(action, next)
+        .then(() => { setParts(next); saveBinding(action, next); setErr(""); })
+        .catch((e2) => setErr(String((e2 as Error)?.message ?? e2)));
+    };
+    window.addEventListener("keydown", handler, true);
+    return () => window.removeEventListener("keydown", handler, true);
+  }, [capturing, action, t]);
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <button
+        type="button"
+        onClick={() => { setErr(""); setCapturing((c) => !c); }}
+        title={t("settings.scRebind")}
+        className={[
+          "min-w-[110px] rounded border px-2 py-0.5 font-mono text-[11px]",
+          capturing
+            ? "border-primary/60 bg-primary/10 text-primary dark:text-sky-300"
+            : "border-line bg-raised text-fg hover:bg-line/40",
+        ].join(" ")}
+      >
+        {capturing ? t("settings.scPressKeys") : formatBinding(parts)}
+      </button>
+      {err && <span className="max-w-[170px] text-right text-[10px] text-red-600 dark:text-red-400">{err}</span>}
+    </div>
+  );
 }
 
 function Toggle({
