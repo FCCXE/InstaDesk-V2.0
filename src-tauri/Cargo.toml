@@ -35,6 +35,9 @@ tauri-plugin-window-state = "2"
 # (Run-key) entry. Driven from Rust via our own commands (no JS plugin / caps).
 tauri-plugin-autostart = "2"
 sentry = "0.36.0"
+# Signed auto-updater + process restart (relaunch after applying an update).
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
 
 # Win32 foreground-window tracker (snap target selection). 0.61 matches Tauri's
 # transitive windows dep, so no duplicate version is pulled.

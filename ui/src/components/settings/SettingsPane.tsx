@@ -3,8 +3,9 @@ import { useAppState, GRID_SIZE_PRESETS, WINDOW_MARGIN_PRESETS } from "../../sta
 import { useTheme, type ThemeSetting } from "../../state/ThemeProvider";
 import { useTranslation } from "react-i18next";
 import { setLang, type Lang } from "../../i18n";
-import { api } from "../../services/api";
+import { api, inTauri } from "../../services/api";
 import { telemetryConfigured, isOptedOut, setOptedOut } from "../../services/telemetry";
+import { checkForUpdate, installUpdate, type Update } from "../../services/updater";
 
 /**
  * SettingsPane
@@ -54,6 +55,35 @@ export default function SettingsPane() {
     const next = !shareUsage;
     setShareUsage(next);
     setOptedOut(!next); // sharing on → not opted out
+  };
+
+  // Auto-update (desktop only). Check → (if available) install + relaunch.
+  const showUpdates = inTauri();
+  const [updState, setUpdState] = useState<"idle" | "checking" | "available" | "latest" | "installing" | "error">("idle");
+  const [update, setUpdate] = useState<Update | null>(null);
+  const [updErr, setUpdErr] = useState("");
+  const onCheckUpdates = async () => {
+    setUpdState("checking");
+    setUpdErr("");
+    try {
+      const u = await checkForUpdate();
+      if (u) { setUpdate(u); setUpdState("available"); }
+      else { setUpdState("latest"); }
+    } catch (e) {
+      setUpdErr(String((e as Error)?.message ?? e));
+      setUpdState("error");
+    }
+  };
+  const onInstallUpdate = async () => {
+    if (!update) return;
+    setUpdState("installing");
+    setUpdErr("");
+    try {
+      await installUpdate(update); // downloads, installs, relaunches
+    } catch (e) {
+      setUpdErr(String((e as Error)?.message ?? e));
+      setUpdState("error");
+    }
   };
 
   return (
@@ -138,6 +168,43 @@ export default function SettingsPane() {
               </select>
             </Row>
           </Section>
+
+          {showUpdates && (
+            <Section title={t("settings.updates")}>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onCheckUpdates}
+                    disabled={updState === "checking" || updState === "installing"}
+                    className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 disabled:opacity-50 dark:text-sky-300"
+                  >
+                    {updState === "checking" ? t("settings.updChecking") : t("settings.checkUpdates")}
+                  </button>
+                  {updState === "latest" && <span className="text-xs text-muted">{t("settings.updLatest")}</span>}
+                </div>
+                {updState === "available" && update && (
+                  <div className="rounded-md border border-line bg-raised p-2">
+                    <div className="text-xs font-medium text-fg">{t("settings.updAvailable", { version: update.version })}</div>
+                    {update.body && <div className="mt-1 whitespace-pre-line text-[11px] text-muted">{update.body}</div>}
+                    <button
+                      type="button"
+                      onClick={onInstallUpdate}
+                      disabled={updState === "installing"}
+                      className="mt-2 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 disabled:opacity-50 dark:text-sky-300"
+                    >
+                      {updState === "installing" ? t("settings.updInstalling") : t("settings.updInstall")}
+                    </button>
+                  </div>
+                )}
+                {updErr && (
+                  <div className="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[11px] text-red-700 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-300">
+                    {updErr}
+                  </div>
+                )}
+              </div>
+            </Section>
+          )}
 
           <div className="h-4" />
         </div>

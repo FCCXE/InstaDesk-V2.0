@@ -54,3 +54,6 @@ vite.config.*.timestamp-*
 # package-lock.json
 # pnpm-lock.yaml
 # yarn.lock
+
+# Updater signing keys — NEVER commit the private key.
+src-tauri/.tauri-keys/
