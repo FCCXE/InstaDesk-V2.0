@@ -48,7 +48,7 @@
     "marginOff": "Off (0 px)",
     "marginPx": "{{n}} px",
     "dragSnap": "Drag to snap",
-    "dragSnapHint": "Hold Shift while dragging any window and release it — InstaDesk snaps it to the half or quadrant under the cursor (left/right edge = half, corners = quadrant). Works on every monitor."
+    "dragSnapHint": "Hold Shift while dragging any window and release it — InstaDesk snaps it to the zone under the cursor: edges = halves (left/right/top/bottom), corners = quadrants, center = maximize. Works on every monitor."
   },
   "bottomBar": {
     "snap": "Snap → {{monitor}}",

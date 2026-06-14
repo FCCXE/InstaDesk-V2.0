@@ -48,7 +48,7 @@
     "marginOff": "Desactivado (0 px)",
     "marginPx": "{{n}} px",
     "dragSnap": "Arrastrar para ajustar",
-    "dragSnapHint": "Mantén pulsada la tecla Mayús mientras arrastras cualquier ventana y suéltala: InstaDesk la ajusta a la mitad o al cuadrante que esté bajo el cursor (borde izquierdo/derecho = mitad, esquinas = cuadrante). Funciona en todos los monitores."
+    "dragSnapHint": "Mantén pulsada la tecla Mayús mientras arrastras cualquier ventana y suéltala: InstaDesk la ajusta a la zona bajo el cursor: bordes = mitades (izquierda/derecha/arriba/abajo), esquinas = cuadrantes, centro = maximizar. Funciona en todos los monitores."
   },
   "bottomBar": {
     "snap": "Ajustar → {{monitor}}",

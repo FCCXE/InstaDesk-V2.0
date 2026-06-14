@@ -1331,6 +1331,9 @@ mod dragsnap {
         EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFO,
     };
     use windows::Win32::UI::Accessibility::{SetWinEventHook, UnhookWinEvent, HWINEVENTHOOK};
+    use windows::Win32::UI::HiDpi::{
+        SetThreadDpiAwarenessContext, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
+    };
     use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_SHIFT};
     use windows::Win32::UI::WindowsAndMessaging::{
         GetCursorPos, GetMessageW, GetWindowTextLengthW, GetWindowTextW, IsWindow,
@@ -1397,26 +1400,35 @@ mod dragsnap {
     }
 
     /// Map the cursor point to a (1-based monitor index, "x,y,w,h" region on a
-    /// 2x2 grid). Vertical middle band → full-height half; top/bottom bands →
-    /// quadrant. Returns None if the cursor isn't over a known monitor.
+    /// 2x2 grid). Aero-Snap-style 3x3 zoning over the monitor's work area:
+    /// corners → quadrants, left/right edges → side halves, top/bottom edges →
+    /// top/bottom halves, dead center → maximize (full work area). Every zone is
+    /// reachable by dragging the cursor into that third of the screen. Returns
+    /// None if the cursor isn't over a known monitor.
     fn zone_for_cursor(p: &POINT) -> Option<(usize, String)> {
         let mons = monitors_sorted();
         let idx = mons.iter().position(|(full, _)| point_in(full, p))?;
         let work = mons[idx].1;
         let w = (work.right - work.left).max(1) as f64;
         let h = (work.bottom - work.top).max(1) as f64;
-        let fx = (p.x - work.left) as f64 / w;
-        let fy = (p.y - work.top) as f64 / h;
+        let fx = ((p.x - work.left) as f64 / w).clamp(0.0, 0.999);
+        let fy = ((p.y - work.top) as f64 / h).clamp(0.0, 0.999);
 
-        let col = if fx < 0.5 { 1 } else { 2 };
-        // Middle vertical band → full-height half. Otherwise top/bottom quadrant.
-        let region = if (0.34..=0.66).contains(&fy) {
-            format!("{},1,1,2", col)
-        } else {
-            let row = if fy < 0.5 { 1 } else { 2 };
-            format!("{},{},1,1", col, row)
+        let cx = if fx < 1.0 / 3.0 { 0 } else if fx > 2.0 / 3.0 { 2 } else { 1 };
+        let cy = if fy < 1.0 / 3.0 { 0 } else if fy > 2.0 / 3.0 { 2 } else { 1 };
+        // (col-band, row-band) → 2x2 grid region "x,y,w,h".
+        let region = match (cx, cy) {
+            (0, 0) => "1,1,1,1", // top-left quadrant
+            (2, 0) => "2,1,1,1", // top-right quadrant
+            (0, 2) => "1,2,1,1", // bottom-left quadrant
+            (2, 2) => "2,2,1,1", // bottom-right quadrant
+            (0, 1) => "1,1,1,2", // left half (full height)
+            (2, 1) => "2,1,1,2", // right half (full height)
+            (1, 0) => "1,1,2,1", // top half (full width)
+            (1, 2) => "1,2,2,1", // bottom half (full width)
+            _ => "1,1,2,2",      // center → maximize (full work area)
         };
-        Some((idx + 1, region))
+        Some((idx + 1, region.to_string()))
     }
 
     unsafe extern "system" fn hook_proc(
@@ -1465,6 +1477,12 @@ mod dragsnap {
         let _ = std::thread::Builder::new()
             .name("dragsnap-hook".into())
             .spawn(|| unsafe {
+                // Read the cursor + enumerate monitors in PHYSICAL pixels, the
+                // same space the agent places windows in. Without this, a mixed-
+                // DPI setup (e.g. a 100% monitor beside 125% ones) makes the
+                // cursor→monitor→zone math drift on the differently-scaled
+                // screen, so snaps land on the wrong monitor or wrong zone.
+                let _ = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
                 let hook = SetWinEventHook(
                     EVENT_SYSTEM_MOVESIZEEND,
                     EVENT_SYSTEM_MOVESIZEEND,
