@@ -2,15 +2,26 @@ mod backend;
 
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 
-/// Bring the main window to the foreground (used by the tray click + menu).
+/// Bring the main window to the foreground (used by the tray click + menu + the
+/// Show-Dashboard global hotkey).
 fn focus_main(app: &AppHandle) {
   if let Some(w) = app.get_webview_window("main") {
     let _ = w.unminimize();
     let _ = w.show();
     let _ = w.set_focus();
   }
+}
+
+// Default global hotkeys (system-wide). Ctrl+Alt+D = show the dashboard;
+// Ctrl+Alt+S = open Snap on the active monitor. (Rebinding is a later feature.)
+fn hotkey_show() -> Shortcut {
+  Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::KeyD)
+}
+fn hotkey_snap() -> Shortcut {
+  Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::KeyS)
 }
 
 /// Build the InstaDesk system-tray icon with a Show/Quit menu.
@@ -121,6 +132,24 @@ pub fn run() {
     // drives the check/download/install + restart flow.
     .plugin(tauri_plugin_updater::Builder::new().build())
     .plugin(tauri_plugin_process::init())
+    // Global hotkeys — trigger InstaDesk from any app. Show-dashboard focuses the
+    // window (native); Snap emits to the UI, which runs it with the current
+    // monitor/grid + the foreground-tracked target window.
+    .plugin(
+      tauri_plugin_global_shortcut::Builder::new()
+        .with_handler(|app, shortcut, event| {
+          use tauri_plugin_global_shortcut::ShortcutState;
+          if event.state() != ShortcutState::Pressed {
+            return;
+          }
+          if shortcut == &hotkey_show() {
+            focus_main(app);
+          } else if shortcut == &hotkey_snap() {
+            let _ = app.emit("insta://hotkey/snap", ());
+          }
+        })
+        .build(),
+    )
     // Single-instance must be registered FIRST: a second launch of InstaDesk
     // focuses the already-running window instead of spawning another copy.
     .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
@@ -151,6 +180,11 @@ pub fn run() {
       // the menu offers Show + Quit. Closing the window still exits the app (we
       // don't hide-to-tray) — this just gives InstaDesk a visible tray presence.
       build_tray(app.handle())?;
+      // Register the default global hotkeys. Failures (e.g. a key already claimed
+      // by another app) are ignored so startup never breaks.
+      let gs = app.global_shortcut();
+      let _ = gs.register(hotkey_show());
+      let _ = gs.register(hotkey_snap());
       Ok(())
     })
     .run(tauri::generate_context!())

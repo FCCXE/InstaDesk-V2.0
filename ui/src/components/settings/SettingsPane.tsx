@@ -206,6 +206,19 @@ export default function SettingsPane() {
             </Section>
           )}
 
+          {inTauri() && (
+            <Section title={t("settings.shortcuts")}>
+              <Row>
+                <Label title={t("settings.scHint")}>{t("settings.scShowDashboard")}</Label>
+                <span className="rounded border border-line bg-raised px-2 py-0.5 font-mono text-[11px] text-fg">Ctrl + Alt + D</span>
+              </Row>
+              <Row>
+                <Label title={t("settings.scHint")}>{t("settings.scSnap")}</Label>
+                <span className="rounded border border-line bg-raised px-2 py-0.5 font-mono text-[11px] text-fg">Ctrl + Alt + S</span>
+              </Row>
+            </Section>
+          )}
+
           <div className="h-4" />
         </div>
       </div>

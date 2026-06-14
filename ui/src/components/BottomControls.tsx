@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppState, GRID_SIZE_PRESETS, type GridSize } from '../state/AppState'
-import { api } from '../services/api'
+import { api, inTauri } from '../services/api'
 import { track } from '../services/telemetry'
 import { useConfirm } from './common/ConfirmDialog'
 
@@ -95,6 +95,7 @@ export default function BottomControls() {
   const snapping = snapState.kind === 'busy'
 
   const onSnap = async () => {
+    if (snapping) return // guard re-entry (button is disabled, but the hotkey isn't)
     setSnapState({ kind: 'busy' })
     try {
       // Snap popup uses the active monitor's per-monitor grid size
@@ -141,6 +142,21 @@ export default function BottomControls() {
       setSnapState({ kind: 'err', msg: (e as Error).message })
     }
   }
+
+  // Run the same Snap from the global hotkey (Ctrl+Alt+S). A ref keeps the
+  // listener pointed at the latest onSnap (current monitor/grid) without
+  // re-subscribing on every render.
+  const onSnapRef = useRef(onSnap)
+  onSnapRef.current = onSnap
+  useEffect(() => {
+    if (!inTauri()) return
+    let unlisten: (() => void) | undefined
+    import('@tauri-apps/api/event')
+      .then(({ listen }) => listen('insta://hotkey/snap', () => { onSnapRef.current() }))
+      .then((u) => { unlisten = u })
+      .catch(() => {})
+    return () => { unlisten?.() }
+  }, [])
 
   const idleStatus =
     assignedCount === 0 && selCount === 0 ? t('bottomBar.ready') :
