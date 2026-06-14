@@ -45,6 +45,7 @@ export function initTelemetry(): void {
       api_host: POSTHOG_HOST,
       capture_pageview: false, // desktop app, not a website
       autocapture: false, // explicit, named events only — better signal + privacy
+      disable_session_recording: true, // never record user screens (privacy mandate)
       person_profiles: 'identified_only',
     })
     posthogOn = true
@@ -80,6 +81,23 @@ export function identifyInstall(installId: string): void {
  *  hide an opt-out toggle / "send feedback" affordance when nothing is wired. */
 export function telemetryActive(): boolean {
   return sentryOn || posthogOn
+}
+
+/** Stable, anonymous per-install id (a random UUID in localStorage — NO personal
+ *  data) so events/errors from the same machine correlate without identifying the
+ *  user. Falls back to "anonymous" if storage is unavailable. */
+export function getInstallId(): string {
+  const KEY = 'instadesk:installId'
+  try {
+    let id = localStorage.getItem(KEY)
+    if (!id) {
+      id = crypto.randomUUID()
+      localStorage.setItem(KEY, id)
+    }
+    return id
+  } catch {
+    return 'anonymous'
+  }
 }
 
 /** Sentry's React error boundary, re-exported through the seam so call sites don't

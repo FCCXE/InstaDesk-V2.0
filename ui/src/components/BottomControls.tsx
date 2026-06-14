@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppState, GRID_SIZE_PRESETS, type GridSize } from '../state/AppState'
 import { api } from '../services/api'
+import { track } from '../services/telemetry'
 import { useConfirm } from './common/ConfirmDialog'
 
 /**
@@ -123,6 +124,7 @@ export default function BottomControls() {
           window.setTimeout(() => setSnapState({ kind: 'idle' }), 7000)
           return
         }
+        track('snap_used', { gridSize })
         setSnapState({
           kind: 'ok',
           msg: t('bottomBar.snapped', {

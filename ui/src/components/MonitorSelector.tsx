@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
+import { track } from '../services/telemetry'
 import { useAppState } from '../state/AppState'
 import {
   api,
@@ -104,6 +105,7 @@ export default function MonitorSelector() {
       if (selected.type === 'layout') {
         const r = await api.presetsRun(selected.layout.kind, selected.layout.slot, windowMargin)
         const failures = r.results.filter((x) => x.exitCode !== 0)
+        track('layout_applied', { kind: selected.layout.kind, windows: r.results.length, failures: failures.length, source: 'monitor' })
         if (failures.length === 0) {
           flash({
             kind: 'ok',
@@ -122,6 +124,7 @@ export default function MonitorSelector() {
         (sum, x) => sum + (x.results?.length ?? 0),
         0,
       )
+      track('quickpreset_applied', { layouts: r.layouts.length, ok: okCount, windows: totalWindows })
       if (okCount === r.layouts.length) {
         flash({
           kind: 'ok',

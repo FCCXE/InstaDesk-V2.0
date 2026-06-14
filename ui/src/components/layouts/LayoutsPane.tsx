@@ -9,6 +9,7 @@ import {
   parsePresetIntoCellsMulti,
 } from "../../services/layoutBuilder";
 import { exportLayoutAsFile, parseImportedLayout } from "../../services/layoutsIO";
+import { track } from "../../services/telemetry";
 import { useConfirm, usePrompt } from "../common/ConfirmDialog";
 
 /**
@@ -273,6 +274,8 @@ export default function LayoutsPane() {
     try {
       const res = await api.presetsRun(m.preset.kind, m.preset.slot, windowMargin);
       const failures = res.results.filter(r => r.exitCode !== 0);
+      // Anonymous usage signal — counts/category only, no names or paths.
+      track("layout_applied", { kind: m.preset.kind, windows: res.results.length, failures: failures.length });
       if (failures.length === 0) {
         flash({ kind: "ok", msg: t("layouts.applied", { name: m.name, count: res.results.length }) });
       } else {
@@ -330,6 +333,7 @@ export default function LayoutsPane() {
         .map(([m, titles]) => `M${m}: ${titles.join(", ")}`)
         .join(" • ");
       const shownName = displayName({ kind: "general", slot, name });
+      track("layout_saved", { monitors: perMonitor.size, windows: built.assignments.length, named: name.length > 0 });
       flash({ kind: "ok", msg: t("layouts.savedLayout", { name: shownName, count: perMonitor.size, summary }) });
       // Surface any apps that were skipped (no exe/url) so the save isn't
       // silently lossy — mirrors the import-warning pattern above.

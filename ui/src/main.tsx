@@ -4,12 +4,14 @@ import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import { ThemeProvider } from './state/ThemeProvider.tsx'
 import { ConfirmProvider } from './components/common/ConfirmDialog.tsx'
-import { initTelemetry, captureError, ErrorBoundary } from './services/telemetry'
+import { initTelemetry, captureError, ErrorBoundary, identifyInstall, getInstallId, track } from './services/telemetry'
 import './i18n'        // ✅ initialize i18next (EN/ES) before render
 import './index.css'   // ✅ Ensure Tailwind is loaded here
 
 // Start telemetry before render so early errors are captured. No-op without keys.
 initTelemetry()
+identifyInstall(getInstallId())
+track('app_opened', { version: import.meta.env.VITE_APP_VERSION })
 
 // Minimal crash fallback so a fatal render error shows a recoverable message
 // instead of a blank window (and is reported to Sentry when telemetry is on).
