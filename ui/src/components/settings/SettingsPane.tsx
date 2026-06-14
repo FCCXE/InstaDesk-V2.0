@@ -183,7 +183,7 @@ export default function SettingsPane() {
                   </button>
                   {updState === "latest" && <span className="text-xs text-muted">{t("settings.updLatest")}</span>}
                 </div>
-                {updState === "available" && update && (
+                {(updState === "available" || updState === "installing") && update && (
                   <div className="rounded-md border border-line bg-raised p-2">
                     <div className="text-xs font-medium text-fg">{t("settings.updAvailable", { version: update.version })}</div>
                     {update.body && <div className="mt-1 whitespace-pre-line text-[11px] text-muted">{update.body}</div>}
