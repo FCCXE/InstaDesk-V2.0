@@ -4,6 +4,7 @@ import { useTheme, type ThemeSetting } from "../../state/ThemeProvider";
 import { useTranslation } from "react-i18next";
 import { setLang, type Lang } from "../../i18n";
 import { api } from "../../services/api";
+import { telemetryConfigured, isOptedOut, setOptedOut } from "../../services/telemetry";
 
 /**
  * SettingsPane
@@ -45,6 +46,16 @@ export default function SettingsPane() {
     }
   };
 
+  // Anonymous-usage sharing (telemetry opt-out). Shown only when keys are
+  // configured. "On" = sharing = NOT opted out.
+  const showUsageToggle = telemetryConfigured();
+  const [shareUsage, setShareUsage] = useState(!isOptedOut());
+  const onToggleShareUsage = () => {
+    const next = !shareUsage;
+    setShareUsage(next);
+    setOptedOut(!next); // sharing on → not opted out
+  };
+
   return (
     <div className="flex h-full flex-col overflow-hidden p-3">
       {/* Title */}
@@ -82,6 +93,12 @@ export default function SettingsPane() {
                 <option value="es">Español</option>
               </select>
             </Row>
+            {showUsageToggle && (
+              <Row>
+                <Label title={t("settings.shareUsageHint")}>{t("settings.shareUsage")}</Label>
+                <Toggle on={shareUsage} onToggle={onToggleShareUsage} />
+              </Row>
+            )}
           </Section>
 
           <Section title={t("settings.gridSnapping")}>
@@ -154,8 +171,8 @@ function Row({ children }: { children: ReactNode }) {
   );
 }
 
-function Label({ children }: { children: ReactNode }) {
-  return <div className="text-sm text-fg">{children}</div>;
+function Label({ children, title }: { children: ReactNode; title?: string }) {
+  return <div className="text-sm text-fg" title={title}>{children}</div>;
 }
 
 function Toggle({

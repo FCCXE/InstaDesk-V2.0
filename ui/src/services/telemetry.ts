@@ -25,10 +25,41 @@ const APP_VERSION = import.meta.env.VITE_APP_VERSION as string | undefined
 
 let sentryOn = false
 let posthogOn = false
+let paused = false // true while the user has opted out (telemetry preference)
+const OPTOUT_KEY = 'instadesk:telemetryOptOut'
+
+/** Whether the user has opted out of telemetry (persisted preference). */
+export function isOptedOut(): boolean {
+  try {
+    return localStorage.getItem(OPTOUT_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+/** Opt the user in/out of telemetry. Persists the choice and applies it to the
+ *  current session immediately (PostHog opt-out + Sentry beforeSend drop). Full
+ *  effect (nothing initialized at all) takes hold on the next launch. */
+export function setOptedOut(optedOut: boolean): void {
+  try {
+    localStorage.setItem(OPTOUT_KEY, optedOut ? 'true' : 'false')
+  } catch {
+    /* storage unavailable — session-only effect below still applies */
+  }
+  paused = optedOut
+  if (posthogOn) {
+    if (optedOut) posthog.opt_out_capturing()
+    else posthog.opt_in_capturing()
+  }
+}
 
 /** Initialize the configured providers. Safe to call once at startup; a no-op for
  *  any provider whose key is absent. */
 export function initTelemetry(): void {
+  if (isOptedOut()) {
+    paused = true
+    return // user opted out — initialize nothing, send nothing
+  }
   if (SENTRY_DSN) {
     Sentry.init({
       dsn: SENTRY_DSN,
@@ -37,6 +68,8 @@ export function initTelemetry(): void {
       tracesSampleRate: 0,
       // Never attach IP / cookies / default PII.
       sendDefaultPii: false,
+      // Respect a mid-session opt-out for ALL events (incl. global handlers).
+      beforeSend: (event) => (paused ? null : event),
     })
     sentryOn = true
   }
@@ -54,6 +87,7 @@ export function initTelemetry(): void {
 
 /** Report an error/exception to the error backend. No-op when telemetry is off. */
 export function captureError(err: unknown, context?: Record<string, unknown>): void {
+  if (paused) return
   if (sentryOn) {
     Sentry.captureException(err, context ? { extra: context } : undefined)
   }
@@ -61,6 +95,7 @@ export function captureError(err: unknown, context?: Record<string, unknown>): v
 
 /** Record a named product-usage event. No-op when telemetry is off. */
 export function track(event: string, props?: Record<string, unknown>): void {
+  if (paused) return
   if (posthogOn) {
     posthog.capture(event, props)
   }
@@ -69,6 +104,7 @@ export function track(event: string, props?: Record<string, unknown>): void {
 /** Stable, anonymous per-install id (no personal data) so events/errors from the
  *  same machine correlate. No-op when telemetry is off. */
 export function identifyInstall(installId: string): void {
+  if (paused) return
   if (posthogOn) {
     posthog.identify(installId)
   }
@@ -81,6 +117,13 @@ export function identifyInstall(installId: string): void {
  *  hide an opt-out toggle / "send feedback" affordance when nothing is wired. */
 export function telemetryActive(): boolean {
   return sentryOn || posthogOn
+}
+
+/** Whether telemetry keys are configured at all (independent of opt-out / init).
+ *  Drives whether the Settings opt-out toggle is shown — it must stay visible
+ *  even while opted out, so the user can opt back in. */
+export function telemetryConfigured(): boolean {
+  return Boolean(SENTRY_DSN || POSTHOG_KEY)
 }
 
 /** Stable, anonymous per-install id (a random UUID in localStorage — NO personal
