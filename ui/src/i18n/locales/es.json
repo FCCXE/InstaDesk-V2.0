@@ -46,7 +46,9 @@
     "windowMargin": "Margen de ventana",
     "windowMarginHint": "Píxeles de relleno alrededor del área de trabajo de cada monitor. Aleja las ventanas ajustadas de los bordes del monitor para dejar espacio a los marcos físicos. Las ventanas adyacentes en el mismo monitor se siguen tocando.",
     "marginOff": "Desactivado (0 px)",
-    "marginPx": "{{n}} px"
+    "marginPx": "{{n}} px",
+    "dragSnap": "Arrastrar para ajustar",
+    "dragSnapHint": "Mantén pulsada la tecla Mayús mientras arrastras cualquier ventana y suéltala: InstaDesk la ajusta a la mitad o al cuadrante que esté bajo el cursor (borde izquierdo/derecho = mitad, esquinas = cuadrante). Funciona en todos los monitores."
   },
   "bottomBar": {
     "snap": "Ajustar → {{monitor}}",

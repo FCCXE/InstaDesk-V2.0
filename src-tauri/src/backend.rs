@@ -122,6 +122,56 @@ pub fn set_telemetry_optout(app: AppHandle, opted_out: bool) -> Result<(), Strin
 }
 
 // ----------------------------------------------------------------------------
+// Drag-to-snap preference — when enabled, holding Shift while dragging a window
+// and releasing it snaps that window to the half/quadrant under the cursor
+// (Win32 move/size hook in `dragsnap`). Opt-in (default OFF): a marker file in
+// the app-data dir records that the user turned it on. The hook reads a fast
+// AtomicBool so it never touches disk per drag.
+// ----------------------------------------------------------------------------
+
+static DRAGSNAP_ENABLED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Load the persisted drag-to-snap preference into the atomic at startup.
+pub fn init_dragsnap_enabled(app: &AppHandle) {
+    let on = app
+        .path()
+        .app_data_dir()
+        .map(|d| d.join(".dragsnap-enabled").exists())
+        .unwrap_or(false);
+    DRAGSNAP_ENABLED.store(on, std::sync::atomic::Ordering::Relaxed);
+}
+
+fn dragsnap_is_enabled() -> bool {
+    DRAGSNAP_ENABLED.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// UI reads the current drag-to-snap state to render the Settings toggle.
+#[tauri::command]
+pub fn get_dragsnap_enabled() -> bool {
+    dragsnap_is_enabled()
+}
+
+/// UI toggles drag-to-snap. Persists a marker file and flips the in-memory flag
+/// the hook reads, so the change takes effect immediately (no restart).
+#[tauri::command]
+pub fn set_dragsnap_enabled(app: AppHandle, enabled: bool) -> Result<(), String> {
+    DRAGSNAP_ENABLED.store(enabled, std::sync::atomic::Ordering::Relaxed);
+    let Some(dir) = app.path().app_data_dir().ok() else {
+        return Ok(());
+    };
+    let marker = dir.join(".dragsnap-enabled");
+    if enabled {
+        let _ = fs::create_dir_all(&dir);
+        fs::write(&marker, b"1").map_err(|e| e.to_string())
+    } else {
+        if marker.exists() {
+            let _ = fs::remove_file(&marker);
+        }
+        Ok(())
+    }
+}
+
+// ----------------------------------------------------------------------------
 // Shared storage helpers — mirror the Python server's DATA_DIR layout exactly,
 // so the Rust commands read/write the SAME files (existing presets keep working).
 //   DATA_DIR        = <outer repo>/data        (env INSTADESK_DATA_DIR overrides)
@@ -1240,6 +1290,193 @@ mod foreground {
                 }
                 // Out-of-context hooks deliver callbacks on this thread; we just
                 // need to pump messages so deliveries can happen.
+                let mut msg = MSG::default();
+                while GetMessageW(&mut msg, None, 0, 0).0 > 0 {}
+                let _ = UnhookWinEvent(hook);
+            });
+    }
+}
+
+/// Start the drag-to-snap hook (Shift + drag a window, release → snap it to the
+/// half/quadrant under the cursor). Win32 SetWinEventHook on MOVESIZEEND +
+/// message pump on a dedicated thread. No-op on non-Windows. Called once at
+/// startup; the hook itself checks the live `dragsnap_is_enabled()` flag per
+/// drop, so toggling the Settings switch takes effect without restart.
+pub fn start_dragsnap_hook() {
+    #[cfg(windows)]
+    dragsnap::start();
+}
+
+/// Fire-and-forget agent spawn from a synchronous (non-async) context — used by
+/// the drag-snap hook thread, which has no tokio runtime. Mirrors
+/// `agent_command`'s CREATE_NO_WINDOW so no console flashes per snap.
+#[cfg(windows)]
+fn spawn_agent_detached(flag_args: &[String]) {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    let (prog, args) = agent_invocation(flag_args);
+    let _ = std::process::Command::new(&prog)
+        .args(&args)
+        .creation_flags(CREATE_NO_WINDOW)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn();
+}
+
+#[cfg(windows)]
+mod dragsnap {
+    use super::{dragsnap_is_enabled, looks_like_instadesk_title, spawn_agent_detached};
+    use windows::Win32::Foundation::{HWND, LPARAM, POINT, RECT};
+    use windows::Win32::Graphics::Gdi::{
+        EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFO,
+    };
+    use windows::Win32::UI::Accessibility::{SetWinEventHook, UnhookWinEvent, HWINEVENTHOOK};
+    use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_SHIFT};
+    use windows::Win32::UI::WindowsAndMessaging::{
+        GetCursorPos, GetMessageW, GetWindowTextLengthW, GetWindowTextW, IsWindow,
+        EVENT_SYSTEM_MOVESIZEEND, MSG, OBJID_WINDOW, WINEVENT_OUTOFCONTEXT,
+        WINEVENT_SKIPOWNPROCESS,
+    };
+
+    fn window_title(hwnd: HWND) -> String {
+        unsafe {
+            let len = GetWindowTextLengthW(hwnd);
+            if len <= 0 {
+                return String::new();
+            }
+            let mut buf = vec![0u16; (len + 1) as usize];
+            let n = GetWindowTextW(hwnd, &mut buf);
+            if n <= 0 {
+                return String::new();
+            }
+            String::from_utf16_lossy(&buf[..n as usize])
+        }
+    }
+
+    fn shift_held() -> bool {
+        unsafe { (GetAsyncKeyState(VK_SHIFT.0 as i32) as u16 & 0x8000) != 0 }
+    }
+
+    // EnumDisplayMonitors callback — collect each monitor's full rect + work
+    // area into the Vec passed via LPARAM. Ordering is normalized by the caller.
+    unsafe extern "system" fn collect_monitor(
+        h: HMONITOR,
+        _hdc: HDC,
+        _rc: *mut RECT,
+        data: LPARAM,
+    ) -> windows::core::BOOL {
+        let mut mi = MONITORINFO {
+            cbSize: std::mem::size_of::<MONITORINFO>() as u32,
+            ..Default::default()
+        };
+        if GetMonitorInfoW(h, &mut mi).as_bool() {
+            let list = &mut *(data.0 as *mut Vec<(RECT, RECT)>);
+            list.push((mi.rcMonitor, mi.rcWork));
+        }
+        true.into()
+    }
+
+    // Monitors ordered left-then-top — MUST match the agent's EnumerateMonitors
+    // ordering so `--monitor N` selects the same screen on both sides.
+    fn monitors_sorted() -> Vec<(RECT, RECT)> {
+        let mut list: Vec<(RECT, RECT)> = Vec::new();
+        unsafe {
+            let _ = EnumDisplayMonitors(
+                None,
+                None,
+                Some(collect_monitor),
+                LPARAM(&mut list as *mut _ as isize),
+            );
+        }
+        list.sort_by(|a, b| (a.0.left, a.0.top).cmp(&(b.0.left, b.0.top)));
+        list
+    }
+
+    fn point_in(r: &RECT, p: &POINT) -> bool {
+        p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom
+    }
+
+    /// Map the cursor point to a (1-based monitor index, "x,y,w,h" region on a
+    /// 2x2 grid). Vertical middle band → full-height half; top/bottom bands →
+    /// quadrant. Returns None if the cursor isn't over a known monitor.
+    fn zone_for_cursor(p: &POINT) -> Option<(usize, String)> {
+        let mons = monitors_sorted();
+        let idx = mons.iter().position(|(full, _)| point_in(full, p))?;
+        let work = mons[idx].1;
+        let w = (work.right - work.left).max(1) as f64;
+        let h = (work.bottom - work.top).max(1) as f64;
+        let fx = (p.x - work.left) as f64 / w;
+        let fy = (p.y - work.top) as f64 / h;
+
+        let col = if fx < 0.5 { 1 } else { 2 };
+        // Middle vertical band → full-height half. Otherwise top/bottom quadrant.
+        let region = if (0.34..=0.66).contains(&fy) {
+            format!("{},1,1,2", col)
+        } else {
+            let row = if fy < 0.5 { 1 } else { 2 };
+            format!("{},{},1,1", col, row)
+        };
+        Some((idx + 1, region))
+    }
+
+    unsafe extern "system" fn hook_proc(
+        _hook: HWINEVENTHOOK,
+        event: u32,
+        hwnd: HWND,
+        id_object: i32,
+        _id_child: i32,
+        _thread: u32,
+        _time: u32,
+    ) {
+        if event != EVENT_SYSTEM_MOVESIZEEND || hwnd.0.is_null() || id_object != OBJID_WINDOW.0 {
+            return;
+        }
+        if !dragsnap_is_enabled() || !shift_held() {
+            return;
+        }
+        if !IsWindow(Some(hwnd)).as_bool() {
+            return;
+        }
+        let title = window_title(hwnd);
+        if title.is_empty() || looks_like_instadesk_title(&title) {
+            return;
+        }
+        let mut p = POINT::default();
+        if GetCursorPos(&mut p).is_err() {
+            return;
+        }
+        let Some((monitor, region)) = zone_for_cursor(&p) else {
+            return;
+        };
+        spawn_agent_detached(&[
+            "--snap-region".into(),
+            "--target-hwnd".into(),
+            (hwnd.0 as isize).to_string(),
+            "--monitor".into(),
+            monitor.to_string(),
+            "--grid".into(),
+            region,
+            "--grid-size".into(),
+            "2x2".into(),
+        ]);
+    }
+
+    pub fn start() {
+        let _ = std::thread::Builder::new()
+            .name("dragsnap-hook".into())
+            .spawn(|| unsafe {
+                let hook = SetWinEventHook(
+                    EVENT_SYSTEM_MOVESIZEEND,
+                    EVENT_SYSTEM_MOVESIZEEND,
+                    None,
+                    Some(hook_proc),
+                    0,
+                    0,
+                    WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS,
+                );
+                if hook.is_invalid() {
+                    return;
+                }
                 let mut msg = MSG::default();
                 while GetMessageW(&mut msg, None, 0, 0).0 > 0 {}
                 let _ = UnhookWinEvent(hook);

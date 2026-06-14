@@ -215,6 +215,8 @@ pub fn run() {
       backend::autostart_is_enabled,
       backend::autostart_set,
       backend::set_telemetry_optout,
+      backend::get_dragsnap_enabled,
+      backend::set_dragsnap_enabled,
       set_hotkey,
     ])
     // Launch-on-system-start support (the Settings → General toggle drives this
@@ -270,6 +272,10 @@ pub fn run() {
       backend::init_paths(app.handle());
       // Track the last-focused non-InstaDesk window so Snap targets it.
       backend::start_foreground_tracker();
+      // Drag-to-snap: load the saved preference, then start the move/size hook
+      // (Shift + drag a window, release → snap to the zone under the cursor).
+      backend::init_dragsnap_enabled(app.handle());
+      backend::start_dragsnap_hook();
       // Launch-on-start defaults ON the first time the packaged app runs; the
       // user can turn it off in Settings and that choice is respected after.
       backend::ensure_autostart_default(app.handle());

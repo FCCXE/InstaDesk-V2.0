@@ -310,6 +310,14 @@ export const api = {
   setTelemetryOptout: (optedOut: boolean): Promise<void> =>
     inTauri() ? invoke<void>('set_telemetry_optout', { optedOut }) : Promise.resolve(),
 
+  // Drag-to-snap (Settings → General). When on, holding Shift while dragging a
+  // window and releasing it snaps the window to the half/quadrant under the
+  // cursor. Web preview has no Win32 hook, so it reports false / no-ops.
+  dragsnapGet: (): Promise<boolean> =>
+    inTauri() ? invoke<boolean>('get_dragsnap_enabled') : Promise.resolve(false),
+  dragsnapSet: (enabled: boolean): Promise<void> =>
+    inTauri() ? invoke<void>('set_dragsnap_enabled', { enabled }) : Promise.resolve(),
+
   // Rebind a global hotkey (Settings → Global shortcuts). `code` is a DOM
   // KeyboardEvent.code (e.g. "KeyD", "Digit1"). Web preview no-ops.
   setHotkey: (

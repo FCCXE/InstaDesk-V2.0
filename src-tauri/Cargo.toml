@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.1.3"
+version = "0.1.4"
 description = "InstaDesk — multi-monitor launcher and layout tool"
 authors = ["FcXe Studios"]
 license = ""
@@ -43,6 +43,6 @@ tauri-plugin-global-shortcut = "2.3.2"
 # Win32 foreground-window tracker (snap target selection). 0.61 matches Tauri's
 # transitive windows dep, so no duplicate version is pulled.
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Accessibility", "Win32_UI_WindowsAndMessaging", "Win32_UI_Shell"] }
+windows = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Accessibility", "Win32_UI_WindowsAndMessaging", "Win32_UI_Shell", "Win32_Graphics_Gdi", "Win32_UI_Input_KeyboardAndMouse"] }
 # Installed-browser detection (URL Builder picker) — reads StartMenuInternet.
 winreg = "0.52"

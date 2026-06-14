@@ -46,7 +46,9 @@
     "windowMargin": "Window margin",
     "windowMarginHint": "Pixels of padding around each monitor's work area. Pulls snapped windows back from monitor edges to leave room for physical bezels. Adjacent windows on the same monitor still touch each other.",
     "marginOff": "Off (0 px)",
-    "marginPx": "{{n}} px"
+    "marginPx": "{{n}} px",
+    "dragSnap": "Drag to snap",
+    "dragSnapHint": "Hold Shift while dragging any window and release it — InstaDesk snaps it to the half or quadrant under the cursor (left/right edge = half, corners = quadrant). Works on every monitor."
   },
   "bottomBar": {
     "snap": "Snap → {{monitor}}",

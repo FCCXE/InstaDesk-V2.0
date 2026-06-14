@@ -48,6 +48,30 @@ export default function SettingsPane() {
     }
   };
 
+  // Drag-to-snap (hold Shift while dragging a window, release → snap to the
+  // half/quadrant under the cursor). Opt-in; reads the live native state on
+  // mount and toggling takes effect immediately (no restart).
+  const [dragSnapOn, setDragSnapOn] = useState(false);
+  const [dragSnapBusy, setDragSnapBusy] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    api.dragsnapGet().then(v => { if (alive) setDragSnapOn(v); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  const onToggleDragSnap = async () => {
+    if (dragSnapBusy) return;
+    const next = !dragSnapOn;
+    setDragSnapBusy(true);
+    try {
+      await api.dragsnapSet(next);
+      setDragSnapOn(next); // only flip on success
+    } catch {
+      // leave the toggle as-is on failure
+    } finally {
+      setDragSnapBusy(false);
+    }
+  };
+
   // Anonymous-usage sharing (telemetry opt-out). Shown only when keys are
   // configured. "On" = sharing = NOT opted out.
   const showUsageToggle = telemetryConfigured();
@@ -168,6 +192,12 @@ export default function SettingsPane() {
                 ))}
               </select>
             </Row>
+            {inTauri() && (
+              <Row>
+                <Label title={t("settings.dragSnapHint")}>{t("settings.dragSnap")}</Label>
+                <Toggle on={dragSnapOn} busy={dragSnapBusy} onToggle={onToggleDragSnap} />
+              </Row>
+            )}
           </Section>
 
           {showUpdates && (
