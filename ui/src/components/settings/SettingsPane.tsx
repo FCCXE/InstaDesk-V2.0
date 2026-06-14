@@ -216,6 +216,10 @@ export default function SettingsPane() {
                 <Label title={t("settings.scHint")}>{t("settings.scSnap")}</Label>
                 <span className="rounded border border-line bg-raised px-2 py-0.5 font-mono text-[11px] text-fg">Ctrl + Alt + S</span>
               </Row>
+              <Row>
+                <Label title={t("settings.scHint")}>{t("settings.scQuickPreset")}</Label>
+                <span className="rounded border border-line bg-raised px-2 py-0.5 font-mono text-[11px] text-fg">Ctrl + Alt + 1…9</span>
+              </Row>
             </Section>
           )}
 

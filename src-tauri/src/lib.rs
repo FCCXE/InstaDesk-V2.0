@@ -24,6 +24,39 @@ fn hotkey_snap() -> Shortcut {
   Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::KeyS)
 }
 
+// Ctrl+Alt+1..9 → apply Quick Preset slot A..I. Returns the slot letter for a
+// matching shortcut, else None.
+fn quickpreset_slot_for(shortcut: &Shortcut) -> Option<char> {
+  if !shortcut.mods.contains(Modifiers::CONTROL | Modifiers::ALT) {
+    return None;
+  }
+  let n: u8 = match shortcut.key {
+    Code::Digit1 => 0,
+    Code::Digit2 => 1,
+    Code::Digit3 => 2,
+    Code::Digit4 => 3,
+    Code::Digit5 => 4,
+    Code::Digit6 => 5,
+    Code::Digit7 => 6,
+    Code::Digit8 => 7,
+    Code::Digit9 => 8,
+    _ => return None,
+  };
+  Some((b'A' + n) as char)
+}
+
+const QUICKPRESET_DIGITS: [Code; 9] = [
+  Code::Digit1,
+  Code::Digit2,
+  Code::Digit3,
+  Code::Digit4,
+  Code::Digit5,
+  Code::Digit6,
+  Code::Digit7,
+  Code::Digit8,
+  Code::Digit9,
+];
+
 /// Build the InstaDesk system-tray icon with a Show/Quit menu.
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
   let show = MenuItem::with_id(app, "show", "Show InstaDesk", true, None::<&str>)?;
@@ -146,6 +179,8 @@ pub fn run() {
             focus_main(app);
           } else if shortcut == &hotkey_snap() {
             let _ = app.emit("insta://hotkey/snap", ());
+          } else if let Some(slot) = quickpreset_slot_for(shortcut) {
+            let _ = app.emit("insta://hotkey/quickpreset", slot.to_string());
           }
         })
         .build(),
@@ -185,6 +220,9 @@ pub fn run() {
       let gs = app.global_shortcut();
       let _ = gs.register(hotkey_show());
       let _ = gs.register(hotkey_snap());
+      for code in QUICKPRESET_DIGITS {
+        let _ = gs.register(Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), code));
+      }
       Ok(())
     })
     .run(tauri::generate_context!())
