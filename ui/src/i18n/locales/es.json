@@ -222,6 +222,14 @@
     "version": "InstaDesk v0.1 — FcXe Studios",
     "manualNote": "¿Prefieres una guía ilustrada completa? Abre el manual PDF completo, con capturas paso a paso.",
     "openManual": "Abrir manual (PDF)",
+    "feedbackNote": "¿Encontraste un error o tienes una idea? Envíanos comentarios anónimos.",
+    "sendFeedback": "Enviar comentarios",
+    "feedbackBug": "Error / problema",
+    "feedbackIdea": "Idea / petición",
+    "feedbackOther": "Otro",
+    "feedbackPlaceholder": "Cuéntanos qué pasó o qué te gustaría…",
+    "feedbackSend": "Enviar",
+    "feedbackThanks": "¡Gracias! Tus comentarios se enviaron.",
     "sections": {
       "quickStart": {
         "title": "Inicio rápido",

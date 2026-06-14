@@ -10,6 +10,7 @@ import { useAppState } from "../state/AppState";
 
 /* App catalog — used to surface the default args hint under the per-cell override input */
 import { api } from "../services/api";
+import { track, telemetryConfigured } from "../services/telemetry";
 import { APP_CATALOG } from "../services/appsCatalog";
 
 /* Favorites + History services (persisted storage) */
@@ -1037,6 +1038,21 @@ function HelpPane() {
   const { t, i18n } = useTranslation();
   const [openId, setOpenId] = useState<string | null>("quickStart");
   const [manualErr, setManualErr] = useState<string | null>(null);
+  // In-app feedback → telemetry (shown only when telemetry keys are configured;
+  // sending respects the usage-sharing opt-out, same channel).
+  const showFeedback = telemetryConfigured();
+  const [fbOpen, setFbOpen] = useState(false);
+  const [fbCat, setFbCat] = useState("idea");
+  const [fbMsg, setFbMsg] = useState("");
+  const [fbSent, setFbSent] = useState(false);
+  const sendFeedback = () => {
+    const msg = fbMsg.trim();
+    if (!msg) return;
+    track("feedback_submitted", { category: fbCat, message: msg, length: msg.length });
+    setFbSent(true);
+    setFbMsg("");
+    window.setTimeout(() => { setFbSent(false); setFbOpen(false); }, 2500);
+  };
   const openManual = () => {
     // Opens the language-matched PDF in the OS default viewer (native command);
     // surfaces any failure inline so it isn't silent.
@@ -1098,6 +1114,65 @@ function HelpPane() {
               </div>
             </div>
           </div>
+          {showFeedback && (
+            <div className="mt-3 rounded-xl border border-line bg-raised p-3">
+              <div className="flex items-start gap-2">
+                <span className="text-base leading-none" aria-hidden>💬</span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs text-muted">{t("help.feedbackNote")}</div>
+                  {fbSent ? (
+                    <div className="mt-2 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300">
+                      {t("help.feedbackThanks")}
+                    </div>
+                  ) : !fbOpen ? (
+                    <button
+                      type="button"
+                      onClick={() => setFbOpen(true)}
+                      className="mt-2 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 dark:text-sky-300"
+                    >
+                      {t("help.sendFeedback")}
+                    </button>
+                  ) : (
+                    <div className="mt-2 flex flex-col gap-2">
+                      <select
+                        value={fbCat}
+                        onChange={(e) => setFbCat(e.target.value)}
+                        className="h-7 rounded-md border border-line bg-surface px-2 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        <option value="bug">{t("help.feedbackBug")}</option>
+                        <option value="idea">{t("help.feedbackIdea")}</option>
+                        <option value="other">{t("help.feedbackOther")}</option>
+                      </select>
+                      <textarea
+                        value={fbMsg}
+                        onChange={(e) => setFbMsg(e.target.value)}
+                        placeholder={t("help.feedbackPlaceholder")}
+                        rows={4}
+                        className="resize-none rounded-md border border-line bg-surface px-2 py-1.5 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={sendFeedback}
+                          disabled={!fbMsg.trim()}
+                          className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 disabled:opacity-50 dark:text-sky-300"
+                        >
+                          {t("help.feedbackSend")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setFbOpen(false); setFbMsg(""); }}
+                          className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-medium text-fg hover:bg-line/40"
+                        >
+                          {t("common.cancel")}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           <div className="mt-3 px-1 text-[10px] text-muted">{t("help.version")}</div>
         </div>
       </div>
