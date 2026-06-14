@@ -34,9 +34,17 @@
   --color-ring:          #3b82f6;  /* focus ring                  */
 }
 
+/* Native controls (select dropdowns, scrollbars) follow the active theme;
+   [data-theme="dark"] overrides this to dark below. */
+:root { color-scheme: light; }
+
 /* DARK palette — same tokens, mockup values (near-black navy panels,
    white-90 text, brighter blue, electric-cyan Snap accent). */
 [data-theme="dark"] {
+  /* Render native controls (the <select> option popup, scrollbars, etc.) in
+     dark mode — without this the browser draws the dropdown list white, hiding
+     the options against light text. */
+  color-scheme: dark;
   --color-bg:            #0a0f1a;
   --color-surface:       #0f1626;
   --color-raised:        #141d30;

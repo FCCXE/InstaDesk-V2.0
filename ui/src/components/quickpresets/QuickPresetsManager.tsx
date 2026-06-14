@@ -284,7 +284,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                   <select
                     value={formSlot}
                     onChange={(e) => setFormSlot(e.target.value)}
-                    className="rounded-md border border-line px-2 py-1.5 text-sm"
+                    className="rounded-md border border-line bg-raised px-2 py-1.5 text-sm text-fg"
                   >
                     {availableSlotsForCreate.length === 0 ? (
                       <option value="">{t('quickPresets.noneFree')}</option>
@@ -307,7 +307,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder={t('quickPresets.namePlaceholder')}
-                  className="rounded-md border border-line px-2 py-1.5 text-sm"
+                  className="rounded-md border border-line bg-raised px-2 py-1.5 text-sm text-fg"
                   maxLength={80}
                 />
               </div>
@@ -375,7 +375,7 @@ export default function QuickPresetsManager({ onClose }: { onClose: () => void }
               <select
                 value={pickerSlot}
                 onChange={(e) => setPickerSlot(e.target.value)}
-                className="flex-1 rounded-md border border-line px-2 py-1.5 text-sm"
+                className="flex-1 rounded-md border border-line bg-raised px-2 py-1.5 text-sm text-fg"
               >
                 <option value="">
                   {(layouts ?? []).length === 0 ? t('quickPresets.pickNoLayouts') : t('quickPresets.pickLayout')}
