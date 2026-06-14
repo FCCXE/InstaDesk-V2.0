@@ -51,6 +51,9 @@ export function setOptedOut(optedOut: boolean): void {
     if (optedOut) posthog.opt_out_capturing()
     else posthog.opt_in_capturing()
   }
+  // Mirror to the native crash reporter (best-effort, desktop only). Dynamic
+  // import avoids any module load-order coupling with the API seam.
+  import('./api').then(({ api }) => api.setTelemetryOptout(optedOut)).catch(() => {})
 }
 
 /** Initialize the configured providers. Safe to call once at startup; a no-op for

@@ -97,6 +97,31 @@ pub fn ensure_autostart_default(app: &AppHandle) {
 }
 
 // ----------------------------------------------------------------------------
+// Telemetry opt-out marker — mirrors the UI's "Share anonymous usage data"
+// preference to a file the native crash reporter reads at startup (lib.rs
+// init_sentry), so opting out also silences Rust panic reporting (next launch).
+// ----------------------------------------------------------------------------
+
+/// Write/remove the telemetry opt-out marker in the app-data dir. Called by the UI
+/// when the user toggles usage sharing.
+#[tauri::command]
+pub fn set_telemetry_optout(app: AppHandle, opted_out: bool) -> Result<(), String> {
+    let Some(dir) = app.path().app_data_dir().ok() else {
+        return Ok(());
+    };
+    let marker = dir.join(".telemetry-optout");
+    if opted_out {
+        let _ = fs::create_dir_all(&dir);
+        fs::write(&marker, b"1").map_err(|e| e.to_string())
+    } else {
+        if marker.exists() {
+            let _ = fs::remove_file(&marker);
+        }
+        Ok(())
+    }
+}
+
+// ----------------------------------------------------------------------------
 // Shared storage helpers — mirror the Python server's DATA_DIR layout exactly,
 // so the Rust commands read/write the SAME files (existing presets keep working).
 //   DATA_DIR        = <outer repo>/data        (env INSTADESK_DATA_DIR overrides)

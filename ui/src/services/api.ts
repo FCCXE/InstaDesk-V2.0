@@ -304,4 +304,9 @@ export const api = {
     inTauri() ? invoke<boolean>('autostart_is_enabled') : Promise.resolve(false),
   autostartSet: (enabled: boolean): Promise<void> =>
     inTauri() ? invoke<void>('autostart_set', { enabled }) : Promise.resolve(),
+
+  // Mirror the telemetry opt-out to the native crash reporter (writes a marker the
+  // Rust side reads at startup). Web preview no-ops.
+  setTelemetryOptout: (optedOut: boolean): Promise<void> =>
+    inTauri() ? invoke<void>('set_telemetry_optout', { optedOut }) : Promise.resolve(),
 }

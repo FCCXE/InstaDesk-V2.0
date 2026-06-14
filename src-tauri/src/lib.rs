@@ -46,6 +46,43 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
   Ok(())
 }
 
+/// Initialize native (Rust) crash reporting. RELEASE builds only — we don't ship
+/// dev-session panics to the dashboard. The DSN (a public client key) is baked in
+/// at build time by build.rs from the git-ignored ui/.env; absent/empty disables
+/// it. Honors the telemetry opt-out marker the UI writes (set_telemetry_optout),
+/// so opting out silences native crash reporting on the next launch too. The
+/// returned guard must be held for the app's lifetime (held in main()).
+pub fn init_sentry() -> Option<sentry::ClientInitGuard> {
+  if cfg!(debug_assertions) {
+    return None;
+  }
+  let dsn = option_env!("SENTRY_DSN")?;
+  if dsn.is_empty() || telemetry_opted_out() {
+    return None;
+  }
+  Some(sentry::init((
+    dsn,
+    sentry::ClientOptions {
+      release: sentry::release_name!(),
+      ..Default::default()
+    },
+  )))
+}
+
+/// True if the user opted out of telemetry. Read from %APPDATA% directly because
+/// this runs in main(), before the Tauri path resolver exists; the path matches
+/// Tauri's app_data_dir() (roaming AppData + the bundle identifier).
+fn telemetry_opted_out() -> bool {
+  std::env::var("APPDATA")
+    .map(|a| {
+      std::path::Path::new(&a)
+        .join("com.fcxestudios.instadesk")
+        .join(".telemetry-optout")
+        .exists()
+    })
+    .unwrap_or(false)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -72,6 +109,7 @@ pub fn run() {
       backend::open_manual,
       backend::autostart_is_enabled,
       backend::autostart_set,
+      backend::set_telemetry_optout,
     ])
     // Launch-on-system-start support (the Settings → General toggle drives this
     // through backend::autostart_set / _is_enabled).
