@@ -10,6 +10,7 @@ import { useAppState } from "../state/AppState";
 
 /* App catalog — used to surface the default args hint under the per-cell override input */
 import { api } from "../services/api";
+import { APP_VERSION } from "../services/version";
 import { track, telemetryConfigured } from "../services/telemetry";
 import { APP_CATALOG } from "../services/appsCatalog";
 
@@ -1173,7 +1174,7 @@ function HelpPane() {
               </div>
             </div>
           )}
-          <div className="mt-3 px-1 text-[10px] text-muted">{t("help.version")}</div>
+          <div className="mt-3 px-1 text-[10px] text-muted">{t("help.version", { version: APP_VERSION })}</div>
         </div>
       </div>
     </div>

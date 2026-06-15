@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, type HealthResponse } from '../services/api'
+import { APP_VERSION } from '../services/version'
 import { useTheme } from '../state/ThemeProvider'
 
 type ServerStatus =
@@ -70,7 +71,7 @@ export default function TopChrome() {
           title={dot.label}
           aria-label={dot.label}
         />
-        <span>v0.1 • {status.kind === 'ok' && status.data.agentExists ? t('header.live') : t('header.static')}</span>
+        <span>v{APP_VERSION} • {status.kind === 'ok' && status.data.agentExists ? t('header.live') : t('header.static')}</span>
         <span className="text-muted">{t('header.by')}</span>
         <img
           src={fcxeLogo}
