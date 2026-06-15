@@ -3,6 +3,12 @@
     "ok": "Aceptar",
     "cancel": "Cancelar"
   },
+  "updateBanner": {
+    "available": "InstaDesk {{version}} ya está disponible",
+    "install": "Instalar y reiniciar",
+    "installing": "Instalando…",
+    "later": "Más tarde"
+  },
   "header": {
     "dashboard": "Panel de Control",
     "live": "en vivo",

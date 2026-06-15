@@ -5,6 +5,7 @@ import WorkspaceGrid from './components/WorkspaceGrid'
 import RightPane from './components/RightPane'
 import BottomControls from './components/BottomControls'
 import LayoutPreviewOverlay from './components/layouts/LayoutPreviewOverlay'
+import UpdateBanner from './components/UpdateBanner'
 
 // ✅ central state wrapper
 import { AppStateProvider } from './state/AppState'
@@ -84,6 +85,11 @@ export default function App() {
             transformOrigin: 'center center',
           }}
         >
+          {/* Auto-update notice — renders nothing unless a newer signed
+              version is available (and not dismissed). Slim bar above the
+              chrome; only takes layout space while actually showing. */}
+          <UpdateBanner />
+
           {/* Top chrome */}
           <TopChrome />
 

@@ -3,6 +3,12 @@
     "ok": "OK",
     "cancel": "Cancel"
   },
+  "updateBanner": {
+    "available": "InstaDesk {{version}} is available",
+    "install": "Install & restart",
+    "installing": "Installing…",
+    "later": "Later"
+  },
   "header": {
     "dashboard": "DASHBOARD",
     "live": "live",
