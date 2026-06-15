@@ -1365,7 +1365,7 @@ mod dragsnap {
     };
     use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_SHIFT};
     use windows::Win32::UI::WindowsAndMessaging::{
-        GetCursorPos, GetMessageW, GetWindowTextLengthW, GetWindowTextW, IsWindow,
+        GetMessageW, GetWindowRect, GetWindowTextLengthW, GetWindowTextW, IsWindow,
         EVENT_SYSTEM_MOVESIZEEND, EVENT_SYSTEM_MOVESIZESTART, MSG, OBJID_WINDOW,
         WINEVENT_OUTOFCONTEXT, WINEVENT_SKIPOWNPROCESS,
     };
@@ -1396,14 +1396,31 @@ mod dragsnap {
         }
     }
 
-    fn spawn_overlay() {
+    fn spawn_overlay(hwnd: HWND) {
         kill_overlay(); // never leave a stale overlay running
-        let mut args = vec!["--snap-overlay".to_string()];
+        let mut args = vec![
+            "--snap-overlay".to_string(),
+            "--target-hwnd".into(),
+            (hwnd.0 as isize).to_string(),
+        ];
         args.extend(margin_args());
         if let Some(child) = spawn_agent_child(&args) {
             if let Ok(mut g) = overlay().lock() {
                 *g = Some(child);
             }
+        }
+    }
+
+    // Center point of a window in screen pixels — the reference for which zone a
+    // drag targets. Using the window center (not the cursor) makes the bottom
+    // zone reachable: the cursor stays on the title bar near the screen middle
+    // even when the window body fills the bottom half.
+    fn window_center(hwnd: HWND) -> Option<POINT> {
+        let mut r = RECT::default();
+        if unsafe { GetWindowRect(hwnd, &mut r) }.is_ok() {
+            Some(POINT { x: (r.left + r.right) / 2, y: (r.top + r.bottom) / 2 })
+        } else {
+            None
         }
     }
 
@@ -1465,13 +1482,12 @@ mod dragsnap {
         p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom
     }
 
-    /// Map the cursor point to a (1-based monitor index, "x,y,w,h" region on a
-    /// 2x2 grid). Aero-Snap-style 3x3 zoning over the monitor's work area:
-    /// corners → quadrants, left/right edges → side halves, top/bottom edges →
-    /// top/bottom halves, dead center → maximize (full work area). Every zone is
-    /// reachable by dragging the cursor into that third of the screen. Returns
-    /// None if the cursor isn't over a known monitor.
-    fn zone_for_cursor(p: &POINT) -> Option<(usize, String)> {
+    /// Map a screen point (the dragged window's center) to a (1-based monitor
+    /// index, "x,y,w,h" region on a 2x2 grid). Aero-Snap-style 3x3 zoning over the
+    /// monitor's work area: corners → quadrants, left/right edges → side halves,
+    /// top/bottom edges → top/bottom halves, dead center → maximize (full work
+    /// area). Returns None if the point isn't over a known monitor.
+    fn zone_for_point(p: &POINT) -> Option<(usize, String)> {
         let mons = monitors_sorted();
         let idx = mons.iter().position(|(full, _)| point_in(full, p))?;
         let work = mons[idx].1;
@@ -1526,18 +1542,17 @@ mod dragsnap {
 
         // Drag START (with Shift held on a real window) → show the live zone
         // preview overlay for the duration of the drag. The overlay tracks the
-        // cursor itself; we just start/stop it.
+        // dragged window itself; we just start/stop it.
         if event == EVENT_SYSTEM_MOVESIZESTART {
-            spawn_overlay();
+            spawn_overlay(hwnd);
             return;
         }
 
-        // Drag END → compute the zone under the cursor and snap the window.
-        let mut p = POINT::default();
-        if GetCursorPos(&mut p).is_err() {
+        // Drag END → compute the zone from the window's CENTER and snap it.
+        let Some(center) = window_center(hwnd) else {
             return;
-        }
-        let Some((monitor, region)) = zone_for_cursor(&p) else {
+        };
+        let Some((monitor, region)) = zone_for_point(&center) else {
             return;
         };
         let mut args = vec![
