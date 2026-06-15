@@ -217,6 +217,7 @@ pub fn run() {
       backend::set_telemetry_optout,
       backend::get_dragsnap_enabled,
       backend::set_dragsnap_enabled,
+      backend::set_snap_margin,
       set_hotkey,
     ])
     // Launch-on-system-start support (the Settings → General toggle drives this

@@ -507,6 +507,9 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
 
   useEffect(() => {
     saveWindowMargin(windowMargin)
+    // Mirror to native so drag-to-snap (hook-driven, outside the UI request
+    // path) applies the same bezel margin as launch tiling. Runs on mount too.
+    void api.setSnapMargin(windowMargin)
   }, [windowMargin])
 
   const setWindowMargin = (px: number) => {

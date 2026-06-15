@@ -171,6 +171,22 @@ pub fn set_dragsnap_enabled(app: AppHandle, enabled: bool) -> Result<(), String>
     }
 }
 
+// Window margin (bezel-aware padding) mirrored from the UI so the drag-to-snap
+// hook can apply the same `--cell-margin-px` that launch-tiling uses — and the
+// live zone-preview overlay matches. The UI owns the value (localStorage); it
+// pushes it here on startup + whenever it changes. 0 = edge-to-edge.
+static SNAP_MARGIN_PX: std::sync::atomic::AtomicI32 = std::sync::atomic::AtomicI32::new(0);
+
+/// UI mirrors its window-margin setting here so drag-to-snap honors it.
+#[tauri::command]
+pub fn set_snap_margin(px: i64) {
+    SNAP_MARGIN_PX.store(px.clamp(0, 1000) as i32, std::sync::atomic::Ordering::Relaxed);
+}
+
+fn snap_margin() -> i32 {
+    SNAP_MARGIN_PX.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 // ----------------------------------------------------------------------------
 // Shared storage helpers — mirror the Python server's DATA_DIR layout exactly,
 // so the Rust commands read/write the SAME files (existing presets keep working).
@@ -1312,20 +1328,33 @@ pub fn start_dragsnap_hook() {
 /// `agent_command`'s CREATE_NO_WINDOW so no console flashes per snap.
 #[cfg(windows)]
 fn spawn_agent_detached(flag_args: &[String]) {
+    let _ = spawn_agent_child(flag_args);
+}
+
+/// Like `spawn_agent_detached` but returns the child handle so the caller can
+/// kill it later (used for the drag-to-snap live overlay, which lives for the
+/// duration of one drag and is killed when the drag ends).
+#[cfg(windows)]
+fn spawn_agent_child(flag_args: &[String]) -> Option<std::process::Child> {
     use std::os::windows::process::CommandExt;
     const CREATE_NO_WINDOW: u32 = 0x0800_0000;
     let (prog, args) = agent_invocation(flag_args);
-    let _ = std::process::Command::new(&prog)
+    std::process::Command::new(&prog)
         .args(&args)
         .creation_flags(CREATE_NO_WINDOW)
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
-        .spawn();
+        .spawn()
+        .ok()
 }
 
 #[cfg(windows)]
 mod dragsnap {
-    use super::{dragsnap_is_enabled, looks_like_instadesk_title, spawn_agent_detached};
+    use super::{
+        dragsnap_is_enabled, looks_like_instadesk_title, snap_margin, spawn_agent_child,
+        spawn_agent_detached,
+    };
+    use std::sync::Mutex;
     use windows::Win32::Foundation::{HWND, LPARAM, POINT, RECT};
     use windows::Win32::Graphics::Gdi::{
         EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFO,
@@ -1337,9 +1366,46 @@ mod dragsnap {
     use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_SHIFT};
     use windows::Win32::UI::WindowsAndMessaging::{
         GetCursorPos, GetMessageW, GetWindowTextLengthW, GetWindowTextW, IsWindow,
-        EVENT_SYSTEM_MOVESIZEEND, MSG, OBJID_WINDOW, WINEVENT_OUTOFCONTEXT,
-        WINEVENT_SKIPOWNPROCESS,
+        EVENT_SYSTEM_MOVESIZEEND, EVENT_SYSTEM_MOVESIZESTART, MSG, OBJID_WINDOW,
+        WINEVENT_OUTOFCONTEXT, WINEVENT_SKIPOWNPROCESS,
     };
+
+    // The live zone-preview overlay process for the current drag (a transparent,
+    // click-through agent window that highlights where the window will land).
+    // Spawned on drag-start when Shift is held; killed on drag-end.
+    fn overlay() -> &'static Mutex<Option<std::process::Child>> {
+        static O: std::sync::OnceLock<Mutex<Option<std::process::Child>>> = std::sync::OnceLock::new();
+        O.get_or_init(|| Mutex::new(None))
+    }
+
+    fn margin_args() -> Vec<String> {
+        let m = snap_margin();
+        if m > 0 {
+            vec!["--cell-margin-px".into(), m.to_string()]
+        } else {
+            Vec::new()
+        }
+    }
+
+    fn kill_overlay() {
+        if let Ok(mut g) = overlay().lock() {
+            if let Some(mut child) = g.take() {
+                let _ = child.kill();
+                let _ = child.wait();
+            }
+        }
+    }
+
+    fn spawn_overlay() {
+        kill_overlay(); // never leave a stale overlay running
+        let mut args = vec!["--snap-overlay".to_string()];
+        args.extend(margin_args());
+        if let Some(child) = spawn_agent_child(&args) {
+            if let Ok(mut g) = overlay().lock() {
+                *g = Some(child);
+            }
+        }
+    }
 
     fn window_title(hwnd: HWND) -> String {
         unsafe {
@@ -1440,8 +1506,12 @@ mod dragsnap {
         _thread: u32,
         _time: u32,
     ) {
-        if event != EVENT_SYSTEM_MOVESIZEEND || hwnd.0.is_null() || id_object != OBJID_WINDOW.0 {
+        if hwnd.0.is_null() || id_object != OBJID_WINDOW.0 {
             return;
+        }
+        // Drag END always tears down the preview overlay, even if we won't snap.
+        if event == EVENT_SYSTEM_MOVESIZEEND {
+            kill_overlay();
         }
         if !dragsnap_is_enabled() || !shift_held() {
             return;
@@ -1453,6 +1523,16 @@ mod dragsnap {
         if title.is_empty() || looks_like_instadesk_title(&title) {
             return;
         }
+
+        // Drag START (with Shift held on a real window) → show the live zone
+        // preview overlay for the duration of the drag. The overlay tracks the
+        // cursor itself; we just start/stop it.
+        if event == EVENT_SYSTEM_MOVESIZESTART {
+            spawn_overlay();
+            return;
+        }
+
+        // Drag END → compute the zone under the cursor and snap the window.
         let mut p = POINT::default();
         if GetCursorPos(&mut p).is_err() {
             return;
@@ -1460,8 +1540,8 @@ mod dragsnap {
         let Some((monitor, region)) = zone_for_cursor(&p) else {
             return;
         };
-        spawn_agent_detached(&[
-            "--snap-region".into(),
+        let mut args = vec![
+            "--snap-region".to_string(),
             "--target-hwnd".into(),
             (hwnd.0 as isize).to_string(),
             "--monitor".into(),
@@ -1470,7 +1550,9 @@ mod dragsnap {
             region,
             "--grid-size".into(),
             "2x2".into(),
-        ]);
+        ];
+        args.extend(margin_args());
+        spawn_agent_detached(&args);
     }
 
     pub fn start() {
@@ -1483,8 +1565,11 @@ mod dragsnap {
                 // cursor→monitor→zone math drift on the differently-scaled
                 // screen, so snaps land on the wrong monitor or wrong zone.
                 let _ = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+                // Hook the consecutive MOVESIZESTART (0x000A) + MOVESIZEEND
+                // (0x000B) range so one hook drives both the preview overlay
+                // (on start) and the snap (on end).
                 let hook = SetWinEventHook(
-                    EVENT_SYSTEM_MOVESIZEEND,
+                    EVENT_SYSTEM_MOVESIZESTART,
                     EVENT_SYSTEM_MOVESIZEEND,
                     None,
                     Some(hook_proc),

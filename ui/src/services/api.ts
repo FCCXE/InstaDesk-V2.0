@@ -318,6 +318,11 @@ export const api = {
   dragsnapSet: (enabled: boolean): Promise<void> =>
     inTauri() ? invoke<void>('set_dragsnap_enabled', { enabled }) : Promise.resolve(),
 
+  // Mirror the window-margin setting to native so drag-to-snap (and its live
+  // preview overlay) honor the same bezel margin as launch tiling. Web no-ops.
+  setSnapMargin: (px: number): Promise<void> =>
+    inTauri() ? invoke<void>('set_snap_margin', { px }) : Promise.resolve(),
+
   // Rebind a global hotkey (Settings → Global shortcuts). `code` is a DOM
   // KeyboardEvent.code (e.g. "KeyD", "Digit1"). Web preview no-ops.
   setHotkey: (

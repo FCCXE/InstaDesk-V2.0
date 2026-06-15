@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.1.7"
+version = "0.1.8"
 description = "InstaDesk — multi-monitor launcher and layout tool"
 authors = ["FcXe Studios"]
 license = ""
