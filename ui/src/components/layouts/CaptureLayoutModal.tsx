@@ -27,6 +27,18 @@ function appName(w: CapturedWindow): string {
   return n.charAt(0).toUpperCase() + n.slice(1);
 }
 
+// The "open a new window" flag for a browser, so each captured browser window
+// becomes its OWN window instead of merging its URLs as tabs into an already-open
+// window. Mirrors the built-in app catalog (Chromium family → "--new-window",
+// Firefox → "-new-window"). Returns undefined for unknown browsers.
+function browserNewWindowArg(exe: string | null): string | undefined {
+  if (!exe) return undefined;
+  const n = (exe.split(/[\\/]/).pop() || "").replace(/\.exe$/i, "").toLowerCase();
+  if (n === "firefox") return "-new-window";
+  if (["chrome", "msedge", "brave", "chromium", "opera", "vivaldi", "arc"].includes(n)) return "--new-window";
+  return undefined;
+}
+
 // Human description of a captured grid region, e.g. "full screen", "left half",
 // "top-right quadrant", else "3×6 region".
 function zoneLabel(grid: string, gridSize: string): string {
@@ -86,7 +98,13 @@ export default function CaptureLayoutModal({ windows, monitorLabel, onCancel, on
         gridSize: w.gridSize,
         frameMode: "frameless",
       };
-      if (w.isBrowser && raw.length > 0) a.urls = raw;
+      if (w.isBrowser) {
+        // Force a separate window so a captured browser window doesn't merge its
+        // URLs into an already-open browser window.
+        const nw = browserNewWindowArg(w.exe);
+        if (nw) a.args = nw;
+        if (raw.length > 0) a.urls = raw;
+      }
       out.push(a);
     });
     return out;
