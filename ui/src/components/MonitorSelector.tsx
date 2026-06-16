@@ -416,6 +416,18 @@ export default function MonitorSelector() {
         </div>
 
         <DisplayArray />
+
+        {inTauri() && (
+          <button
+            type="button"
+            onClick={() => { void api.identifyMonitors() }}
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-raised px-3 py-1.5 text-[12px] font-medium text-fg shadow-sm hover:bg-line/60 hover:border-line-strong"
+            title={t('monitor.identifyMonitorsTitle')}
+          >
+            <span aria-hidden>🔢</span>
+            {t('monitor.identifyMonitors')}
+          </button>
+        )}
       </div>
 
       {qpManagerOpen && (

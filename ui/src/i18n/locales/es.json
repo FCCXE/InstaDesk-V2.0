@@ -133,7 +133,9 @@
     "resolution": "Resolución:",
     "primary": "Principal",
     "secondary": "Secundario",
-    "displayArray": "Disposición de pantallas"
+    "displayArray": "Disposición de pantallas",
+    "identifyMonitors": "Identificar monitores",
+    "identifyMonitorsTitle": "Muestra unos segundos el número de cada monitor en su pantalla física, para que puedas relacionar estas casillas con tus pantallas reales."
   },
   "tabs": {
     "apps": "Apps",

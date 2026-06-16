@@ -133,7 +133,9 @@
     "resolution": "Resolution:",
     "primary": "Primary",
     "secondary": "Secondary",
-    "displayArray": "Display Array"
+    "displayArray": "Display Array",
+    "identifyMonitors": "Identify monitors",
+    "identifyMonitorsTitle": "Flash each monitor's number on its physical screen for a few seconds, so you can match these tiles to your real displays."
   },
   "tabs": {
     "apps": "Apps",

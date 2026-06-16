@@ -323,6 +323,11 @@ export const api = {
   setSnapMargin: (px: number): Promise<void> =>
     inTauri() ? invoke<void>('set_snap_margin', { px }) : Promise.resolve(),
 
+  // Flash each monitor's number on its physical screen (Windows-style Identify).
+  // Fire-and-forget; the agent self-closes after ~3s. Web preview no-ops.
+  identifyMonitors: (): Promise<void> =>
+    inTauri() ? invoke<void>('identify_monitors') : Promise.resolve(),
+
   // Rebind a global hotkey (Settings → Global shortcuts). `code` is a DOM
   // KeyboardEvent.code (e.g. "KeyD", "Digit1"). Web preview no-ops.
   setHotkey: (

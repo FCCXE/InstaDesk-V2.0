@@ -187,6 +187,15 @@ fn snap_margin() -> i32 {
     SNAP_MARGIN_PX.load(std::sync::atomic::Ordering::Relaxed)
 }
 
+/// Flash each monitor's number on its physical screen (Windows-style "Identify"),
+/// so the user can map the display-array tiles to real monitors. Fire-and-forget:
+/// the agent shows the numbers and self-closes after ~3s. No-op off Windows / web.
+#[tauri::command]
+pub fn identify_monitors() {
+    #[cfg(windows)]
+    spawn_agent_detached(&["--identify-monitors".to_string()]);
+}
+
 // ----------------------------------------------------------------------------
 // Shared storage helpers — mirror the Python server's DATA_DIR layout exactly,
 // so the Rust commands read/write the SAME files (existing presets keep working).

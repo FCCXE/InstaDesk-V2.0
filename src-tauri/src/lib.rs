@@ -218,6 +218,7 @@ pub fn run() {
       backend::get_dragsnap_enabled,
       backend::set_dragsnap_enabled,
       backend::set_snap_margin,
+      backend::identify_monitors,
       set_hotkey,
     ])
     // Launch-on-system-start support (the Settings → General toggle drives this
