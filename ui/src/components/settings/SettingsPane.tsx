@@ -3,7 +3,7 @@ import { useAppState, GRID_SIZE_PRESETS, WINDOW_MARGIN_PRESETS } from "../../sta
 import { useTheme, type ThemeSetting } from "../../state/ThemeProvider";
 import { useTranslation } from "react-i18next";
 import { setLang, type Lang } from "../../i18n";
-import { api, inTauri } from "../../services/api";
+import { api, inTauri, type LicenseStatus } from "../../services/api";
 import { telemetryConfigured, isOptedOut, setOptedOut } from "../../services/telemetry";
 import { checkForUpdate, installUpdate, type Update } from "../../services/updater";
 import { loadBinding, saveBinding, formatBinding, type HotkeyAction, type HotkeyParts } from "../../services/hotkeys";
@@ -83,6 +83,14 @@ export default function SettingsPane() {
   };
 
   // Auto-update (desktop only). Check → (if available) install + relaunch.
+  // Licensing/trial status (dormant by default → section hidden unless enabled).
+  const [license, setLicense] = useState<LicenseStatus | null>(null);
+  useEffect(() => {
+    let alive = true;
+    api.licenseStatus().then(s => { if (alive) setLicense(s); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
   const showUpdates = inTauri();
   const [updState, setUpdState] = useState<"idle" | "checking" | "available" | "latest" | "installing" | "error">("idle");
   const [update, setUpdate] = useState<Update | null>(null);
@@ -234,6 +242,27 @@ export default function SettingsPane() {
                   </div>
                 )}
               </div>
+            </Section>
+          )}
+
+          {license?.enabled && (
+            <Section title={t("settings.license")}>
+              <Row>
+                <Label>{t("settings.licStatus")}</Label>
+                <span
+                  className={
+                    license.state === "expired"
+                      ? "text-xs font-medium text-red-600 dark:text-red-400"
+                      : license.state === "licensed"
+                      ? "text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                      : "text-xs font-medium text-fg"
+                  }
+                >
+                  {license.state === "trial" && t("settings.licTrial", { left: license.trialDaysLeft, total: license.trialDaysTotal })}
+                  {license.state === "expired" && t("settings.licExpired")}
+                  {license.state === "licensed" && t("settings.licLicensed", { type: license.licenseType })}
+                </span>
+              </Row>
             </Section>
           )}
 

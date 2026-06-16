@@ -1,4 +1,5 @@
 mod backend;
+mod license;
 
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
@@ -220,6 +221,7 @@ pub fn run() {
       backend::set_snap_margin,
       backend::identify_monitors,
       backend::capture_layout,
+      license::license_status,
       set_hotkey,
     ])
     // Launch-on-system-start support (the Settings → General toggle drives this

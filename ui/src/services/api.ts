@@ -124,6 +124,17 @@ export type CapturedWindow = {
 }
 export type CaptureResult = { ok: boolean; windows: CapturedWindow[]; error?: string }
 
+// Licensing/trial status. `enabled:false` (default) = licensing dormant → app
+// unrestricted. When enabled: state is "trial" | "expired" (and later "licensed").
+export type LicenseStatus = {
+  enabled: boolean
+  state: 'unrestricted' | 'trial' | 'expired' | 'licensed'
+  trialDaysTotal?: number
+  trialDaysLeft?: number
+  trialStartedUnix?: number
+  licenseType?: 'lifetime' | 'annual'
+}
+
 // An installed browser detected on the machine (URL Builder "Add Browser").
 export type BrowserInfo = { name: string; path: string }
 
@@ -349,6 +360,11 @@ export const api = {
   // Fire-and-forget; the agent self-closes after ~3s. Web preview no-ops.
   identifyMonitors: (): Promise<void> =>
     inTauri() ? invoke<void>('identify_monitors') : Promise.resolve(),
+
+  // Licensing/trial status (app-side, dormant by default). Returns enabled:false
+  // when licensing is off (then the app is unrestricted). Web preview = off.
+  licenseStatus: (): Promise<LicenseStatus> =>
+    inTauri() ? invoke<LicenseStatus>('license_status') : Promise.resolve({ enabled: false, state: 'unrestricted' }),
 
   // Rebind a global hotkey (Settings → Global shortcuts). `code` is a DOM
   // KeyboardEvent.code (e.g. "KeyD", "Digit1"). Web preview no-ops.
