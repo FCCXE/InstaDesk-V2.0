@@ -9,6 +9,24 @@
     "installing": "Installing…",
     "later": "Later"
   },
+  "capture": {
+    "button": "Capture current layout",
+    "buttonTitle": "Read where your windows are right now and turn that arrangement into a Layout.",
+    "capturing": "Reading windows…",
+    "failed": "Couldn't read the window arrangement.",
+    "noWindows": "No windows found to capture.",
+    "title": "Capture current layout",
+    "subtitle": "Found {{count}} windows. Pick which to include, then save as a Layout.",
+    "browser": "browser",
+    "unidentified": "Couldn't identify this app — it won't be included.",
+    "urlsPlaceholder": "https://example.com  (one URL per line — optional)",
+    "urlsHint": "Browser windows can't reveal their pages — add the URLs you want this window to open.",
+    "namePlaceholder": "Layout name (optional)",
+    "saving": "Saving…",
+    "save": "Save Layout ({{count}})",
+    "nothingIncluded": "Include at least one window.",
+    "saved": "Captured “{{name}}” • {{count}} windows"
+  },
   "header": {
     "dashboard": "DASHBOARD",
     "live": "live",

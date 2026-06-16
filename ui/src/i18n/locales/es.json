@@ -9,6 +9,24 @@
     "installing": "Instalando…",
     "later": "Más tarde"
   },
+  "capture": {
+    "button": "Capturar disposición actual",
+    "buttonTitle": "Lee dónde están tus ventanas ahora mismo y convierte esa disposición en un Layout.",
+    "capturing": "Leyendo ventanas…",
+    "failed": "No se pudo leer la disposición de ventanas.",
+    "noWindows": "No se encontraron ventanas para capturar.",
+    "title": "Capturar disposición actual",
+    "subtitle": "Se encontraron {{count}} ventanas. Elige cuáles incluir y guarda como Layout.",
+    "browser": "navegador",
+    "unidentified": "No se pudo identificar esta app — no se incluirá.",
+    "urlsPlaceholder": "https://ejemplo.com  (una URL por línea — opcional)",
+    "urlsHint": "Las ventanas de navegador no revelan sus páginas — añade las URL que quieres que abra esta ventana.",
+    "namePlaceholder": "Nombre del Layout (opcional)",
+    "saving": "Guardando…",
+    "save": "Guardar Layout ({{count}})",
+    "nothingIncluded": "Incluye al menos una ventana.",
+    "saved": "Capturado «{{name}}» • {{count}} ventanas"
+  },
   "header": {
     "dashboard": "Panel de Control",
     "live": "en vivo",

@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { MonitorId } from "./EditLayoutDrawer";
-import { api, type PresetListItem } from "../../services/api";
+import { api, inTauri, type PresetListItem, type CapturedWindow, type Assignment } from "../../services/api";
+import CaptureLayoutModal from "./CaptureLayoutModal";
 import { useAppState } from "../../state/AppState";
 import {
   buildSaveAssignmentsMulti,
@@ -104,6 +105,9 @@ export default function LayoutsPane() {
   const [savingNew, setSavingNew] = useState(false);
   const [savingEdits, setSavingEdits] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
+  // Auto-capture: windows read off the screen, shown in the review modal.
+  const [capturing, setCapturing] = useState(false);
+  const [captureWindows, setCaptureWindows] = useState<CapturedWindow[] | null>(null);
 
   // editingLayoutId now lives in AppState (lifted from local useState so it
   // survives Apps↔Layouts tab toggles — RightPane unmounts the inactive
@@ -286,6 +290,55 @@ export default function LayoutsPane() {
     } finally {
       setBusyId(null);
     }
+  };
+
+  // Friendly monitor label from a 1-based index (for the capture review modal).
+  const monitorLabel = (monitorIndex: number) =>
+    monitors.find((m) => monitorIdToIndex(m.id) === monitorIndex)?.name ?? `Monitor ${monitorIndex}`;
+
+  // Auto-capture: read the live window arrangement, then open the review modal.
+  const onCapture = async () => {
+    if (capturing) return;
+    setCapturing(true);
+    try {
+      // Per-monitor grid sizes in monitor-index order (matches the agent's --monitor N).
+      const gridSizes = [...monitors]
+        .sort((a, b) => monitorIdToIndex(a.id) - monitorIdToIndex(b.id))
+        .map((m) => {
+          const gs = gridSizeByMonitor[m.id] ?? defaultGridSize;
+          return `${gs.cols}x${gs.rows}`;
+        });
+      const res = await api.captureLayout(gridSizes, windowMargin);
+      if (!res.ok) {
+        flash({ kind: "err", msg: res.error || t("capture.failed") });
+        return;
+      }
+      if (!res.windows || res.windows.length === 0) {
+        flash({ kind: "err", msg: t("capture.noWindows") });
+        return;
+      }
+      setCaptureWindows(res.windows);
+    } catch (e) {
+      flash({ kind: "err", msg: (e as Error).message });
+    } finally {
+      setCapturing(false);
+    }
+  };
+
+  // Save the reviewed capture as a new Layout (same path as a manual save).
+  const onCaptureSave = async (assignments: Assignment[], name: string) => {
+    const takenSlots = (layouts ?? []).filter((l) => l.preset.kind === "general").map((l) => l.preset.slot.toUpperCase());
+    if (new Set(takenSlots).size >= 26) {
+      throw new Error(t("layouts.maxLayouts"));
+    }
+    const slot = nextFreeSlot(takenSlots, "general");
+    await api.presetsSave("general", slot, assignments, name);
+    track("layout_saved", { source: "capture", windows: assignments.length });
+    setCaptureWindows(null);
+    broadcastChanged();
+    await refresh();
+    const shownName = displayName({ kind: "general", slot, name });
+    flash({ kind: "ok", msg: t("capture.saved", { name: shownName, count: assignments.length }) });
   };
 
   const onNewLayout = async () => {
@@ -528,6 +581,18 @@ export default function LayoutsPane() {
             row, with the contextual status text on its OWN line below (it
             used to share the row and wrap into a cramped vertical stack). */}
         <div className="mt-2 flex flex-col gap-2">
+          {inTauri() && (
+            <button
+              type="button"
+              onClick={onCapture}
+              disabled={capturing}
+              className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-4 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-60 disabled:cursor-wait dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
+              title={t("capture.buttonTitle")}
+            >
+              <span aria-hidden>📸</span>
+              {capturing ? t("capture.capturing") : t("capture.button")}
+            </button>
+          )}
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -638,6 +703,15 @@ export default function LayoutsPane() {
           </div>
         </div>
       </div>
+
+      {captureWindows && (
+        <CaptureLayoutModal
+          windows={captureWindows}
+          monitorLabel={monitorLabel}
+          onCancel={() => setCaptureWindows(null)}
+          onSave={onCaptureSave}
+        />
+      )}
     </div>
   );
 }

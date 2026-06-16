@@ -110,6 +110,20 @@ export type ApiMonitor = {
 
 export type MonitorsResponse = { ok: boolean; monitors: ApiMonitor[] }
 
+// One window read by --capture-layout (auto-capture). `exe` is null when the app
+// couldn't be identified (elevated/Store app) — `error` says why. `grid`/`gridSize`
+// are the reverse-mapped region this window snaps to on `monitor` (1-based).
+export type CapturedWindow = {
+  exe: string | null
+  title: string
+  monitor: number
+  grid: string
+  gridSize: string
+  isBrowser: boolean
+  error: string | null
+}
+export type CaptureResult = { ok: boolean; windows: CapturedWindow[]; error?: string }
+
 // An installed browser detected on the machine (URL Builder "Add Browser").
 export type BrowserInfo = { name: string; path: string }
 
@@ -202,6 +216,14 @@ export const api = {
     inTauri()
       ? invoke<{ ok: boolean; path: string }>('presets_save', { kind, slot, name, assignments })
       : request<{ ok: boolean; path: string }>('POST', '/presets/save', { kind, slot, name, assignments }),
+
+  // Auto-capture: read the current on-screen window arrangement (per-monitor grid
+  // sizes in monitor-index order; marginPx mirrors the bezel margin). Returns the
+  // captured windows for the UI to review and save as a Layout. Desktop-only.
+  captureLayout: (gridSizes: string[], marginPx?: number): Promise<CaptureResult> =>
+    inTauri()
+      ? invoke<CaptureResult>('capture_layout', { gridSizes, marginPx })
+      : Promise.resolve({ ok: false, windows: [] }),
   presetsRun: (kind: PresetKind, slot: string, marginPx?: number) =>
     inTauri()
       ? invoke<{ ok: boolean; results: LaunchResponse[] }>('presets_run', { kind, slot, marginPx })

@@ -1181,6 +1181,40 @@ async fn run_agent(flag_args: &[String], timeout_secs: u64) -> Result<(i32, Stri
     Ok((rc, read_temp(so_read), read_temp(se_read), tmsg))
 }
 
+/// Auto-capture: read the current on-screen window arrangement and return it as
+/// the agent's JSON `{ ok, windows: [{exe,title,monitor,grid,gridSize,isBrowser,error}] }`.
+/// `grid_sizes` are per-monitor "CxR" in monitor-index order (the UI's current
+/// grid sizes); `margin_px` mirrors the bezel margin so captured regions match
+/// placement. The UI reviews the result and saves it as a normal Layout.
+#[tauri::command]
+pub async fn capture_layout(grid_sizes: Vec<String>, margin_px: Option<i64>) -> Result<Value, String> {
+    let agent = agent_path();
+    if !agent.exists() {
+        return Err(format!("Agent not found at {}", agent.display()));
+    }
+    let mut args = vec!["--capture-layout".to_string()];
+    if !grid_sizes.is_empty() {
+        args.push("--grid-sizes".into());
+        args.push(grid_sizes.join(","));
+    }
+    if let Some(m) = margin_px {
+        if m > 0 {
+            args.push("--cell-margin-px".into());
+            args.push(m.to_string());
+        }
+    }
+    let (_rc, out, err, tmsg) = run_agent(&args, 30).await?;
+    for line in out.lines().rev() {
+        let l = line.trim();
+        if l.starts_with('{') && l.ends_with('}') {
+            if let Ok(v) = serde_json::from_str::<Value>(l) {
+                return Ok(v);
+            }
+        }
+    }
+    Err(format!("Capture returned no result. {}{}", err, tmsg))
+}
+
 /// `POST /snap/popup` — Divvy-style ad-hoc snap. Opens the agent's overlay on
 /// the target monitor; blocks (180s) until the user commits or cancels. Passes
 /// the foreground tracker's last target via `--target-hwnd` when known; else the
