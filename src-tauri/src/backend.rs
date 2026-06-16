@@ -965,7 +965,7 @@ async fn run_launch(body: &LaunchBody) -> Value {
         Err(e) => return json!({ "exitCode": 1, "stdout": "", "stderr": format!("Failed to run agent: {e}"), "cmd": cmd_str }),
     };
 
-    let (rc, timeout_msg) = match tokio::time::timeout(std::time::Duration::from_secs(45), child.wait()).await {
+    let (proc_rc, timeout_msg) = match tokio::time::timeout(std::time::Duration::from_secs(45), child.wait()).await {
         Ok(Ok(status)) => (status.code().unwrap_or(1), ""),
         Ok(Err(_)) => (1, ""),
         Err(_) => {
@@ -977,7 +977,34 @@ async fn run_launch(body: &LaunchBody) -> Value {
     let out = read_temp(so_read);
     let mut err = read_temp(se_read);
     err.push_str(timeout_msg);
+    // The agent hard-kills itself after a successful placement (to skip a slow
+    // ~several-second COM teardown that ShellExecute pulls in), so its process
+    // exit code is meaningless on success. Trust the result JSON it printed (the
+    // last `{...}` line with an "ok" field); fall back to the process code only
+    // when no such JSON exists (a real crash or the 45s timeout).
+    let rc = match parse_agent_ok(&out) {
+        Some(true) => 0,
+        Some(false) => 1,
+        None => proc_rc,
+    };
     json!({ "exitCode": rc, "stdout": out, "stderr": err, "cmd": cmd_str })
+}
+
+/// Extract the agent's success flag from its stdout — the `"ok"` field of the
+/// last JSON object line it printed. None when the agent emitted no result JSON
+/// (crash/timeout), so the caller falls back to the process exit code.
+fn parse_agent_ok(stdout: &str) -> Option<bool> {
+    for line in stdout.lines().rev() {
+        let l = line.trim();
+        if l.starts_with('{') && l.ends_with('}') {
+            if let Ok(v) = serde_json::from_str::<Value>(l) {
+                if let Some(ok) = v.get("ok").and_then(|x| x.as_bool()) {
+                    return Some(ok);
+                }
+            }
+        }
+    }
+    None
 }
 
 /// Read a preset and apply every assignment — parallel across programs, serial
