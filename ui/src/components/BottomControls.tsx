@@ -95,14 +95,15 @@ export default function BottomControls() {
   const snapping = snapState.kind === 'busy'
 
   // "Show desktop" toggle: first click minimizes every window, the button then
-  // flips to maximize them (each on its own monitor). Local boolean is enough —
-  // if the user moves windows manually it just re-toggles next click.
+  // flips to restore them — each back to the exact frame (grid region) it was in,
+  // not a full-screen maximize. Local boolean is enough — if the user moves
+  // windows manually it just re-toggles next click.
   const [minimized, setMinimized] = useState(false)
   const [arrangeBusy, setArrangeBusy] = useState(false)
 
   const onArrangeAll = async () => {
     if (arrangeBusy) return
-    const action = minimized ? 'maximize' : 'minimize'
+    const action = minimized ? 'restore' : 'minimize'
     setArrangeBusy(true)
     try {
       const r = await api.arrangeAllWindows(action)
@@ -112,7 +113,7 @@ export default function BottomControls() {
         const base =
           action === 'minimize'
             ? t('bottomBar.minimizedAll', { count: r.affected })
-            : t('bottomBar.maximizedAll', { count: r.affected })
+            : t('bottomBar.restoredAll', { count: r.affected })
         const skip = r.skippedElevated > 0 ? t('bottomBar.skippedElevated', { count: r.skippedElevated }) : ''
         setSnapState({ kind: 'ok', msg: base + skip })
         window.setTimeout(() => setSnapState({ kind: 'idle' }), 4000)
@@ -251,12 +252,12 @@ export default function BottomControls() {
           onClick={onArrangeAll}
           disabled={arrangeBusy}
           className="px-3 py-1.5 rounded-lg border border-line bg-raised text-sm text-fg hover:bg-line/60 disabled:cursor-not-allowed disabled:opacity-60"
-          title={t(minimized ? 'bottomBar.maximizeAllTitle' : 'bottomBar.minimizeAllTitle')}
+          title={t(minimized ? 'bottomBar.restoreAllTitle' : 'bottomBar.minimizeAllTitle')}
         >
           {arrangeBusy
             ? t('bottomBar.arranging')
             : minimized
-              ? `🗖 ${t('bottomBar.maximizeAll')}`
+              ? `🗖 ${t('bottomBar.restoreAll')}`
               : `🗕 ${t('bottomBar.minimizeAll')}`}
         </button>
         <button

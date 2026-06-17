@@ -365,11 +365,13 @@ export const api = {
   identifyMonitors: (): Promise<void> =>
     inTauri() ? invoke<void>('identify_monitors') : Promise.resolve(),
 
-  // Minimize or maximize every normal top-level window across all monitors (the
-  // Snap-bar "show desktop" toggle). Elevated apps (e.g. iVMS-4200) can't be
-  // controlled by the non-elevated helper and are skipped + reported. Web no-ops.
+  // Minimize or restore every normal top-level window across all monitors (the
+  // Snap-bar "show desktop" toggle). Restore brings each window back to the exact
+  // frame it had (its grid region), not a full-screen maximize. Elevated apps
+  // (e.g. iVMS-4200) can't be controlled by the non-elevated helper and are
+  // skipped + reported. Web no-ops.
   arrangeAllWindows: (
-    action: 'minimize' | 'maximize',
+    action: 'minimize' | 'restore',
   ): Promise<{ ok: boolean; action?: string; affected: number; skippedElevated: number; error?: string }> =>
     inTauri()
       ? invoke('arrange_all_windows', { action })

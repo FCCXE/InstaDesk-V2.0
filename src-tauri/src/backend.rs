@@ -196,18 +196,18 @@ pub fn identify_monitors() {
     spawn_agent_detached(&["--identify-monitors".to_string()]);
 }
 
-/// Minimize or maximize EVERY normal top-level window across all monitors — the
-/// Snap-bar "show desktop" toggle. `action` is "minimize" or "maximize"
-/// (maximize fills each window's current monitor and also un-minimizes it).
-/// Elevated apps (e.g. iVMS-4200) can't be controlled by this non-elevated
-/// helper — Windows UIPI blocks it — so they're skipped and reported. Returns
-/// the agent's `{ ok, action, affected, skippedElevated }`.
+/// Minimize or restore EVERY normal top-level window across all monitors — the
+/// Snap-bar "show desktop" toggle. `action` is "minimize" or "restore" (restore
+/// un-minimizes each window back to the exact frame it had — its grid region —
+/// NOT a full-screen maximize). Elevated apps (e.g. iVMS-4200) can't be
+/// controlled by this non-elevated helper — Windows UIPI blocks it — so they're
+/// skipped and reported. Returns the agent's `{ ok, action, affected, skippedElevated }`.
 #[tauri::command]
 pub async fn arrange_all_windows(action: String) -> Result<Value, String> {
     locked_guard()?;
     let flag = match action.as_str() {
         "minimize" => "--minimize-all",
-        "maximize" => "--maximize-all",
+        "restore" => "--restore-all",
         other => return Err(format!("unknown action: {other}")),
     };
     #[cfg(windows)]
