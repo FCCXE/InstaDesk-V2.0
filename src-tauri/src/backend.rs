@@ -1436,6 +1436,14 @@ mod dragsnap {
         O.get_or_init(|| Mutex::new(None))
     }
 
+    // Latched snap-drag target (HWND as isize; 0 = no snap-drag in progress). Set
+    // at MOVESIZESTART when Shift is held; consumed at MOVESIZEEND. Latching the
+    // intent at grab time means the snap on drop does NOT depend on Shift still
+    // being held at the precise release instant — releasing Shift a few ms before
+    // the mouse button was the cause of intermittent (sometimes-works) snaps.
+    // Accessed only from the single dragsnap-hook thread, so Relaxed is fine.
+    static ACTIVE_DRAG: std::sync::atomic::AtomicIsize = std::sync::atomic::AtomicIsize::new(0);
+
     fn margin_args() -> Vec<String> {
         let m = snap_margin();
         if m > 0 {
@@ -1448,8 +1456,11 @@ mod dragsnap {
     fn kill_overlay() {
         if let Ok(mut g) = overlay().lock() {
             if let Some(mut child) = g.take() {
+                // Kill but DON'T wait() — this runs on the WinEvent hook thread (the
+                // message pump). Blocking it on the overlay process's teardown stalled
+                // the hook, so a quick follow-up drag could be missed or mishandled.
+                // Dropping the Child closes the handle; the OS reaps it asynchronously.
                 let _ = child.kill();
-                let _ = child.wait();
             }
         }
     }
@@ -1580,56 +1591,81 @@ mod dragsnap {
         _thread: u32,
         _time: u32,
     ) {
+        use std::sync::atomic::Ordering::Relaxed;
         if hwnd.0.is_null() || id_object != OBJID_WINDOW.0 {
             return;
         }
-        // Drag END always tears down the preview overlay, even if we won't snap.
-        if event == EVENT_SYSTEM_MOVESIZEEND {
-            kill_overlay();
-        }
-        if !dragsnap_is_enabled() || !shift_held() {
-            return;
-        }
-        // Gated like the other value actions when the trial has ended.
-        if crate::license::locked() {
-            return;
-        }
-        if !IsWindow(Some(hwnd)).as_bool() {
-            return;
-        }
-        let title = window_title(hwnd);
-        if title.is_empty() || looks_like_instadesk_title(&title) {
-            return;
-        }
 
-        // Drag START (with Shift held on a real window) → show the live zone
-        // preview overlay for the duration of the drag. The overlay tracks the
-        // dragged window itself; we just start/stop it.
+        // Drag START → decide ONCE whether this is a snap-drag, and latch it. The
+        // gesture is "hold Shift as you start dragging"; we record the target so
+        // the drop can snap without re-checking Shift at the (racy) release moment.
         if event == EVENT_SYSTEM_MOVESIZESTART {
+            ACTIVE_DRAG.store(0, Relaxed); // clear any stale latch
+            if !dragsnap_is_enabled() || !shift_held() {
+                return;
+            }
+            if crate::license::locked() {
+                return;
+            }
+            if !IsWindow(Some(hwnd)).as_bool() {
+                return;
+            }
+            let title = window_title(hwnd);
+            if title.is_empty() || looks_like_instadesk_title(&title) {
+                return;
+            }
+            ACTIVE_DRAG.store(hwnd.0 as isize, Relaxed);
+            // Live zone-preview overlay for the duration of the drag; it tracks the
+            // dragged window itself. Killed at MOVESIZEEND.
             spawn_overlay(hwnd);
             return;
         }
 
-        // Drag END → compute the zone from the window's CENTER and snap it.
-        let Some(center) = window_center(hwnd) else {
-            return;
-        };
-        let Some((monitor, region)) = zone_for_point(&center) else {
-            return;
-        };
-        let mut args = vec![
-            "--snap-region".to_string(),
-            "--target-hwnd".into(),
-            (hwnd.0 as isize).to_string(),
-            "--monitor".into(),
-            monitor.to_string(),
-            "--grid".into(),
-            region,
-            "--grid-size".into(),
-            "2x2".into(),
-        ];
-        args.extend(margin_args());
-        spawn_agent_detached(&args);
+        // Drag END.
+        if event == EVENT_SYSTEM_MOVESIZEEND {
+            kill_overlay(); // always tear down the preview, even if we won't snap
+            let active = ACTIVE_DRAG.swap(0, Relaxed);
+            let latched = active != 0 && active == hwnd.0 as isize;
+
+            if !dragsnap_is_enabled() || crate::license::locked() {
+                return;
+            }
+            // Snap if this drag was latched as a snap-drag at grab (Shift then), OR
+            // Shift is held right now (covers pressing Shift after grabbing). The
+            // latch is what eliminates the intermittent miss when Shift is released
+            // a hair before the window is dropped.
+            if !latched && !shift_held() {
+                return;
+            }
+            if !IsWindow(Some(hwnd)).as_bool() {
+                return;
+            }
+            let title = window_title(hwnd);
+            if title.is_empty() || looks_like_instadesk_title(&title) {
+                return;
+            }
+
+            // Compute the zone from the window's CENTER and snap it.
+            let Some(center) = window_center(hwnd) else {
+                return;
+            };
+            let Some((monitor, region)) = zone_for_point(&center) else {
+                return;
+            };
+            let mut args = vec![
+                "--snap-region".to_string(),
+                "--target-hwnd".into(),
+                (hwnd.0 as isize).to_string(),
+                "--monitor".into(),
+                monitor.to_string(),
+                "--grid".into(),
+                region,
+                "--grid-size".into(),
+                "2x2".into(),
+            ];
+            args.extend(margin_args());
+            spawn_agent_detached(&args);
+        }
     }
 
     pub fn start() {
