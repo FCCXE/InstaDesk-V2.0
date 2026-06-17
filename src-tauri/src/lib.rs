@@ -222,6 +222,8 @@ pub fn run() {
       backend::identify_monitors,
       backend::capture_layout,
       license::license_status,
+      license::license_activate,
+      license::license_deactivate,
       set_hotkey,
     ])
     // Launch-on-system-start support (the Settings → General toggle drives this

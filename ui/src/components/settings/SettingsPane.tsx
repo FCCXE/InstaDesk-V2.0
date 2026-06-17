@@ -85,11 +85,40 @@ export default function SettingsPane() {
   // Auto-update (desktop only). Check → (if available) install + relaunch.
   // Licensing/trial status (dormant by default → section hidden unless enabled).
   const [license, setLicense] = useState<LicenseStatus | null>(null);
+  const [licKey, setLicKey] = useState("");
+  const [licBusy, setLicBusy] = useState(false);
+  const [licErr, setLicErr] = useState("");
   useEffect(() => {
     let alive = true;
     api.licenseStatus().then(s => { if (alive) setLicense(s); }).catch(() => {});
     return () => { alive = false; };
   }, []);
+  const onActivate = async () => {
+    if (licBusy || !licKey.trim()) return;
+    setLicBusy(true);
+    setLicErr("");
+    try {
+      const s = await api.licenseActivate(licKey.trim());
+      setLicense(s);
+      setLicKey("");
+    } catch (e) {
+      setLicErr(String((e as Error)?.message ?? e));
+    } finally {
+      setLicBusy(false);
+    }
+  };
+  const onDeactivate = async () => {
+    if (licBusy) return;
+    setLicBusy(true);
+    setLicErr("");
+    try {
+      setLicense(await api.licenseDeactivate());
+    } catch (e) {
+      setLicErr(String((e as Error)?.message ?? e));
+    } finally {
+      setLicBusy(false);
+    }
+  };
 
   const showUpdates = inTauri();
   const [updState, setUpdState] = useState<"idle" | "checking" | "available" | "latest" | "installing" | "error">("idle");
@@ -263,6 +292,53 @@ export default function SettingsPane() {
                   {license.state === "licensed" && t("settings.licLicensed", { type: license.licenseType })}
                 </span>
               </Row>
+
+              {license.state === "licensed" ? (
+                <>
+                  {license.keyMasked && (
+                    <Row>
+                      <Label>{t("settings.licKey")}</Label>
+                      <span className="font-mono text-xs text-muted">{license.keyMasked}</span>
+                    </Row>
+                  )}
+                  <Row>
+                    <Label>{t("settings.licDevices")}</Label>
+                    <span className="text-xs text-fg">{license.devicesUsed ?? 1} / {license.devicesMax ?? 3}</span>
+                  </Row>
+                  <div className="mt-1">
+                    <button
+                      type="button"
+                      onClick={onDeactivate}
+                      disabled={licBusy}
+                      className="rounded-lg border border-line bg-raised px-3 py-1.5 text-xs font-medium text-fg hover:bg-line/60 disabled:opacity-50"
+                    >
+                      {licBusy ? t("settings.licWorking") : t("settings.licDeactivate")}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="mt-1 flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={licKey}
+                      onChange={(e) => setLicKey(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") void onActivate(); }}
+                      placeholder={t("settings.licKeyPlaceholder")}
+                      className="min-w-0 flex-1 rounded-lg border border-line bg-raised px-3 py-2 font-mono text-xs text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                    <button
+                      type="button"
+                      onClick={onActivate}
+                      disabled={licBusy || !licKey.trim()}
+                      className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary shadow hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {licBusy ? t("settings.licWorking") : t("settings.licActivate")}
+                    </button>
+                  </div>
+                  {licErr && <div className="text-[11px] text-red-600 dark:text-red-400">{licErr}</div>}
+                </div>
+              )}
             </Section>
           )}
 

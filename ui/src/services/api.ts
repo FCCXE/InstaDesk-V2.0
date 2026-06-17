@@ -133,6 +133,10 @@ export type LicenseStatus = {
   trialDaysLeft?: number
   trialStartedUnix?: number
   licenseType?: 'lifetime' | 'annual'
+  keyMasked?: string
+  expiresUnix?: number | null
+  devicesUsed?: number
+  devicesMax?: number
 }
 
 // An installed browser detected on the machine (URL Builder "Add Browser").
@@ -365,6 +369,12 @@ export const api = {
   // when licensing is off (then the app is unrestricted). Web preview = off.
   licenseStatus: (): Promise<LicenseStatus> =>
     inTauri() ? invoke<LicenseStatus>('license_status') : Promise.resolve({ enabled: false, state: 'unrestricted' }),
+  // Activate a license key (throws with a message on failure). Returns the new status.
+  licenseActivate: (key: string): Promise<LicenseStatus> =>
+    invoke<LicenseStatus>('license_activate', { key }),
+  // Deactivate / clear the local license. Returns the new status.
+  licenseDeactivate: (): Promise<LicenseStatus> =>
+    invoke<LicenseStatus>('license_deactivate'),
 
   // Rebind a global hotkey (Settings → Global shortcuts). `code` is a DOM
   // KeyboardEvent.code (e.g. "KeyD", "Digit1"). Web preview no-ops.

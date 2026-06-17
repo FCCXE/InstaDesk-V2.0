@@ -14,6 +14,7 @@
 //! the UI reads. Online activation (Lemon Squeezy) + the License screen + the
 //! locked-state gating come in later increments.
 
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tauri::{AppHandle, Manager};
 
@@ -113,13 +114,134 @@ fn trial_start(app: &AppHandle) -> i64 {
     ts
 }
 
+// ---------------------------------------------------------------------------
+// License record (a successful activation), stored in app-data `.license`.
+// ---------------------------------------------------------------------------
+
+#[derive(Serialize, Deserialize, Clone)]
+struct LicenseRecord {
+    key: String,
+    kind: String, // "lifetime" | "annual"
+    instance_id: String,
+    activated_unix: i64,
+    expires_unix: Option<i64>, // annual only; None = perpetual
+    last_validated_unix: i64,
+}
+
+fn license_file(app: &AppHandle) -> Option<std::path::PathBuf> {
+    app.path().app_data_dir().ok().map(|d| d.join(".license"))
+}
+fn read_license(app: &AppHandle) -> Option<LicenseRecord> {
+    serde_json::from_str(&std::fs::read_to_string(license_file(app)?).ok()?).ok()
+}
+fn write_license(app: &AppHandle, rec: &LicenseRecord) {
+    if let Some(p) = license_file(app) {
+        if let Some(dir) = p.parent() {
+            let _ = std::fs::create_dir_all(dir);
+        }
+        if let Ok(s) = serde_json::to_string_pretty(rec) {
+            let _ = std::fs::write(p, s);
+        }
+    }
+}
+fn clear_license(app: &AppHandle) {
+    if let Some(p) = license_file(app) {
+        let _ = std::fs::remove_file(p);
+    }
+}
+
+fn mask_key(key: &str) -> String {
+    let tail: String = key.chars().rev().take(4).collect::<String>().chars().rev().collect();
+    format!("•••• {tail}")
+}
+
+// Dev/test keys exercise the full activate→licensed→deactivate flow WITHOUT a
+// Lemon Squeezy account (which is gated on the UK Ltd). Replaced by the real LS
+// activation at go-live. "INSTADESK-TEST-LIFETIME…" / "INSTADESK-TEST-ANNUAL…".
+fn parse_dev_key(key: &str) -> Option<&'static str> {
+    let u = key.trim().to_uppercase();
+    if u.starts_with("INSTADESK-TEST-LIFETIME") {
+        Some("lifetime")
+    } else if u.starts_with("INSTADESK-TEST-ANNUAL") {
+        Some("annual")
+    } else {
+        None
+    }
+}
+
+/// Activate a license key. Dev/test keys are honored locally; real keys will be
+/// activated against Lemon Squeezy at go-live (the seam is marked below).
+#[tauri::command]
+pub fn license_activate(app: AppHandle, key: String) -> Result<Value, String> {
+    if !licensing_enabled(&app) {
+        return Err("Licensing is not enabled.".into());
+    }
+    let key = key.trim().to_string();
+    if key.is_empty() {
+        return Err("Enter a license key.".into());
+    }
+    let now = now_secs();
+    let kind = match parse_dev_key(&key) {
+        Some(k) => k,
+        None => {
+            // === GO-LIVE SEAM ===
+            // Real activation: POST https://api.lemonsqueezy.com/v1/licenses/activate
+            // with { license_key: key, instance_name: <device label> } (NO API secret —
+            // the key alone authorizes activation). Store the returned instance id +
+            // license status + expires_at + activation_limit/usage. The store doesn't
+            // exist yet, so real keys can't be activated during development.
+            return Err(
+                "Online activation isn't available yet (store not configured). Use a test key for now."
+                    .into(),
+            );
+        }
+    };
+    let rec = LicenseRecord {
+        key,
+        kind: kind.to_string(),
+        instance_id: format!("dev-{now:x}"),
+        activated_unix: now,
+        expires_unix: if kind == "annual" { Some(now + 365 * 86_400) } else { None },
+        last_validated_unix: now,
+    };
+    write_license(&app, &rec);
+    Ok(license_status(app))
+}
+
+/// Deactivate (free this device's seat) and clear the local license. At go-live
+/// this also calls LS POST /licenses/deactivate before clearing.
+#[tauri::command]
+pub fn license_deactivate(app: AppHandle) -> Value {
+    clear_license(&app);
+    license_status(app)
+}
+
 /// Current license/trial status for the UI. When licensing is disabled (default),
-/// returns `enabled:false` and the UI treats the app as unrestricted. Increment 1
-/// covers trial + expired only (activation arrives later → never "licensed" yet).
+/// returns `enabled:false` and the UI treats the app as unrestricted. Otherwise:
+/// a stored license → "licensed" (lifetime, or annual within its term); else the
+/// trial countdown → "trial" / "expired".
 #[tauri::command]
 pub fn license_status(app: AppHandle) -> Value {
     if !licensing_enabled(&app) {
         return json!({ "enabled": false, "state": "unrestricted" });
+    }
+    // A stored license takes precedence over the trial.
+    if let Some(rec) = read_license(&app) {
+        let now = now_secs();
+        // Lifetime never expires; annual is licensed while within its term.
+        let active = rec.kind == "lifetime" || rec.expires_unix.map(|e| now <= e).unwrap_or(true);
+        if active {
+            return json!({
+                "enabled": true,
+                "state": "licensed",
+                "licenseType": rec.kind,
+                "keyMasked": mask_key(&rec.key),
+                "expiresUnix": rec.expires_unix,
+                "devicesUsed": 1,
+                "devicesMax": 3,
+            });
+        }
+        // Annual lapsed → fall through to the trial/expired computation below.
     }
     let start = trial_start(&app);
     let elapsed_days = (now_secs() - start).max(0) / 86_400;
@@ -141,6 +263,14 @@ mod tests {
     fn encode_decode_roundtrips() {
         let ts = 1_750_000_000_i64;
         assert_eq!(decode(&encode(ts)), Some(ts));
+    }
+
+    #[test]
+    fn dev_keys_parse_and_others_dont() {
+        assert_eq!(parse_dev_key("instadesk-test-lifetime-abc"), Some("lifetime"));
+        assert_eq!(parse_dev_key("INSTADESK-TEST-ANNUAL-xyz"), Some("annual"));
+        assert_eq!(parse_dev_key("SOME-REAL-LS-KEY"), None);
+        assert_eq!(mask_key("ABCD-1234-WXYZ"), "•••• WXYZ");
     }
 
     #[test]
