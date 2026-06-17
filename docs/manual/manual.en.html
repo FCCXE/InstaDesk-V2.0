@@ -66,7 +66,7 @@
 <section class="cover">
   <div class="logo">Insta<span>Desk</span></div>
   <div class="sub">Multi-monitor launcher &amp; window-tiling — User Manual</div>
-  <div class="meta">FCLX Studios · v0.1.19 · English</div>
+  <div class="meta">FCLX Studios · v0.1.27 · English</div>
 </section>
 
 <nav class="toc">
@@ -115,7 +115,7 @@
   <li><b>Left panel</b> — Quick Presets, the Monitor selector, the Display Array, and the <b>Identify monitors</b> button.</li>
   <li><b>Centre</b> — the workspace grid for the selected monitor, where you select cells and see assignments.</li>
   <li><b>Right panel</b> — tabs for <b>Apps</b>, <b>Layouts</b> (incl. <b>Capture current layout</b>), <b>Settings</b>, and <b>Help</b>.</li>
-  <li><b>Bottom bar</b> — <b>Snap</b>, <b>Clear Present Grid</b>, <b>Clear All Grids</b>, and the per-monitor <b>Grid</b> size.</li>
+  <li><b>Bottom bar</b> — <b>Snap</b>, the <b>Minimize all / Restore all</b> toggle, <b>Clear Present Grid</b>, <b>Clear All Grids</b>, and the per-monitor <b>Grid</b> size.</li>
   <li><b>Top bar</b> — the InstaDesk logo, the current <b>version</b> (top-right), and the FCLX&nbsp;Studios mark.</li>
 </ul>
 
@@ -177,7 +177,7 @@
   <li>For each <b>browser window</b>, paste the URLs you want it to reopen (one per line) — a browser can't reveal its own open pages, so you supply them here.</li>
   <li>Give the layout a name and <b>Save</b>. It becomes a normal Layout you can Apply, Edit, rename, or export.</li>
 </ol>
-<div class="shot-ph">[ Screenshot to add: <b>capture-review</b> — the “Capture current layout” review window with windows grouped by monitor and a browser URL box ]</div>
+<img class="shot" src="img/capture-review.png" alt="InstaDesk screenshot: the Capture current layout review window" />
 <div class="note"><b>Good to know:</b> apps that run as administrator (such as some CCTV clients) are identified and included. Windows you placed freely snap to the nearest grid region. Each captured browser window reopens as its own window with the URLs you added as tabs.</div>
 
 <h2 id="quickpresets">9 · Quick Presets</h2>
@@ -205,6 +205,13 @@
 </ol>
 <div class="shot-ph">[ Screenshot to add: <b>drag-to-snap</b> — a window mid-drag with the zone highlight showing ]</div>
 <div class="note">Some apps enforce their own position (certain CCTV / video tools) and may refuse to be moved.</div>
+<h3>Minimize all / Restore all</h3>
+<p>The bottom Snap bar also has a one-click toggle that works like a reliable “Show Desktop”:</p>
+<ul>
+  <li><b>🗕 Minimize all</b> hides every open window across <i>all</i> your monitors at once.</li>
+  <li>Click again — the button becomes <b>🗖 Restore all</b> — to bring each window back to the <i>exact</i> position and size it was in before. It does <b>not</b> maximize them full-screen; each returns to the frame it was in.</li>
+</ul>
+<p>Windows that run as administrator (for example some CCTV clients such as iVMS-4200) are left untouched, and InstaDesk tells you how many it skipped.</p>
 
 <h2 id="hotkeys">11 · Global hotkeys</h2>
 <p>InstaDesk responds to these shortcuts from anywhere — even when its window isn't focused:</p>
