@@ -3,8 +3,10 @@
   InstaDesk — User Manual (English) · SOURCE.
   This HTML is the version-controlled source for the downloadable PDF.
   Build it to PDF with:  node docs/manual/build-manual.mjs
-  Screenshots: replace each <div class="shot" data-shot="..."> placeholder with
-  <img class="shot" src="img/<name>.png" alt="..."> once captured (see img/README.md).
+  Screenshots: real shots live in img/<name>.png and are shown with
+  <img class="shot" src="img/<name>.png">. Sections whose screenshot hasn't been
+  captured yet use a labelled <div class="shot-ph"> placeholder — replace it with
+  an <img> once the shot exists (see img/README.md), then rebuild.
 -->
 <html lang="en">
 <head>
@@ -35,6 +37,7 @@
   .note { background: var(--raised); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 4px; padding: 3mm 4mm; margin: 0 0 4mm; }
   .note b { color: #0d1622; }
   .shot { display: block; width: 100%; height: auto; margin: 3mm 0 4mm; border: 1px solid var(--line); border-radius: 6px; break-inside: avoid; }
+  .shot-ph { display: flex; align-items: center; justify-content: center; min-height: 38mm; background: var(--raised); border: 1px dashed var(--accent); border-radius: 6px; color: var(--muted); font-size: 9.5pt; text-align: center; padding: 4mm; margin: 3mm 0 4mm; break-inside: avoid; }
   table.caps { width: 100%; border-collapse: collapse; margin: 0 0 4mm; font-size: 10.5pt; break-inside: avoid; }
   table.caps th, table.caps td { border: 1px solid var(--line); padding: 2mm 3mm; text-align: left; vertical-align: top; }
   table.caps th { background: var(--raised); color: #0d1622; font-weight: 700; }
@@ -53,6 +56,9 @@
   .toc > ol > li { margin: 0 0 2mm; font-weight: 600; }
   .toc a { color: #16202e; }
   .toc .num { color: var(--accent); display: inline-block; width: 9mm; }
+  table.keys { width: 100%; border-collapse: collapse; margin: 0 0 4mm; font-size: 10.5pt; break-inside: avoid; }
+  table.keys th, table.keys td { border: 1px solid var(--line); padding: 2mm 3mm; text-align: left; vertical-align: top; }
+  table.keys th { background: var(--raised); color: #0d1622; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -60,7 +66,7 @@
 <section class="cover">
   <div class="logo">Insta<span>Desk</span></div>
   <div class="sub">Multi-monitor launcher &amp; window-tiling — User Manual</div>
-  <div class="meta">FCLX Studios · v0.1 · English</div>
+  <div class="meta">FCLX Studios · v0.1.19 · English</div>
 </section>
 
 <nav class="toc">
@@ -73,23 +79,27 @@
     <li><a href="#grid"><span class="num">5</span> The grid &amp; assigning apps</a></li>
     <li><a href="#apps"><span class="num">6</span> Apps, URLs &amp; Favorites</a></li>
     <li><a href="#layouts"><span class="num">7</span> Layouts</a></li>
-    <li><a href="#quickpresets"><span class="num">8</span> Quick Presets</a></li>
-    <li><a href="#snap"><span class="num">9</span> Snap</a></li>
-    <li><a href="#settings"><span class="num">10</span> Monitors &amp; Settings</a></li>
-    <li><a href="#troubleshooting"><span class="num">11</span> Tips &amp; troubleshooting</a></li>
-    <li><a href="#limits"><span class="num">12</span> Limits &amp; capacities</a></li>
+    <li><a href="#capture"><span class="num">8</span> Capturing a Layout from your screen</a></li>
+    <li><a href="#quickpresets"><span class="num">9</span> Quick Presets</a></li>
+    <li><a href="#snap"><span class="num">10</span> Snapping a window — Snap &amp; Drag-to-snap</a></li>
+    <li><a href="#hotkeys"><span class="num">11</span> Global hotkeys</a></li>
+    <li><a href="#monitors"><span class="num">12</span> Monitors, Identify &amp; the Display Array</a></li>
+    <li><a href="#settings"><span class="num">13</span> Settings</a></li>
+    <li><a href="#updates"><span class="num">14</span> Staying up to date</a></li>
+    <li><a href="#troubleshooting"><span class="num">15</span> Tips &amp; troubleshooting</a></li>
+    <li><a href="#limits"><span class="num">16</span> Limits &amp; capacities</a></li>
   </ol>
 </nav>
 
 <h2 id="intro">1 · What is InstaDesk?</h2>
 <p class="lead">InstaDesk turns the tedious morning ritual — opening the same apps and dragging every window into place across several monitors — into a single click.</p>
-<p>You arrange apps on a visual grid for each monitor, save that arrangement as a <b>Layout</b>, and from then on one <b>Apply</b> launches every app and tiles it exactly where you put it. You can keep many layouts (work, design, trading, streaming…), bundle several into a <b>Quick Preset</b>, or ad-hoc <b>Snap</b> a single window into place.</p>
-<div class="note"><b>Is it hard?</b> No — the learning curve is quick. But InstaDesk is a power tool with real depth (per-monitor grids, custom launch arguments, browser tab groups). This manual walks every feature; the in-app <b>Help</b> tab is the short version.</div>
+<p>You arrange apps on a visual grid for each monitor, save that arrangement as a <b>Layout</b>, and from then on one <b>Apply</b> launches every app and tiles it exactly where you put it. You can keep many layouts (work, design, trading, streaming…), bundle several into a <b>Quick Preset</b>, trigger them with a <b>keyboard shortcut</b>, ad-hoc <b>Snap</b> a window into place, or <b>capture</b> a layout straight from however your screen looks right now.</p>
+<div class="note"><b>Is it hard?</b> No — the learning curve is quick. But InstaDesk is a power tool with real depth (per-monitor grids, custom launch arguments, browser tab groups, global hotkeys). This manual walks every feature; the in-app <b>Help</b> tab is the short version.</div>
 
 <h2 id="concepts">2 · Core concepts</h2>
 <p>Five ideas are all you need:</p>
 <h3>Monitor</h3>
-<p>You arrange one display at a time. The <b>Monitor</b> selector (left panel) chooses which; the <b>Display Array</b> shows how your screens are physically laid out.</p>
+<p>You arrange one display at a time. The <b>Monitor</b> selector (left panel) chooses which; the <b>Display Array</b> shows how your screens are physically laid out. The <b>Identify monitors</b> button flashes each screen's number so you always know which is which.</p>
 <h3>Grid &amp; cells</h3>
 <p>Each monitor is divided into a grid of <b>cells</b> (e.g. 6×6). You can set a different grid density per monitor.</p>
 <h3>Region</h3>
@@ -97,15 +107,16 @@
 <h3>Layout</h3>
 <p>A saved set of regions across all your monitors — the heart of InstaDesk. Apply it to launch and tile everything.</p>
 <h3>Quick Preset</h3>
-<p>A bundle of several Layouts you apply together in one click.</p>
+<p>A bundle of several Layouts you apply together in one click (or one hotkey).</p>
 
 <h2 id="tour">3 · The interface, at a glance</h2>
 <img class="shot" src="img/overview.png" alt="InstaDesk screenshot: overview" />
 <ul>
-  <li><b>Left panel</b> — Quick Presets, the Monitor selector, and the Display Array.</li>
+  <li><b>Left panel</b> — Quick Presets, the Monitor selector, the Display Array, and the <b>Identify monitors</b> button.</li>
   <li><b>Centre</b> — the workspace grid for the selected monitor, where you select cells and see assignments.</li>
-  <li><b>Right panel</b> — tabs for <b>Apps</b>, <b>Layouts</b>, <b>Settings</b>, and <b>Help</b>.</li>
+  <li><b>Right panel</b> — tabs for <b>Apps</b>, <b>Layouts</b> (incl. <b>Capture current layout</b>), <b>Settings</b>, and <b>Help</b>.</li>
   <li><b>Bottom bar</b> — <b>Snap</b>, <b>Clear Present Grid</b>, <b>Clear All Grids</b>, and the per-monitor <b>Grid</b> size.</li>
+  <li><b>Top bar</b> — the InstaDesk logo, the current <b>version</b> (top-right), and the FCLX&nbsp;Studios mark.</li>
 </ul>
 
 <h2 id="quickstart">4 · Quick start: your first layout</h2>
@@ -114,10 +125,11 @@
   <li>In the centre grid, <b>drag across cells</b> to select a region (say, the left half).</li>
   <li>Open the <b>Apps</b> tab, choose an app (e.g. Chrome), and click <b>Assign to Selection</b>.</li>
   <li>Select another region and assign a second app. Repeat for other monitors via the Monitor selector.</li>
-  <li>Open the <b>Layouts</b> tab → <b>+ New Layout</b>, pick a slot letter, and save.</li>
+  <li>Open the <b>Layouts</b> tab → <b>+ New Layout</b>, give it a name, and save.</li>
   <li>Click <b>Apply</b> on the layout card — InstaDesk launches each app and tiles it into place.</li>
 </ol>
 <img class="shot" src="img/quickstart-assign.png" alt="InstaDesk screenshot: quickstart-assign" />
+<div class="note"><b>In a hurry?</b> Already have your windows where you want them? Skip straight to <a href="#capture">section 8</a> and let InstaDesk capture the layout for you.</div>
 
 <h2 id="grid">5 · The grid &amp; assigning apps</h2>
 <h3>Selecting &amp; assigning</h3>
@@ -156,53 +168,107 @@
 <div class="note">If a saved app has no program or URL configured, only that one app is skipped on save (with a warning) — the rest of the layout still saves normally.</div>
 <img class="shot" src="img/layouts.png" alt="InstaDesk screenshot: layouts" />
 
-<h2 id="quickpresets">8 · Quick Presets</h2>
-<p>A Quick Preset bundles several Layouts so you can apply them all together with one click — ideal for a full multi-monitor workspace assembled from reusable pieces. You can keep up to <b>26</b> Quick Presets.</p>
+<h2 id="capture">8 · Capturing a Layout from your screen</h2>
+<p>Instead of building a layout cell by cell, you can arrange your windows however you like — by hand or with <a href="#snap">Snap / Drag-to-snap</a> — and have InstaDesk read the screen and build the Layout for you.</p>
+<ol>
+  <li>Arrange your windows across your monitors.</li>
+  <li>Open the <b>Layouts</b> tab and click <b>Capture current layout</b>.</li>
+  <li>A review window lists every window it found, grouped by monitor. <b>Tick the ones to include</b> (apps it can't identify are flagged and skipped).</li>
+  <li>For each <b>browser window</b>, paste the URLs you want it to reopen (one per line) — a browser can't reveal its own open pages, so you supply them here.</li>
+  <li>Give the layout a name and <b>Save</b>. It becomes a normal Layout you can Apply, Edit, rename, or export.</li>
+</ol>
+<div class="shot-ph">[ Screenshot to add: <b>capture-review</b> — the “Capture current layout” review window with windows grouped by monitor and a browser URL box ]</div>
+<div class="note"><b>Good to know:</b> apps that run as administrator (such as some CCTV clients) are identified and included. Windows you placed freely snap to the nearest grid region. Each captured browser window reopens as its own window with the URLs you added as tabs.</div>
+
+<h2 id="quickpresets">9 · Quick Presets</h2>
+<p>A Quick Preset bundles several Layouts so you can apply them all together with one click — ideal for a full multi-monitor workspace assembled from reusable pieces. You can keep up to <b>26</b> Quick Presets, and apply the first nine with a <a href="#hotkeys">keyboard shortcut</a>.</p>
 <ol>
   <li>Click <b>Manage QPs</b> in the left panel.</li>
   <li>Create a preset and add the Layouts it should include.</li>
   <li>Back on the main screen, pick the Quick Preset and click <b>Apply</b>.</li>
 </ol>
 
-<h2 id="snap">9 · Snap</h2>
-<p>Snap places a <i>single, already-open</i> window into a region — no Layout required.</p>
+<h2 id="snap">10 · Snapping a window — Snap &amp; Drag-to-snap</h2>
+<p>Snapping places a <i>single, already-open</i> window into a region — no Layout required. There are two ways.</p>
+<h3>Snap (the grid popup)</h3>
 <ol>
   <li>Click <b>Snap → M1</b> in the bottom bar (the number is the active monitor).</li>
   <li>A grid popup appears on that monitor.</li>
   <li>Click a region; the window you last used snaps into it.</li>
 </ol>
+<h3>Drag-to-snap (hold Shift and drag)</h3>
+<p>Turn this on in <b>Settings → Grid &amp; Snapping → Drag to snap</b>. Then, on any window:</p>
+<ol>
+  <li>Hold <kbd>Shift</kbd> and drag the window.</li>
+  <li>A translucent highlight shows the zone it will land in — <b>edges = halves</b> (left, right, top, bottom), <b>corners = quadrants</b>, <b>centre = maximize</b>.</li>
+  <li>Release to snap it there. Works on every monitor.</li>
+</ol>
+<div class="shot-ph">[ Screenshot to add: <b>drag-to-snap</b> — a window mid-drag with the zone highlight showing ]</div>
 <div class="note">Some apps enforce their own position (certain CCTV / video tools) and may refuse to be moved.</div>
 
-<h2 id="settings">10 · Monitors &amp; Settings</h2>
-<p>Use the <b>Monitor</b> selector to switch which display you're arranging; the <b>Display Array</b> shows their physical layout. The <b>Settings</b> tab offers:</p>
+<h2 id="hotkeys">11 · Global hotkeys</h2>
+<p>InstaDesk responds to these shortcuts from anywhere — even when its window isn't focused:</p>
+<table class="keys">
+  <tr><th>Shortcut</th><th>Action</th></tr>
+  <tr><td><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>D</kbd></td><td>Show / focus the InstaDesk dashboard</td></tr>
+  <tr><td><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>S</kbd></td><td>Snap the active window (opens the Snap grid)</td></tr>
+  <tr><td><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>1</kbd> … <kbd>9</kbd></td><td>Apply Quick Preset 1–9</td></tr>
+</table>
+<p>The <b>Show</b> and <b>Snap</b> shortcuts are <b>rebindable</b> in <b>Settings → Global shortcuts</b> — click the shortcut and press your preferred combination (it must include Ctrl, Alt, or the Windows key).</p>
+
+<h2 id="monitors">12 · Monitors, Identify &amp; the Display Array</h2>
+<p>The <b>Monitor</b> selector (left panel) chooses which display you're arranging. The <b>Display Array</b> beneath it shows your screens in their real physical positions, each with its number.</p>
+<p>Click <b>Identify monitors</b> to flash a large number on each <i>physical</i> screen for a few seconds — exactly like Windows' own Identify. The number shown is the same one InstaDesk uses everywhere: the tile in the Display Array, and the monitor a Layout targets.</p>
+<div class="shot-ph">[ Screenshot to add: <b>identify-monitors</b> — the Display Array with the Identify monitors button, and/or the big numbers shown on the physical screens ]</div>
+
+<h2 id="settings">13 · Settings</h2>
+<p>The <b>Settings</b> tab (right panel) collects InstaDesk's preferences:</p>
 <ul>
   <li><b>Theme</b> — Light, Dark, or System.</li>
   <li><b>Language</b> — English or Español.</li>
-  <li><b>Default grid size</b> — the size new/cleared monitors start at.</li>
+  <li><b>Launch on system start</b> — open InstaDesk automatically when you sign in (on by default; turn it off here).</li>
+  <li><b>Default grid size</b> — the size new / cleared monitors start at.</li>
   <li><b>Window margin</b> — a bezel-aware gap so tiled windows don't sit under your monitor frames.</li>
+  <li><b>Drag to snap</b> — enable the hold-Shift-and-drag snapping described in section 10.</li>
+  <li><b>Global shortcuts</b> — view and rebind the keyboard shortcuts.</li>
+  <li><b>Updates</b> — check for and install new versions (see section 14).</li>
+  <li><b>Share anonymous usage data</b> — optional, on by default; sends only aggregate, non-personal diagnostics to help improve InstaDesk. No file names, URLs, or screen contents are ever sent. Turn it off any time.</li>
 </ul>
 <img class="shot" src="img/settings.png" alt="InstaDesk screenshot: settings" />
 
-<h2 id="troubleshooting">11 · Tips &amp; troubleshooting</h2>
+<h2 id="updates">14 · Staying up to date</h2>
+<p>InstaDesk keeps itself current with <b>signed automatic updates</b>:</p>
+<ul>
+  <li>It checks shortly after launch and periodically while open. When a new version is available, a slim <b>“InstaDesk X.Y.Z is available”</b> bar appears at the top of the dashboard with <b>Install &amp; restart</b> (or <b>Later</b>).</li>
+  <li>You can also check any time in <b>Settings → Updates → Check for updates</b> — handy if you'd rather not wait for the automatic check.</li>
+  <li>Updates are cryptographically signed, so only genuine InstaDesk releases can install.</li>
+</ul>
+<div class="note">The current version is always shown in the <b>top-right of the header</b> and at the bottom of the <b>Help</b> tab.</div>
+
+<h2 id="troubleshooting">15 · Tips &amp; troubleshooting</h2>
 <ul>
   <li><b>An app won't tile.</b> Some apps (certain CCTV / video tools) place their own windows. Close and relaunch them, or leave them out of the layout.</li>
   <li><b>Only one window opens.</b> Single-instance apps (e.g. Outlook, Teams) open just one window; assigning them to several cells won't create copies.</li>
+  <li><b>A captured browser opened in an existing window.</b> InstaDesk forces each browser window in a Layout to open separately — make sure you're on the latest version if you see them merge.</li>
   <li><b>A shortcut won't launch.</b> Windows shortcuts (<code>.lnk</code>) can't be launched directly — point to the real <code>.exe</code> in the Apps tab instead.</li>
   <li><b>An app fails to launch.</b> Check its path in the Apps tab and use <b>Browse…</b> to correct it.</li>
   <li><b>My added browser disappeared / opened the wrong browser.</b> Use <b>+ Add Browser</b> and pick a detected browser (or browse to its <code>.exe</code>) so InstaDesk has its real program path.</li>
+  <li><b>A hotkey does nothing.</b> Another app may already use that combination — rebind InstaDesk's in <b>Settings → Global shortcuts</b>.</li>
+  <li><b>Windows land in the wrong place.</b> If you also run another window-snapping tool, it can fight InstaDesk and move windows after placement — close it so InstaDesk can do the job cleanly.</li>
 </ul>
 
-<h2 id="limits">12 · Limits &amp; capacities</h2>
+<h2 id="limits">16 · Limits &amp; capacities</h2>
 <p>At a glance, what InstaDesk can hold:</p>
 <table class="caps">
   <tr><th>Item</th><th>Limit</th></tr>
   <tr><td>Saved Layouts — multi-monitor</td><td>26</td></tr>
   <tr><td>Saved Layouts — single-monitor</td><td>26</td></tr>
-  <tr><td>Quick Presets</td><td>26</td></tr>
+  <tr><td>Quick Presets</td><td>26 (first 9 have a hotkey)</td></tr>
   <tr><td>Grid density (per monitor)</td><td>4×4, 6×6, 8×8 or 10×10</td></tr>
   <tr><td>Windows placed per monitor (one Layout)</td><td>up to the grid size — 36 at 6×6, 100 at 10×10</td></tr>
   <tr><td>Monitors</td><td>every monitor Windows detects</td></tr>
   <tr><td>Window margin (bezel padding)</td><td>0–16 px</td></tr>
+  <tr><td>Drag-to-snap zones</td><td>halves, quadrants, maximize — per monitor</td></tr>
   <tr><td>URLs per group · Favorites</td><td>no fixed limit</td></tr>
 </table>
 <div class="note">Reached 26 saved Layouts? Delete one to free a slot, or combine related Layouts into a Quick Preset. Higher limits are planned for a future update if customers need them.</div>

@@ -2,9 +2,11 @@
 <!--
   InstaDesk — Manual de Usuario (Español) · FUENTE.
   Este HTML es la fuente versionada del PDF descargable.
-  Generar el PDF con:  node docs/manual/build-manual.mjs
-  Capturas: reemplaza cada <div class="shot" data-shot="..."> por
-  <img class="shot" src="img/<nombre>.png" alt="..."> cuando estén listas (ver img/README.md).
+  Genera el PDF con:  node docs/manual/build-manual.mjs
+  Capturas: las reales están en img/<nombre>.png y se muestran con
+  <img class="shot" src="img/<nombre>.png">. Las secciones cuya captura aún no
+  existe usan un marcador <div class="shot-ph"> — sustitúyelo por un <img> cuando
+  esté la captura (ver img/README.md) y vuelve a generar.
 -->
 <html lang="es">
 <head>
@@ -18,7 +20,10 @@
   }
   * { box-sizing: border-box; }
   html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  body { font: 11pt/1.55 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: var(--fg); margin: 0; }
+  body {
+    font: 11pt/1.55 -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--fg); margin: 0;
+  }
   h1, h2, h3 { line-height: 1.2; color: #0d1622; }
   h2 { font-size: 19pt; margin: 0 0 4mm; padding-bottom: 2mm; border-bottom: 2px solid var(--accent); break-before: page; }
   h2:first-of-type { break-before: avoid; }
@@ -32,22 +37,28 @@
   .note { background: var(--raised); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 4px; padding: 3mm 4mm; margin: 0 0 4mm; }
   .note b { color: #0d1622; }
   .shot { display: block; width: 100%; height: auto; margin: 3mm 0 4mm; border: 1px solid var(--line); border-radius: 6px; break-inside: avoid; }
+  .shot-ph { display: flex; align-items: center; justify-content: center; min-height: 38mm; background: var(--raised); border: 1px dashed var(--accent); border-radius: 6px; color: var(--muted); font-size: 9.5pt; text-align: center; padding: 4mm; margin: 3mm 0 4mm; break-inside: avoid; }
   table.caps { width: 100%; border-collapse: collapse; margin: 0 0 4mm; font-size: 10.5pt; break-inside: avoid; }
   table.caps th, table.caps td { border: 1px solid var(--line); padding: 2mm 3mm; text-align: left; vertical-align: top; }
   table.caps th { background: var(--raised); color: #0d1622; font-weight: 700; }
   figure { margin: 0 0 4mm; break-inside: avoid; }
   figcaption { font-size: 9pt; color: var(--muted); margin-top: 1.5mm; text-align: center; }
+  /* Portada */
   .cover { break-after: page; padding-top: 40mm; text-align: center; }
   .cover .logo { font-size: 30pt; font-weight: 800; letter-spacing: -0.5pt; color: #0d1622; }
   .cover .logo span { color: var(--accent); }
   .cover .sub { font-size: 14pt; color: #33445a; margin-top: 4mm; }
   .cover .meta { margin-top: 30mm; font-size: 10pt; color: var(--muted); }
+  /* Contenido */
   .toc { break-after: page; }
   .toc h2 { break-before: avoid; }
   .toc ol { list-style: none; padding: 0; }
   .toc > ol > li { margin: 0 0 2mm; font-weight: 600; }
   .toc a { color: #16202e; }
   .toc .num { color: var(--accent); display: inline-block; width: 9mm; }
+  table.keys { width: 100%; border-collapse: collapse; margin: 0 0 4mm; font-size: 10.5pt; break-inside: avoid; }
+  table.keys th, table.keys td { border: 1px solid var(--line); padding: 2mm 3mm; text-align: left; vertical-align: top; }
+  table.keys th { background: var(--raised); color: #0d1622; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -55,7 +66,7 @@
 <section class="cover">
   <div class="logo">Insta<span>Desk</span></div>
   <div class="sub">Lanzador multimonitor y organización de ventanas — Manual de Usuario</div>
-  <div class="meta">FCLX Studios · v0.1 · Español</div>
+  <div class="meta">FCLX Studios · v0.1.19 · Español</div>
 </section>
 
 <nav class="toc">
@@ -68,23 +79,27 @@
     <li><a href="#grid"><span class="num">5</span> La cuadrícula y la asignación de apps</a></li>
     <li><a href="#apps"><span class="num">6</span> Apps, URLs y Favoritos</a></li>
     <li><a href="#layouts"><span class="num">7</span> Diseños</a></li>
-    <li><a href="#quickpresets"><span class="num">8</span> Preajustes rápidos</a></li>
-    <li><a href="#snap"><span class="num">9</span> Ajuste (Snap)</a></li>
-    <li><a href="#settings"><span class="num">10</span> Monitores y Configuración</a></li>
-    <li><a href="#troubleshooting"><span class="num">11</span> Consejos y resolución de problemas</a></li>
-    <li><a href="#limits"><span class="num">12</span> Límites y capacidades</a></li>
+    <li><a href="#capture"><span class="num">8</span> Capturar un Diseño desde tu pantalla</a></li>
+    <li><a href="#quickpresets"><span class="num">9</span> Preajustes rápidos</a></li>
+    <li><a href="#snap"><span class="num">10</span> Ajustar una ventana — Snap y Arrastrar para ajustar</a></li>
+    <li><a href="#hotkeys"><span class="num">11</span> Atajos globales</a></li>
+    <li><a href="#monitors"><span class="num">12</span> Monitores, Identificar y la Disposición de pantallas</a></li>
+    <li><a href="#settings"><span class="num">13</span> Configuración</a></li>
+    <li><a href="#updates"><span class="num">14</span> Mantente actualizado</a></li>
+    <li><a href="#troubleshooting"><span class="num">15</span> Consejos y resolución de problemas</a></li>
+    <li><a href="#limits"><span class="num">16</span> Límites y capacidades</a></li>
   </ol>
 </nav>
 
 <h2 id="intro">1 · ¿Qué es InstaDesk?</h2>
 <p class="lead">InstaDesk convierte el tedioso ritual de cada mañana —abrir las mismas apps y arrastrar cada ventana a su sitio en varios monitores— en un solo clic.</p>
-<p>Organizas las apps en una cuadrícula visual para cada monitor, guardas esa disposición como un <b>Diseño</b> y, a partir de ahí, un solo <b>Aplicar</b> abre cada app y la coloca exactamente donde la pusiste. Puedes tener muchos diseños (trabajo, diseño gráfico, trading, streaming…), agrupar varios en un <b>Preajuste rápido</b> o ajustar al vuelo una sola ventana con <b>Snap</b>.</p>
-<div class="note"><b>¿Es difícil?</b> No — se aprende rápido. Pero InstaDesk es una herramienta potente y con profundidad real (cuadrículas por monitor, argumentos de inicio personalizados, grupos de pestañas del navegador). Este manual recorre cada función; la pestaña <b>Ayuda</b> de la app es la versión corta.</div>
+<p>Organizas las apps en una cuadrícula visual para cada monitor, guardas esa disposición como un <b>Diseño</b> y, a partir de ahí, un solo <b>Aplicar</b> abre cada app y la coloca exactamente donde la pusiste. Puedes tener muchos diseños (trabajo, diseño gráfico, trading, streaming…), agrupar varios en un <b>Preajuste rápido</b>, lanzarlos con un <b>atajo de teclado</b>, ajustar al vuelo una ventana con <b>Snap</b>, o <b>capturar</b> un diseño tal como se ve tu pantalla ahora mismo.</p>
+<div class="note"><b>¿Es difícil?</b> No — se aprende rápido. Pero InstaDesk es una herramienta potente y con profundidad real (cuadrículas por monitor, argumentos de inicio personalizados, grupos de pestañas del navegador, atajos globales). Este manual recorre cada función; la pestaña <b>Ayuda</b> de la app es la versión corta.</div>
 
 <h2 id="concepts">2 · Conceptos básicos</h2>
 <p>Solo necesitas cinco ideas:</p>
 <h3>Monitor</h3>
-<p>Organizas una pantalla a la vez. El selector de <b>Monitor</b> (panel izquierdo) elige cuál; la <b>Disposición de pantallas</b> muestra cómo están colocadas físicamente.</p>
+<p>Organizas una pantalla a la vez. El selector de <b>Monitor</b> (panel izquierdo) elige cuál; la <b>Disposición de pantallas</b> muestra cómo están colocadas físicamente. El botón <b>Identificar monitores</b> muestra el número de cada pantalla para que siempre sepas cuál es cuál.</p>
 <h3>Cuadrícula y celdas</h3>
 <p>Cada monitor se divide en una cuadrícula de <b>celdas</b> (p. ej. 6×6). Puedes usar una densidad de cuadrícula distinta en cada monitor.</p>
 <h3>Región</h3>
@@ -92,15 +107,16 @@
 <h3>Diseño</h3>
 <p>Un conjunto guardado de regiones en todos tus monitores — el corazón de InstaDesk. Aplícalo para abrir y colocar todo.</p>
 <h3>Preajuste rápido</h3>
-<p>Un grupo de varios Diseños que aplicas juntos con un clic.</p>
+<p>Un grupo de varios Diseños que aplicas juntos con un clic (o un atajo).</p>
 
 <h2 id="tour">3 · La interfaz, de un vistazo</h2>
 <img class="shot" src="img/overview.png" alt="InstaDesk screenshot: overview" />
 <ul>
-  <li><b>Panel izquierdo</b> — Preajustes rápidos, el selector de Monitor y la Disposición de pantallas.</li>
+  <li><b>Panel izquierdo</b> — Preajustes rápidos, el selector de Monitor, la Disposición de pantallas y el botón <b>Identificar monitores</b>.</li>
   <li><b>Centro</b> — la cuadrícula de trabajo del monitor seleccionado, donde seleccionas celdas y ves las asignaciones.</li>
-  <li><b>Panel derecho</b> — pestañas de <b>Apps</b>, <b>Diseños</b>, <b>Configuración</b> y <b>Ayuda</b>.</li>
+  <li><b>Panel derecho</b> — pestañas de <b>Apps</b>, <b>Diseños</b> (incl. <b>Capturar disposición actual</b>), <b>Configuración</b> y <b>Ayuda</b>.</li>
   <li><b>Barra inferior</b> — <b>Ajustar (Snap)</b>, <b>Borrar cuadrícula actual</b>, <b>Borrar todas las cuadrículas</b> y el tamaño de <b>Cuadrícula</b> por monitor.</li>
+  <li><b>Barra superior</b> — el logo de InstaDesk, la <b>versión</b> actual (arriba a la derecha) y la marca de FCLX&nbsp;Studios.</li>
 </ul>
 
 <h2 id="quickstart">4 · Inicio rápido: tu primer diseño</h2>
@@ -109,10 +125,11 @@
   <li>En la cuadrícula central, <b>arrastra sobre las celdas</b> para seleccionar una región (por ejemplo, la mitad izquierda).</li>
   <li>Abre la pestaña <b>Apps</b>, elige una app (p. ej. Chrome) y pulsa <b>Asignar a la selección</b>.</li>
   <li>Selecciona otra región y asigna una segunda app. Repite en otros monitores con el selector de Monitor.</li>
-  <li>Abre la pestaña <b>Diseños</b> → <b>+ Nuevo diseño</b>, elige una letra de ranura y guarda.</li>
+  <li>Abre la pestaña <b>Diseños</b> → <b>+ Nuevo diseño</b>, ponle un nombre y guarda.</li>
   <li>Pulsa <b>Aplicar</b> en la tarjeta del diseño — InstaDesk abre cada app y la coloca en su sitio.</li>
 </ol>
 <img class="shot" src="img/quickstart-assign.png" alt="InstaDesk screenshot: quickstart-assign" />
+<div class="note"><b>¿Con prisa?</b> ¿Ya tienes tus ventanas donde las quieres? Salta a la <a href="#capture">sección 8</a> y deja que InstaDesk capture el diseño por ti.</div>
 
 <h2 id="grid">5 · La cuadrícula y la asignación de apps</h2>
 <h3>Seleccionar y asignar</h3>
@@ -151,58 +168,110 @@
 <div class="note">Si una app guardada no tiene programa ni URL configurados, solo esa app se omite al guardar (con un aviso) — el resto del diseño se guarda con normalidad.</div>
 <img class="shot" src="img/layouts.png" alt="InstaDesk screenshot: layouts" />
 
-<h2 id="quickpresets">8 · Preajustes rápidos</h2>
-<p>Un Preajuste rápido agrupa varios Diseños para aplicarlos todos juntos con un clic — ideal para un espacio multimonitor completo montado a partir de piezas reutilizables. Puedes mantener hasta <b>26</b> Preajustes rápidos.</p>
+<h2 id="capture">8 · Capturar un Diseño desde tu pantalla</h2>
+<p>En vez de construir un diseño celda por celda, puedes colocar tus ventanas como quieras —a mano o con <a href="#snap">Snap / Arrastrar para ajustar</a>— y dejar que InstaDesk lea la pantalla y cree el Diseño por ti.</p>
+<ol>
+  <li>Coloca tus ventanas en tus monitores.</li>
+  <li>Abre la pestaña <b>Diseños</b> y pulsa <b>Capturar disposición actual</b>.</li>
+  <li>Una ventana de revisión lista cada ventana encontrada, agrupada por monitor. <b>Marca las que quieras incluir</b> (las apps que no puede identificar se señalan y se omiten).</li>
+  <li>Para cada <b>ventana de navegador</b>, pega las URLs que quieras que reabra (una por línea) — un navegador no puede revelar sus propias páginas abiertas, así que las indicas aquí.</li>
+  <li>Ponle un nombre al diseño y pulsa <b>Guardar</b>. Queda como un Diseño normal que puedes Aplicar, Editar, renombrar o exportar.</li>
+</ol>
+<div class="shot-ph">[ Captura por añadir: <b>capture-review</b> — la ventana de revisión de «Capturar disposición actual», con las ventanas agrupadas por monitor y el campo de URLs del navegador ]</div>
+<div class="note"><b>Bueno saberlo:</b> las apps que se ejecutan como administrador (como algunos clientes de CCTV) se identifican y se incluyen. Las ventanas colocadas libremente se ajustan a la región de cuadrícula más cercana. Cada ventana de navegador capturada se reabre en su propia ventana con las URLs que añadiste como pestañas.</div>
+
+<h2 id="quickpresets">9 · Preajustes rápidos</h2>
+<p>Un Preajuste rápido agrupa varios Diseños para aplicarlos todos juntos con un clic — ideal para un espacio multimonitor completo montado a partir de piezas reutilizables. Puedes mantener hasta <b>26</b> Preajustes rápidos, y aplicar los primeros nueve con un <a href="#hotkeys">atajo de teclado</a>.</p>
 <ol>
   <li>Pulsa <b>Gestionar PR</b> en el panel izquierdo.</li>
   <li>Crea un preajuste y añade los Diseños que debe incluir.</li>
   <li>De vuelta en la pantalla principal, elige el Preajuste rápido y pulsa <b>Aplicar</b>.</li>
 </ol>
 
-<h2 id="snap">9 · Ajuste (Snap)</h2>
-<p>El ajuste coloca una <i>única ventana ya abierta</i> en una región — sin necesidad de un Diseño.</p>
+<h2 id="snap">10 · Ajustar una ventana — Snap y Arrastrar para ajustar</h2>
+<p>Ajustar coloca una <i>única ventana ya abierta</i> en una región — sin necesidad de un Diseño. Hay dos formas.</p>
+<h3>Snap (la cuadrícula emergente)</h3>
 <ol>
   <li>Pulsa <b>Ajustar → M1</b> en la barra inferior (el número es el monitor activo).</li>
   <li>Aparece una cuadrícula emergente en ese monitor.</li>
   <li>Pulsa una región; la última ventana que usaste se ajusta en ella.</li>
 </ol>
+<h3>Arrastrar para ajustar (mantén Mayús y arrastra)</h3>
+<p>Actívalo en <b>Configuración → Cuadrícula y ajuste → Arrastrar para ajustar</b>. Después, sobre cualquier ventana:</p>
+<ol>
+  <li>Mantén <kbd>Mayús</kbd> y arrastra la ventana.</li>
+  <li>Un resaltado translúcido muestra la zona donde caerá — <b>bordes = mitades</b> (izquierda, derecha, arriba, abajo), <b>esquinas = cuadrantes</b>, <b>centro = maximizar</b>.</li>
+  <li>Suelta para ajustarla ahí. Funciona en todos los monitores.</li>
+</ol>
+<div class="shot-ph">[ Captura por añadir: <b>drag-to-snap</b> — una ventana a medio arrastrar con el resaltado de la zona visible ]</div>
 <div class="note">Algunas apps imponen su propia posición (ciertas herramientas de CCTV / vídeo) y pueden negarse a moverse.</div>
 
-<h2 id="settings">10 · Monitores y Configuración</h2>
-<p>Usa el selector de <b>Monitor</b> para cambiar qué pantalla organizas; la <b>Disposición de pantallas</b> muestra su distribución física. La pestaña <b>Configuración</b> ofrece:</p>
+<h2 id="hotkeys">11 · Atajos globales</h2>
+<p>InstaDesk responde a estos atajos desde cualquier sitio — incluso cuando su ventana no está enfocada:</p>
+<table class="keys">
+  <tr><th>Atajo</th><th>Acción</th></tr>
+  <tr><td><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>D</kbd></td><td>Mostrar / enfocar el panel de InstaDesk</td></tr>
+  <tr><td><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>S</kbd></td><td>Ajustar la ventana activa (abre la cuadrícula de Snap)</td></tr>
+  <tr><td><kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>1</kbd> … <kbd>9</kbd></td><td>Aplicar el Preajuste rápido 1–9</td></tr>
+</table>
+<p>Los atajos de <b>Mostrar</b> y <b>Ajustar</b> son <b>reasignables</b> en <b>Configuración → Atajos globales</b> — pulsa el atajo y presiona tu combinación preferida (debe incluir Ctrl, Alt o la tecla Windows).</p>
+
+<h2 id="monitors">12 · Monitores, Identificar y la Disposición de pantallas</h2>
+<p>El selector de <b>Monitor</b> (panel izquierdo) elige qué pantalla organizas. La <b>Disposición de pantallas</b> debajo muestra tus pantallas en su posición física real, cada una con su número.</p>
+<p>Pulsa <b>Identificar monitores</b> para mostrar unos segundos un número grande en cada pantalla <i>física</i> — igual que la función Identificar de Windows. El número mostrado es el mismo que usa InstaDesk en todas partes: la casilla de la Disposición de pantallas y el monitor al que apunta un Diseño.</p>
+<div class="shot-ph">[ Captura por añadir: <b>identify-monitors</b> — la Disposición de pantallas con el botón Identificar monitores, y/o los números grandes en las pantallas físicas ]</div>
+
+<h2 id="settings">13 · Configuración</h2>
+<p>La pestaña <b>Configuración</b> (panel derecho) reúne las preferencias de InstaDesk:</p>
 <ul>
   <li><b>Tema</b> — Claro, Oscuro o Sistema.</li>
   <li><b>Idioma</b> — English o Español.</li>
+  <li><b>Iniciar al arrancar el sistema</b> — abre InstaDesk automáticamente al iniciar sesión (activado por defecto; desactívalo aquí).</li>
   <li><b>Tamaño de cuadrícula predeterminado</b> — el tamaño con el que empiezan los monitores nuevos o borrados.</li>
   <li><b>Margen de ventana</b> — un hueco que tiene en cuenta el bisel para que las ventanas no queden bajo los marcos del monitor.</li>
+  <li><b>Arrastrar para ajustar</b> — activa el ajuste con Mayús+arrastrar descrito en la sección 10.</li>
+  <li><b>Atajos globales</b> — consulta y reasigna los atajos de teclado.</li>
+  <li><b>Actualizaciones</b> — busca e instala nuevas versiones (ver sección 14).</li>
+  <li><b>Compartir datos de uso anónimos</b> — opcional, activado por defecto; envía solo diagnósticos agregados y no personales para ayudar a mejorar InstaDesk. Nunca se envían nombres de archivo, URLs ni el contenido de la pantalla. Desactívalo cuando quieras.</li>
 </ul>
 <img class="shot" src="img/settings.png" alt="InstaDesk screenshot: settings" />
 
-<h2 id="troubleshooting">11 · Consejos y resolución de problemas</h2>
+<h2 id="updates">14 · Mantente actualizado</h2>
+<p>InstaDesk se mantiene al día con <b>actualizaciones automáticas firmadas</b>:</p>
+<ul>
+  <li>Busca actualizaciones poco después de abrirse y de forma periódica mientras está abierto. Cuando hay una nueva versión, aparece una barra fina <b>«InstaDesk X.Y.Z ya está disponible»</b> en la parte superior del panel, con <b>Instalar y reiniciar</b> (o <b>Más tarde</b>).</li>
+  <li>También puedes buscar cuando quieras en <b>Configuración → Actualizaciones → Buscar actualizaciones</b> — útil si prefieres no esperar a la comprobación automática.</li>
+  <li>Las actualizaciones están firmadas criptográficamente, así que solo se instalan versiones auténticas de InstaDesk.</li>
+</ul>
+<div class="note">La versión actual se muestra siempre <b>arriba a la derecha de la cabecera</b> y al final de la pestaña <b>Ayuda</b>.</div>
+
+<h2 id="troubleshooting">15 · Consejos y resolución de problemas</h2>
 <ul>
   <li><b>Una app no se ajusta.</b> Algunas apps (ciertas herramientas de CCTV / vídeo) colocan sus propias ventanas. Ciérralas y vuelve a abrirlas, o déjalas fuera del diseño.</li>
   <li><b>Solo se abre una ventana.</b> Las apps de instancia única (p. ej. Outlook, Teams) abren una sola ventana; asignarlas a varias celdas no crea copias.</li>
+  <li><b>Un navegador capturado se abrió dentro de una ventana existente.</b> InstaDesk fuerza a que cada ventana de navegador de un Diseño se abra por separado — asegúrate de tener la última versión si ves que se fusionan.</li>
   <li><b>Un acceso directo no abre.</b> Los accesos directos de Windows (<code>.lnk</code>) no se pueden abrir directamente — apunta al <code>.exe</code> real en la pestaña Apps.</li>
   <li><b>Una app no se abre.</b> Revisa su ruta en la pestaña Apps y usa <b>Examinar…</b> para corregirla.</li>
   <li><b>Mi navegador añadido desapareció / abrió el navegador equivocado.</b> Usa <b>+ Añadir navegador</b> y elige uno detectado (o busca su <code>.exe</code>) para que InstaDesk tenga su ruta de programa real.</li>
+  <li><b>Un atajo no hace nada.</b> Puede que otra app ya use esa combinación — reasigna el de InstaDesk en <b>Configuración → Atajos globales</b>.</li>
+  <li><b>Las ventanas caen en el sitio equivocado.</b> Si además usas otra herramienta de ajuste de ventanas, puede competir con InstaDesk y mover las ventanas tras colocarlas — ciérrala para que InstaDesk haga el trabajo sin interferencias.</li>
 </ul>
 
-<h2 id="limits">12 · Límites y capacidades</h2>
+<h2 id="limits">16 · Límites y capacidades</h2>
 <p>De un vistazo, lo que InstaDesk puede almacenar:</p>
 <table class="caps">
   <tr><th>Elemento</th><th>Límite</th></tr>
   <tr><td>Diseños guardados — multimonitor</td><td>26</td></tr>
   <tr><td>Diseños guardados — monitor único</td><td>26</td></tr>
-  <tr><td>Preajustes rápidos</td><td>26</td></tr>
+  <tr><td>Preajustes rápidos</td><td>26 (los primeros 9 tienen atajo)</td></tr>
   <tr><td>Densidad de cuadrícula (por monitor)</td><td>4×4, 6×6, 8×8 o 10×10</td></tr>
   <tr><td>Ventanas por monitor (un Diseño)</td><td>hasta el tamaño de la cuadrícula — 36 en 6×6, 100 en 10×10</td></tr>
   <tr><td>Monitores</td><td>todos los que Windows detecte</td></tr>
   <tr><td>Margen de ventana (bisel)</td><td>0–16 px</td></tr>
+  <tr><td>Zonas de Arrastrar para ajustar</td><td>mitades, cuadrantes, maximizar — por monitor</td></tr>
   <tr><td>URLs por grupo · Favoritos</td><td>sin límite fijo</td></tr>
 </table>
 <div class="note">¿Llegaste a 26 diseños guardados? Elimina uno para liberar un espacio, o combina diseños relacionados en un Preajuste rápido. Se planean límites mayores en una futura actualización si los clientes los necesitan.</div>
-
-</body>
 
 </body>
 </html>
