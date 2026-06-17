@@ -220,6 +220,7 @@ pub fn run() {
       backend::set_dragsnap_enabled,
       backend::set_snap_margin,
       backend::identify_monitors,
+      backend::arrange_all_windows,
       backend::capture_layout,
       license::license_status,
       license::license_activate,

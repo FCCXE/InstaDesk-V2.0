@@ -94,6 +94,38 @@ export default function BottomControls() {
   const [snapState, setSnapState] = useState<SnapState>({ kind: 'idle' })
   const snapping = snapState.kind === 'busy'
 
+  // "Show desktop" toggle: first click minimizes every window, the button then
+  // flips to maximize them (each on its own monitor). Local boolean is enough —
+  // if the user moves windows manually it just re-toggles next click.
+  const [minimized, setMinimized] = useState(false)
+  const [arrangeBusy, setArrangeBusy] = useState(false)
+
+  const onArrangeAll = async () => {
+    if (arrangeBusy) return
+    const action = minimized ? 'maximize' : 'minimize'
+    setArrangeBusy(true)
+    try {
+      const r = await api.arrangeAllWindows(action)
+      if (r.ok) {
+        setMinimized(action === 'minimize')
+        track('arrange_all_windows', { action })
+        const base =
+          action === 'minimize'
+            ? t('bottomBar.minimizedAll', { count: r.affected })
+            : t('bottomBar.maximizedAll', { count: r.affected })
+        const skip = r.skippedElevated > 0 ? t('bottomBar.skippedElevated', { count: r.skippedElevated }) : ''
+        setSnapState({ kind: 'ok', msg: base + skip })
+        window.setTimeout(() => setSnapState({ kind: 'idle' }), 4000)
+      } else {
+        setSnapState({ kind: 'err', msg: r.error ?? 'failed' })
+      }
+    } catch (e) {
+      setSnapState({ kind: 'err', msg: (e as Error).message })
+    } finally {
+      setArrangeBusy(false)
+    }
+  }
+
   const onSnap = async () => {
     if (snapping) return // guard re-entry (button is disabled, but the hotkey isn't)
     setSnapState({ kind: 'busy' })
@@ -210,6 +242,22 @@ export default function BottomControls() {
           title={t('bottomBar.snapTitle', { monitor: currentMonitorIndex })}
         >
           📌 {snapping ? t('bottomBar.snapping') : t('bottomBar.snap', { monitor: `M${currentMonitorIndex}` })}
+        </button>
+        {/* Minimize-all / Maximize-all toggle — the reliable "Show desktop"
+            replacement. First click hides every window; the button flips to
+            maximize them (each on its own monitor). Elevated apps are skipped. */}
+        <button
+          type="button"
+          onClick={onArrangeAll}
+          disabled={arrangeBusy}
+          className="px-3 py-1.5 rounded-lg border border-line bg-raised text-sm text-fg hover:bg-line/60 disabled:cursor-not-allowed disabled:opacity-60"
+          title={t(minimized ? 'bottomBar.maximizeAllTitle' : 'bottomBar.minimizeAllTitle')}
+        >
+          {arrangeBusy
+            ? t('bottomBar.arranging')
+            : minimized
+              ? `🗖 ${t('bottomBar.maximizeAll')}`
+              : `🗕 ${t('bottomBar.minimizeAll')}`}
         </button>
         <button
           type="button"

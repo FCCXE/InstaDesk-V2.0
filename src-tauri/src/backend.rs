@@ -196,6 +196,40 @@ pub fn identify_monitors() {
     spawn_agent_detached(&["--identify-monitors".to_string()]);
 }
 
+/// Minimize or maximize EVERY normal top-level window across all monitors — the
+/// Snap-bar "show desktop" toggle. `action` is "minimize" or "maximize"
+/// (maximize fills each window's current monitor and also un-minimizes it).
+/// Elevated apps (e.g. iVMS-4200) can't be controlled by this non-elevated
+/// helper — Windows UIPI blocks it — so they're skipped and reported. Returns
+/// the agent's `{ ok, action, affected, skippedElevated }`.
+#[tauri::command]
+pub async fn arrange_all_windows(action: String) -> Result<Value, String> {
+    locked_guard()?;
+    let flag = match action.as_str() {
+        "minimize" => "--minimize-all",
+        "maximize" => "--maximize-all",
+        other => return Err(format!("unknown action: {other}")),
+    };
+    #[cfg(windows)]
+    {
+        let (_rc, out, err, tmsg) = run_agent(&[flag.to_string()], 15).await?;
+        for line in out.lines().rev() {
+            let l = line.trim();
+            if l.starts_with('{') && l.ends_with('}') {
+                if let Ok(v) = serde_json::from_str::<Value>(l) {
+                    return Ok(v);
+                }
+            }
+        }
+        Err(format!("No result from agent. {}{}", err, tmsg))
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = flag;
+        Ok(serde_json::json!({ "ok": true, "action": action, "affected": 0, "skippedElevated": 0 }))
+    }
+}
+
 // ----------------------------------------------------------------------------
 // Shared storage helpers — mirror the Python server's DATA_DIR layout exactly,
 // so the Rust commands read/write the SAME files (existing presets keep working).

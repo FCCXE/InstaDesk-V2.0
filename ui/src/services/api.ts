@@ -365,6 +365,16 @@ export const api = {
   identifyMonitors: (): Promise<void> =>
     inTauri() ? invoke<void>('identify_monitors') : Promise.resolve(),
 
+  // Minimize or maximize every normal top-level window across all monitors (the
+  // Snap-bar "show desktop" toggle). Elevated apps (e.g. iVMS-4200) can't be
+  // controlled by the non-elevated helper and are skipped + reported. Web no-ops.
+  arrangeAllWindows: (
+    action: 'minimize' | 'maximize',
+  ): Promise<{ ok: boolean; action?: string; affected: number; skippedElevated: number; error?: string }> =>
+    inTauri()
+      ? invoke('arrange_all_windows', { action })
+      : Promise.resolve({ ok: true, action, affected: 0, skippedElevated: 0 }),
+
   // Licensing/trial status (app-side, dormant by default). Returns enabled:false
   // when licensing is off (then the app is unrestricted). Web preview = off.
   licenseStatus: (): Promise<LicenseStatus> =>
