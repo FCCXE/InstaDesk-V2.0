@@ -347,4 +347,4 @@ npm run sanity → npm run dev → manual QA → commit & push.
 
 Tag “restore points” before risky edits.
 
-© FcXe Studios — InstaDesk
+© FCLX Studios — InstaDesk

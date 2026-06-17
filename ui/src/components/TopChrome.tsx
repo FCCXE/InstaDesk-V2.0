@@ -16,7 +16,8 @@ export default function TopChrome() {
   // Swap to the white-text logo variants in dark mode (the default logos
   // have dark-navy wordmarks that vanish on a dark background).
   const instadeskLogo = resolved === 'dark' ? '/brand/instadesk-dark.png' : '/brand/instadesk.png'
-  const fcxeLogo = resolved === 'dark' ? '/brand/fcxe-dark.png' : '/brand/fcxe.png'
+  // Company logo (FCLX Studios). White-text variant in dark mode, black-text in light.
+  const fclxLogo = resolved === 'dark' ? '/brand/fclx-dark.png' : '/brand/fclx.png'
 
   useEffect(() => {
     let alive = true
@@ -64,7 +65,7 @@ export default function TopChrome() {
         </button>
       </div>
 
-      {/* Right: server status dot + version + FcXe logo */}
+      {/* Right: server status dot + version + FCLX logo */}
       <div className="flex items-center justify-end gap-2 text-xs text-muted">
         <span
           className={`inline-block h-2.5 w-2.5 rounded-full ${dot.color}`}
@@ -74,8 +75,8 @@ export default function TopChrome() {
         <span>v{APP_VERSION} • {status.kind === 'ok' && status.data.agentExists ? t('header.live') : t('header.static')}</span>
         <span className="text-muted">{t('header.by')}</span>
         <img
-          src={fcxeLogo}
-          alt="FcXe Studios"
+          src={fclxLogo}
+          alt="FCLX Studios"
           className="max-h-7 object-contain select-none"
           draggable={false}
         />

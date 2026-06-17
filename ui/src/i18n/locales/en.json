@@ -276,7 +276,7 @@
   "help": {
     "title": "Help",
     "subtitle": "How InstaDesk works — a quick reference.",
-    "version": "InstaDesk v{{version}} — FcXe Studios",
+    "version": "InstaDesk v{{version}} — FCLX Studios",
     "manualNote": "Prefer a full illustrated guide? Open the complete PDF manual, with step-by-step screenshots.",
     "openManual": "Open manual (PDF)",
     "feedbackNote": "Found a bug or have an idea? Send us anonymous feedback.",
