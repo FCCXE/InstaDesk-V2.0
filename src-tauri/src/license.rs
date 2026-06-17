@@ -24,6 +24,26 @@ const TRIAL_DAYS: i64 = 10;
 /// secret — client-side trial tracking is best-effort by design).
 const SALT: &str = "InstaDesk-trial-v1";
 
+/// Cached lock state read by the gated backend commands + the drag-snap hook
+/// (which has no AppHandle). Kept current by `refresh_lock` at startup and by
+/// every `license_status` / activate / deactivate call. `locked` = licensing
+/// enabled AND the trial has ended with no active license.
+static LICENSE_LOCKED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// True when InstaDesk's value actions should be blocked (trial over, unlicensed).
+/// Read by backend command gates + the drag-snap hook.
+pub fn locked() -> bool {
+    LICENSE_LOCKED.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// Recompute + cache the lock state. Call at startup; status/activate/deactivate
+/// also refresh it. Returns the locked value.
+pub fn refresh_lock(app: &AppHandle) -> bool {
+    let l = evaluate(app).0 == "expired";
+    LICENSE_LOCKED.store(l, std::sync::atomic::Ordering::Relaxed);
+    l
+}
+
 /// Licensing is inert unless explicitly enabled. Keeps the whole layer dormant
 /// for users until we flip the default at go-live.
 pub fn licensing_enabled(app: &AppHandle) -> bool {
@@ -33,6 +53,24 @@ pub fn licensing_enabled(app: &AppHandle) -> bool {
     app.path()
         .app_data_dir()
         .map(|d| d.join(".licensing-enabled").exists())
+        .unwrap_or(false)
+}
+
+// Preview/test override: force the trial to read as EXPIRED (so the locked state
+// can be exercised without waiting out the 10 days). Enabled via env
+// `INSTADESK_LICENSING=expired` or by putting `expired` inside the
+// `.licensing-enabled` marker file. Has no effect once a license is activated.
+fn force_expired(app: &AppHandle) -> bool {
+    if let Ok(v) = std::env::var("INSTADESK_LICENSING") {
+        if v.eq_ignore_ascii_case("expired") {
+            return true;
+        }
+    }
+    app.path()
+        .app_data_dir()
+        .ok()
+        .and_then(|d| std::fs::read_to_string(d.join(".licensing-enabled")).ok())
+        .map(|s| s.trim().eq_ignore_ascii_case("expired"))
         .unwrap_or(false)
 }
 
@@ -216,22 +254,40 @@ pub fn license_deactivate(app: AppHandle) -> Value {
     license_status(app)
 }
 
-/// Current license/trial status for the UI. When licensing is disabled (default),
-/// returns `enabled:false` and the UI treats the app as unrestricted. Otherwise:
-/// a stored license → "licensed" (lifetime, or annual within its term); else the
-/// trial countdown → "trial" / "expired".
-#[tauri::command]
-pub fn license_status(app: AppHandle) -> Value {
-    if !licensing_enabled(&app) {
-        return json!({ "enabled": false, "state": "unrestricted" });
+/// The single evaluation both the UI status and the lock derive from. Returns
+/// (state, the active license record if any). State: "unrestricted" (licensing
+/// off) | "licensed" (lifetime, or annual within term) | "trial" | "expired".
+fn evaluate(app: &AppHandle) -> (&'static str, Option<LicenseRecord>) {
+    if !licensing_enabled(app) {
+        return ("unrestricted", None);
     }
-    // A stored license takes precedence over the trial.
-    if let Some(rec) = read_license(&app) {
+    if let Some(rec) = read_license(app) {
         let now = now_secs();
-        // Lifetime never expires; annual is licensed while within its term.
         let active = rec.kind == "lifetime" || rec.expires_unix.map(|e| now <= e).unwrap_or(true);
         if active {
-            return json!({
+            return ("licensed", Some(rec));
+        }
+        // Annual lapsed → fall through to the trial/expired computation.
+    }
+    if force_expired(app) {
+        return ("expired", None);
+    }
+    let start = trial_start(app);
+    let days_left = (TRIAL_DAYS - (now_secs() - start).max(0) / 86_400).max(0);
+    (if days_left > 0 { "trial" } else { "expired" }, None)
+}
+
+/// Current license/trial status for the UI (and refreshes the cached lock). When
+/// licensing is disabled (default), returns `enabled:false` → app unrestricted.
+#[tauri::command]
+pub fn license_status(app: AppHandle) -> Value {
+    let (state, rec) = evaluate(&app);
+    LICENSE_LOCKED.store(state == "expired", std::sync::atomic::Ordering::Relaxed);
+    match state {
+        "unrestricted" => json!({ "enabled": false, "state": "unrestricted" }),
+        "licensed" => {
+            let rec = rec.unwrap();
+            json!({
                 "enabled": true,
                 "state": "licensed",
                 "licenseType": rec.kind,
@@ -239,20 +295,20 @@ pub fn license_status(app: AppHandle) -> Value {
                 "expiresUnix": rec.expires_unix,
                 "devicesUsed": 1,
                 "devicesMax": 3,
-            });
+            })
         }
-        // Annual lapsed → fall through to the trial/expired computation below.
+        _ => {
+            let start = trial_start(&app);
+            let days_left = (TRIAL_DAYS - (now_secs() - start).max(0) / 86_400).max(0);
+            json!({
+                "enabled": true,
+                "state": state,
+                "trialDaysTotal": TRIAL_DAYS,
+                "trialDaysLeft": days_left,
+                "trialStartedUnix": start,
+            })
+        }
     }
-    let start = trial_start(&app);
-    let elapsed_days = (now_secs() - start).max(0) / 86_400;
-    let days_left = (TRIAL_DAYS - elapsed_days).max(0);
-    json!({
-        "enabled": true,
-        "state": if days_left > 0 { "trial" } else { "expired" },
-        "trialDaysTotal": TRIAL_DAYS,
-        "trialDaysLeft": days_left,
-        "trialStartedUnix": start,
-    })
 }
 
 #[cfg(test)]

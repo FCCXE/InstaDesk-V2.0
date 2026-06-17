@@ -6,6 +6,7 @@ import RightPane from './components/RightPane'
 import BottomControls from './components/BottomControls'
 import LayoutPreviewOverlay from './components/layouts/LayoutPreviewOverlay'
 import UpdateBanner from './components/UpdateBanner'
+import LockedBanner from './components/LockedBanner'
 
 // ✅ central state wrapper
 import { AppStateProvider } from './state/AppState'
@@ -89,6 +90,8 @@ export default function App() {
               version is available (and not dismissed). Slim bar above the
               chrome; only takes layout space while actually showing. */}
           <UpdateBanner />
+          {/* Trial-ended notice (dormant unless licensing is enabled + expired). */}
+          <LockedBanner />
 
           {/* Top chrome */}
           <TopChrome />

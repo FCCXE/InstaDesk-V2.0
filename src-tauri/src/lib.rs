@@ -283,6 +283,8 @@ pub fn run() {
       // (Shift + drag a window, release → snap to the zone under the cursor).
       backend::init_dragsnap_enabled(app.handle());
       backend::start_dragsnap_hook();
+      // Licensing: compute the initial lock state (dormant unless enabled).
+      license::refresh_lock(app.handle());
       // Launch-on-start defaults ON the first time the packaged app runs; the
       // user can turn it off in Settings and that choice is respected after.
       backend::ensure_autostart_default(app.handle());

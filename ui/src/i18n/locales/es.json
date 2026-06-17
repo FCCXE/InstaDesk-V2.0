@@ -3,6 +3,9 @@
     "ok": "Aceptar",
     "cancel": "Cancelar"
   },
+  "locked": {
+    "banner": "Tu prueba de InstaDesk ha terminado — introduce una licencia en Ajustes → Licencia para seguir aplicando disposiciones."
+  },
   "updateBanner": {
     "available": "InstaDesk {{version}} ya está disponible",
     "install": "Instalar y reiniciar",

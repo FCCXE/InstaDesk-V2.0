@@ -3,6 +3,9 @@
     "ok": "OK",
     "cancel": "Cancel"
   },
+  "locked": {
+    "banner": "Your InstaDesk trial has ended — enter a license in Settings → License to keep launching layouts."
+  },
   "updateBanner": {
     "available": "InstaDesk {{version}} is available",
     "install": "Install & restart",

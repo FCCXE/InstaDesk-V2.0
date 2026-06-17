@@ -1065,20 +1065,33 @@ async fn apply_preset(kind: &str, slot: &str, margin_px: Option<i64>) -> Result<
 }
 
 /// `POST /launch`
+// Block the product's value actions when the license lock is on (trial ended,
+// unlicensed). Dormant unless licensing is enabled, so this is a no-op by default.
+fn locked_guard() -> Result<(), String> {
+    if crate::license::locked() {
+        Err("Your InstaDesk trial has ended. Enter a license in Settings → License to continue.".into())
+    } else {
+        Ok(())
+    }
+}
+
 #[tauri::command]
 pub async fn launch(body: LaunchBody) -> Result<Value, String> {
+    locked_guard()?;
     Ok(run_launch(&body).await)
 }
 
 /// `POST /presets/run`
 #[tauri::command]
 pub async fn presets_run(kind: String, slot: String, margin_px: Option<i64>) -> Result<Value, String> {
+    locked_guard()?;
     apply_preset(&kind, &slot, margin_px).await
 }
 
 /// `POST /quickpresets/run` — applies each referenced Layout sequentially.
 #[tauri::command]
 pub async fn quickpresets_run(slot: String, margin_px: Option<i64>) -> Result<Value, String> {
+    locked_guard()?;
     check_slot(&slot)?;
     let path = quickpresets_dir().join(format!("QP_{}.json", slot.to_uppercase()));
     if !path.exists() {
@@ -1188,6 +1201,7 @@ async fn run_agent(flag_args: &[String], timeout_secs: u64) -> Result<(i32, Stri
 /// placement. The UI reviews the result and saves it as a normal Layout.
 #[tauri::command]
 pub async fn capture_layout(grid_sizes: Vec<String>, margin_px: Option<i64>) -> Result<Value, String> {
+    locked_guard()?;
     let agent = agent_path();
     if !agent.exists() {
         return Err(format!("Agent not found at {}", agent.display()));
@@ -1222,6 +1236,7 @@ pub async fn capture_layout(grid_sizes: Vec<String>, margin_px: Option<i64>) -> 
 /// cmd}, where `result` is the JSON the agent prints (its last `{...}` line).
 #[tauri::command]
 pub async fn snap_popup(monitor: i64, grid_size: Option<String>, margin_px: Option<i64>) -> Result<Value, String> {
+    locked_guard()?;
     let agent = agent_path();
     if !agent.exists() {
         return Err(format!("Agent not found at {}", agent.display()));
@@ -1573,6 +1588,10 @@ mod dragsnap {
             kill_overlay();
         }
         if !dragsnap_is_enabled() || !shift_held() {
+            return;
+        }
+        // Gated like the other value actions when the trial has ended.
+        if crate::license::locked() {
             return;
         }
         if !IsWindow(Some(hwnd)).as_bool() {
