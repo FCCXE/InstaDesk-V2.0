@@ -296,6 +296,7 @@
     "feedbackIdea": "Idea / request",
     "feedbackOther": "Other",
     "feedbackPlaceholder": "Tell us what happened or what you'd like…",
+    "feedbackContact": "Email (optional — if you'd like a reply)",
     "feedbackSend": "Send",
     "feedbackThanks": "Thanks! Your feedback was sent.",
     "sections": {

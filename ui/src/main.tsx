@@ -11,7 +11,20 @@ import './index.css'   // ✅ Ensure Tailwind is loaded here
 // Start telemetry before render so early errors are captured. No-op without keys.
 initTelemetry()
 identifyInstall(getInstallId())
-track('app_opened', { version: import.meta.env.VITE_APP_VERSION })
+const APP_VER = (import.meta.env.VITE_APP_VERSION as string | undefined) || ''
+track('app_opened', { version: APP_VER })
+
+// Update-success signal: if the running version differs from the one last seen on
+// this install, an update (or reinstall-over) was applied between runs. Fires once
+// per version change; the first run only records the baseline (no false event).
+try {
+  const KEY = 'instadesk.lastSeenVersion'
+  if (APP_VER) {
+    const prev = localStorage.getItem(KEY)
+    if (prev && prev !== APP_VER) track('update_applied', { from: prev, to: APP_VER })
+    localStorage.setItem(KEY, APP_VER)
+  }
+} catch { /* localStorage unavailable — ignore */ }
 
 // Minimal crash fallback so a fatal render error shows a recoverable message
 // instead of a blank window (and is reported to Sentry when telemetry is on).

@@ -1045,13 +1045,16 @@ function HelpPane() {
   const [fbOpen, setFbOpen] = useState(false);
   const [fbCat, setFbCat] = useState("idea");
   const [fbMsg, setFbMsg] = useState("");
+  const [fbContact, setFbContact] = useState("");
   const [fbSent, setFbSent] = useState(false);
   const sendFeedback = () => {
     const msg = fbMsg.trim();
     if (!msg) return;
-    track("feedback_submitted", { category: fbCat, message: msg, length: msg.length });
+    const contact = fbContact.trim();
+    track("feedback_submitted", { category: fbCat, message: msg, length: msg.length, contact: contact || undefined });
     setFbSent(true);
     setFbMsg("");
+    setFbContact("");
     window.setTimeout(() => { setFbSent(false); setFbOpen(false); }, 2500);
   };
   const openManual = () => {
@@ -1151,6 +1154,13 @@ function HelpPane() {
                         rows={4}
                         className="resize-none rounded-md border border-line bg-surface px-2 py-1.5 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-ring"
                       />
+                      <input
+                        type="email"
+                        value={fbContact}
+                        onChange={(e) => setFbContact(e.target.value)}
+                        placeholder={t("help.feedbackContact")}
+                        className="h-7 rounded-md border border-line bg-surface px-2 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
                       <div className="flex gap-2">
                         <button
                           type="button"
@@ -1162,7 +1172,7 @@ function HelpPane() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => { setFbOpen(false); setFbMsg(""); }}
+                          onClick={() => { setFbOpen(false); setFbMsg(""); setFbContact(""); }}
                           className="rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-medium text-fg hover:bg-line/40"
                         >
                           {t("common.cancel")}
