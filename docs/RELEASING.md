@@ -119,9 +119,22 @@ A release can't be un-published safely, but the **updater follows whatever `late
   updates (users must reinstall manually). If **leaked**, an attacker could sign
   malicious "updates" — treat it like a code-signing key.
 
-## 9. Notes & what's next
+### CI credentials (GitHub Actions secrets, repo `FCCXE/InstaDesk-V2.0`)
+The release robot runs in the cloud and needs three repository secrets (set 2026-06-18):
+- **`TAURI_SIGNING_PRIVATE_KEY`** — the updater private key (same value as `updater.key`).
+- **`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`** — empty (the key has no password).
+- **`AGENT_DEPLOY_KEY`** — the **private** half of a read-only SSH **deploy key** registered
+  on the agent repo (`FcXe-Studios---InstaDesk`, title `instadesk-ci-agent-read`). It lets CI
+  check out that private repo to build the WinAgent. Read-only, single-repo scoped.
+
+To rotate: regenerate the updater key (and re-bake the public key into `tauri.conf.json`),
+or `ssh-keygen` a new deploy key → `gh repo deploy-key add` on the agent repo → update the
+`AGENT_DEPLOY_KEY` secret. Secrets are never readable back out of GitHub — keep the off-site
+backups current.
+
+## 9. Notes
 
 - The **first** published release establishes the baseline; auto-update only triggers when a *newer* version is published than what's installed.
 - Keep the GitHub repo's releases public so the `latest.json` endpoint is reachable.
-- **Phase 1 (release automation):** a GitHub Action (`tauri-apps/tauri-action`) will run steps 4–8 from a tag push, with the signing key in encrypted GitHub Secrets — removing the local-machine dependency and most manual error.
+- **Release automation is LIVE** (2026-06-18) — `.github/workflows/release.yml` runs the build/sign/publish from a tag push with the signing key in GitHub Secrets. §4 is the standard; §4b is the manual fallback.
 - **Code signing (Azure Trusted Signing)** is separate — it removes the Windows SmartScreen "unknown publisher" warning on the installer itself and is gated on the FCLX UK Ltd entity. The *updater* signature here is independent and already active.

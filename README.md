@@ -1,350 +1,136 @@
-﻿InstaDesk
+# InstaDesk
 
-Multi-monitor tiling & workspace launcher for Windows — built with Tauri + React + Tailwind CSS v4 + Vite. InstaDesk lets you define grid layouts, assign apps to cells, and launch tidy, gap-free workspaces in a click.
+**Multi-monitor launcher & window-tiling tool for Windows**, by FCLX Studios.
+Arrange apps on a per-monitor grid, save it as a **Layout**, and one click launches
+every app and tiles it into place. Plus Quick Presets, ad-hoc Snap & drag-to-snap,
+URL/tab groups, layout capture, global hotkeys, and a signed auto-updater.
 
-Status: Active local development (Phase A)
-Repo root (local): C:\FcXe Studios\Instadesk\instadesk-tauri
-Primary OS target: Windows 10/11
+- **Status:** active development; shipping signed releases via auto-update.
+- **Platform:** Windows 10/11 (x64).
+- **Current version & history:** see [`CHANGELOG.md`](CHANGELOG.md).
 
-Table of Contents
+---
 
-Key Features
+## Architecture (Tauri v2)
 
-Screens & UX Snapshot
+InstaDesk is a **Tauri v2 desktop app** made of three parts:
 
-Architecture
+| Part | Tech | Where |
+|---|---|---|
+| **UI** | React 19 + Vite 7 + Tailwind v4 + TypeScript | `ui/` (this repo) |
+| **Backend** | native **Rust** (Tauri commands) | `src-tauri/` (this repo) |
+| **WinAgent** | **C#** / .NET 8 — does the actual Win32 window placement (`SetWindowPos`) + Snap overlay | a **separate private repo**, `FcXe-Studios---InstaDesk`, under `winagent/` |
 
-Folder Structure
+The UI calls Rust via Tauri `invoke()` (seam: `ui/src/services/api.ts`). The Rust
+backend shells out to the **WinAgent**, which is bundled into the installer as a
+self-contained `.exe` resource (so the installed app needs no system-wide `dotnet`).
+Presets/layouts are JSON in the OS app-data dir (release) or the agent repo's
+`data/` (dev). The old Python server is retired — the backend is fully native Rust.
 
-Prerequisites
+> **Two coupled repos:** this repo is the **app**; the **agent + data** live in the
+> separate private `FcXe-Studios---InstaDesk` repo as a sibling folder. The release
+> build pulls the agent from there (see Releasing).
 
-Quick Start (VS Code + PowerShell)
-
-Scripts
-
-Development Workflow & Guardrails
-
-Building a Release
-
-Testing & Sanity Checks
-
-Troubleshooting
-
-Contributing
-
-Changelog
-
-License
-
-FAQ
-
-Key Features
-
-Grid Tiling UI — pick a grid (e.g., 6×6), select cells, and tile windows without gaps.
-
-Workspace Launcher — map programs (.exe) to grid cells; launch with one action.
-
-Persistent Selection — selections stay highlighted; Esc clears the current selection.
-
-Gap-Free Layout Goal — stabilization logic aims to avoid visible seams between tiles.
-
-Made for Windows — integrates with Windows windowing behaviors; built with Tauri to stay lightweight.
-
-Developer-Friendly — Vite dev server, Tailwind v4, hot reload, clean repo hygiene.
-
-Screens & UX Snapshot
-
-Top chrome with grid controls and status indicator.
-
-Main dashboard with interactive grid.
-
-Bottom bar for actions and selection feedback.
-
-Console triggers reserved for internal diagnostics (selection indicator visible in-UI).
-
-Note: During development we validate that selection stays visible, numeric indicator updates, and Esc clears selection.
-
-Architecture
-
-Frontend (Tauri/React/Vite/Tailwind)
-
-Interactive grid & controls
-
-State management and selection logic
-
-Commands bridged to Tauri backend for OS integrations
-
-Tauri Backend (Rust)
-
-Lightweight system calls, process launching, and window control hooks (future)
-
-Bridges between UI and Windows APIs (progressively expanded)
-
-Folder Structure
+### Folder structure (this repo)
+```
 instadesk-tauri/
-├─ src/                         # React app (Vite)
-│  ├─ components/               # UI components (critical files live here)
-│  ├─ pages/                    # App routes (if applicable)
-│  ├─ styles/
-│  │  └─ index.css              # Tailwind v4 entry (critical)
-│  ├─ App.tsx
-│  └─ main.tsx
-├─ src/components/
-│  └─ TopChrome.tsx             # Header/chrome (critical)
-├─ tauri/                       # Tauri (Rust) backend
-│  ├─ src/
-│  └─ Cargo.toml
-├─ public/
-├─ package.json
-├─ vite.config.ts
-├─ tailwind.config.ts
-└─ README.md                    # This file
-
-
-Critical UI files for this project: src/styles/index.css, src/components/TopChrome.tsx, and all src/components/*.tsx.
-
-Prerequisites
-
-Windows 10/11
-
-Node.js 18+ (LTS recommended)
-
-Rust toolchain (for Tauri backend)
-
-Install via https://rustup.rs/
-
-Make sure cargo is in your PATH
-
-Microsoft Visual Studio Build Tools (C++ build tools)
-
-Install “Desktop development with C++” or Build Tools for VS 2022
-
-VS Code (primary editor for this repo)
-
-Git (Git LFS optional if you track large binaries later)
-
-Quick Start (VS Code + PowerShell)
-
-All commands below are Windows PowerShell and assume the repo root is C:\FcXe Studios\Instadesk\instadesk-tauri.
-
-Open the repo in VS Code
-
-# PowerShell
-Set-Location "C:\FcXe Studios\Instadesk\instadesk-tauri"
-code .
-
-
-Install dependencies
-
-# PowerShell (in VS Code terminal)
-npm install
-
-
-Run local sanity checks (custom script)
-
-npm run sanity
-
-
-Start the dev server
-
-npm run dev
-
-
-Open the app
-
-Frontend dev server: http://localhost:5173
-
-Tauri dev (when enabled): launches a desktop window connected to Vite
-
-Scripts
-
-Common npm scripts defined in package.json:
-
-Script	What it does
-npm run dev	Starts Vite dev server (and Tauri dev when configured).
-npm run sanity	Runs the local “sanity” checklist (project-specific quick validations).
-npm run build	Builds the frontend for production.
-npm run tauri build	Builds a desktop release using Tauri (requires Rust toolchain).
-npm run tauri dev	Runs the Tauri app in dev mode (desktop window).
-
-If a script is missing on your branch, add it to package.json accordingly.
-
-Development Workflow & Guardrails
-
-We follow a strict protocol to avoid regressions:
-
-Atomic Edits Only
-
-Small, reversible changes with an explicit file allowlist per task.
-
-Full File Updates (No Patches)
-
-For critical files (index.css, TopChrome.tsx, and any src/components/*.tsx), provide full replacements.
-
-Last Known Good Version
-
-Always branch from or compare to the last tested good commit.
-
-Step-by-Step Instructions (VS Code + PowerShell)
-
-All changes come with where/how to apply, and how to validate (see Testing).
-
-Pre-Change Restore Point
-
-Create a lightweight tag or branch before changes:
-
-git checkout -b chore/restorepoint-YYYYMMDD_HHmm
-git commit --allow-empty -m "Restore point before <change-id>"
-
-
-Acceptance Criteria
-
-UI renders, grid selection persists, indicator updates, Esc clears, no console errors.
-
-Post-Change QA
-
-Run npm run sanity, npm run dev, test in the browser (and Tauri window if applicable).
-
-Rollback If Criteria Fail
-
-git reset --hard <restore-point-commit-or-tag>
-
-
-Repo Hygiene
-
-Never commit node_modules, build artifacts, or temporary backups. Keep .gitignore current.
-
-Building a Release
-
-Frontend only build
-
-npm run build
-
-
-Outputs to dist/ (Vite).
-
-Tauri desktop build (Windows)
-
-# Ensure Rust & build tools are installed
-npm run tauri build
-
-
-Produces a Windows executable/installer under src-tauri/target/release (exact path may vary per Tauri version).
-
-Testing & Sanity Checks
-
-Local sanity checklist
-
-npm run sanity
-
-
-Typical validations (subject to evolve):
-
-Tailwind builds without errors (index.css intact)
-
-Grid renders and selections persist
-
-Numeric selection indicator updates on mouse selection
-
-Esc clears current selection
-
-Dev console shows no errors
-
-Run the app
-
-npm run dev
-# Visit http://localhost:5173
-
-Troubleshooting
-
-No windows appear / Tauri fails to launch
-Ensure Rust toolchain and Visual C++ build tools are installed. Try:
-
-rustup update
-cargo --version
-
-
-Tailwind styles not applied
-Verify src/styles/index.css is imported by main.tsx or App.tsx. Confirm Tailwind v4 config exists and paths are correct.
-
-Grid selection not visible
-Confirm CSS layers for selection/highlight are present and no z-index conflicts.
-
-npm run dev starts but UI is broken
-Clear caches, reinstall, and retry:
-
-rm -Recurse -Force node_modules
-npm install
-npm run dev
-
-
-Build errors on Windows
-Open “Developer Command Prompt for VS” once, or ensure MSVC Build Tools installed. Reboot after installing new build tools.
-
-Contributing
-
-Fork & clone the repo
-
-Create a feature branch:
-
-git checkout -b feat/<short-feature-name>
-
-
-Make atomic changes; update complete files for critical components
-
-Run sanity & dev, validate acceptance criteria
-
-Commit with clear message:
-
-git add -A
-git commit -m "feat(grid): persistent selection & Esc clear"
-
-
-Push & open a Pull Request
-
-We welcome issues for bugs, UX concerns, and enhancement proposals. Please include screenshots and exact repro steps when possible.
-
-Changelog
-
-Maintain a simple, append-only CHANGELOG.md with entries like:
-
-## YYYY-MM-DD
-- [ID: A-003] Grid selection persists; Esc clears selection; indicator updates
-- [ID: A-002] Restored bottom menu; normalized header spacing
-- [ID: A-001] Project bootstrap (Tauri + React + Tailwind v4 + Vite)
-
-
-IDs map to atomic change batches described in PRs.
-
-License
-
-MIT License — see LICENSE file.
-You’re free to use, modify, and distribute with attribution and license notice.
-
-FAQ
-
-Q: Which file should I point to when assigning a program to a grid cell?
-A: Use the program’s .exe path (avoid shortcuts), e.g., C:\Program Files\Notepad++\notepad++.exe.
-
-Q: Does this support multiple monitors?
-A: The UI is monitor-agnostic; tiling logic targets Windows windows. Multi-monitor placement rules will be iterated during Phase A/B.
-
-Q: Why Tauri instead of Electron?
-A: Smaller footprint, Rust backend access, and modern DX with Vite/React/Tailwind.
-
-Q: Where do I change the header/controls?
-A: src/components/TopChrome.tsx (critical). For global styles, update src/styles/index.css (critical).
-
-Maintainer Notes (for this repo)
-
-Always tailor instructions to Windows PowerShell and perform edits in VS Code.
-
-Prefer complete file replacements for critical files.
-
-After each successful block:
-
-npm run sanity → npm run dev → manual QA → commit & push.
-
-Tag “restore points” before risky edits.
-
-© FCLX Studios — InstaDesk
+├─ ui/                       # React + Vite frontend
+│  ├─ src/                   # components, services (api.ts, telemetry.ts), state, i18n
+│  ├─ public/
+│  └─ package.json           # UI deps; `npm run build` = tsc -b && vite build
+├─ src-tauri/                # Rust backend
+│  ├─ src/                   # backend.rs, lib.rs, main.rs
+│  ├─ scripts/               # build-agent.mjs, make-latest-json.mjs, bump-version.mjs
+│  ├─ binaries/              # bundled WinAgent.exe (gitignored build artifact)
+│  ├─ .tauri-keys/           # updater signing key (gitignored secret)
+│  ├─ Cargo.toml
+│  └─ tauri.conf.json        # app version (source of truth) + bundle + updater config
+├─ docs/
+│  ├─ RELEASING.md           # the Build & Release SOP
+│  └─ manual/                # the user-manual source (HTML → bundled PDF)
+├─ .github/workflows/
+│  └─ release.yml            # the automated release pipeline (the "robot")
+├─ CHANGELOG.md              # canonical human-readable version history
+├─ README.md                 # this file
+└─ package.json              # @tauri-apps/cli + `npm run dev`/`build` (= tauri)
+```
+
+---
+
+## Prerequisites
+
+- **Windows 10/11 (x64)**
+- **Node.js 20.19+ or 22+** (Vite 7) — dev uses Node 22
+- **Rust** (stable) via <https://rustup.rs/> — `cargo` on PATH
+- **.NET 8 SDK** — to build the C# WinAgent
+- **Visual Studio C++ Build Tools** ("Desktop development with C++") — for the Rust/native build
+- **WebView2 runtime** — preinstalled on Windows 11; auto-handled otherwise
+- The **agent repo** (`FcXe-Studios---InstaDesk`) checked out as a **sibling** of this repo, so `winagent/` resolves at `../winagent` relative to this folder (the release build expects this; CI fetches it automatically).
+
+## Quick start (development)
+
+```bash
+# from this repo root
+npm install                 # root tooling (@tauri-apps/cli)
+npm --prefix ui install     # UI dependencies
+npm run dev                 # = tauri dev: starts Vite + launches the desktop app
+```
+
+`npm run dev` starts Vite (localhost:5173) **and** opens the WebView2 desktop window.
+Rust changes auto-rebuild; if the frontend looks stale, clear the WebView2 cache
+(`%LOCALAPPDATA%\com.fcxestudios.instadesk\EBWebView`) and relaunch.
+
+## Scripts & gates
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | `tauri dev` — Vite + desktop app |
+| `npm run build` | `tauri build` — full signed/packaged build (see Releasing) |
+| `cd ui && npm run build` | **THE UI gate** (`tsc -b && vite build`). Use this to typecheck — **not** `tsc --noEmit` (a no-op here, solution-style tsconfig). |
+| `cd src-tauri && cargo test --lib && cargo build --lib` | Rust gate |
+| `node src-tauri/scripts/bump-version.mjs <X.Y.Z>` | bump version + roll CHANGELOG |
+
+## Building from source (local desktop build)
+
+```bash
+npm install && npm --prefix ui install
+npx tauri build --bundles nsis
+```
+`tauri build` runs the UI build and publishes the WinAgent (`build-agent.mjs`, needs
+.NET 8 + the agent repo as a sibling), then produces the NSIS installer under
+`src-tauri/target/release/bundle/nsis/`. For a **signed** build (required for
+auto-update), the updater key must be in the environment — see [`docs/RELEASING.md`](docs/RELEASING.md).
+
+---
+
+## Releasing
+
+Releases are **automated**. Pushing a version tag triggers the GitHub Actions robot
+(`.github/workflows/release.yml`), which builds, signs, and publishes the release.
+
+```bash
+node src-tauri/scripts/bump-version.mjs 0.1.29   # bump + changelog
+git add -A && git commit -m "release: 0.1.29" && git push
+git tag v0.1.29 && git push origin v0.1.29        # the robot takes it from here
+```
+
+- A **clean tag** (`v0.1.29`) → published as **Latest** (reaches all users via auto-update).
+- A **suffixed tag** (`v0.1.29-rc.1`) → published as a **prerelease** (never "Latest",
+  so it can't reach stable users) — for safe testing / beta.
+
+Installed apps check the signed updater endpoint and install a newer release **only
+if its signature matches** the public key baked into the app. The full procedure,
+rollback runbook, and CI credentials are in **[`docs/RELEASING.md`](docs/RELEASING.md)**.
+
+## The record (where build/release truth lives)
+
+- **[`CHANGELOG.md`](CHANGELOG.md)** — canonical human-readable version history.
+- **GitHub Releases + `vX.Y.Z` tags** — the immutable machine record of every build emitted.
+- **`docs/RELEASING.md`** — how a build is made, shipped, and rolled back.
+- **latest.json endpoint** — what installed apps see as the current version.
+
+## License
+
+**Proprietary — © FCLX Studios. All rights reserved.** InstaDesk is a commercial
+product; this repository is private. *(Earlier drafts of this README referenced an
+MIT license in error — that does not apply.)*
