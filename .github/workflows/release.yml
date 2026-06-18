@@ -1,0 +1,125 @@
+name: Release
+
+# Builds, signs, and publishes a complete InstaDesk release when a version tag is
+# pushed — the automated replacement for the manual steps in docs/RELEASING.md.
+#
+# To ship a real release:   bump-version + commit (see RELEASING.md), then
+#     git tag v0.1.29 && git push origin v0.1.29
+# A tag WITHOUT a pre-release suffix (v0.1.29)  -> published as the LATEST stable
+#   release (reaches all users via auto-update).
+# A tag WITH a suffix (v0.1.29-rc.1, v0.1.28-citest.1) -> published as a PRERELEASE
+#   (NOT "latest"), so it never reaches stable auto-update users — used for testing.
+#
+# The C# WinAgent lives in a separate PRIVATE repo (FcXe-Studios---InstaDesk); it is
+# checked out read-only via the AGENT_DEPLOY_KEY secret and built from its main HEAD.
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write          # lets GITHUB_TOKEN create the Release on this repo
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout app repo
+        uses: actions/checkout@v4
+        with:
+          path: instadesk-tauri
+
+      - name: Checkout agent repo (private, read-only deploy key)
+        uses: actions/checkout@v4
+        with:
+          repository: FCCXE/FcXe-Studios---InstaDesk
+          ssh-key: ${{ secrets.AGENT_DEPLOY_KEY }}
+          path: _agentrepo
+
+      - name: Place winagent beside the app repo
+        shell: bash
+        run: mv _agentrepo/winagent ./winagent
+        # build-agent.mjs resolves <app>/src-tauri/scripts/../../../winagent == <workspace>/winagent
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup .NET 8 (for the WinAgent)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: instadesk-tauri/src-tauri
+
+      - name: Install dependencies
+        shell: bash
+        working-directory: instadesk-tauri
+        run: |
+          npm ci
+          npm --prefix ui ci
+
+      - name: Derive version + release notes from the tag
+        id: meta
+        shell: bash
+        working-directory: instadesk-tauri
+        run: |
+          TAG="$GITHUB_REF_NAME"                                              # e.g. v0.1.29  or  v0.1.28-citest.1
+          BUILD_VERSION="$(node -p "require('./src-tauri/tauri.conf.json').version")"   # the version the bundler stamps
+          CORE="${TAG#v}"; CORE="${CORE%%-*}"                                 # strip leading v and any -suffix
+          if [ "$CORE" != "$BUILD_VERSION" ]; then
+            echo "::error::Tag $TAG (core $CORE) does not match tauri.conf.json version $BUILD_VERSION. Run bump-version + commit before tagging."
+            exit 1
+          fi
+          if [[ "$TAG" == *-* ]]; then PRERELEASE="true"; else PRERELEASE="false"; fi
+          echo "tag=$TAG"                     >> "$GITHUB_OUTPUT"
+          echo "build_version=$BUILD_VERSION" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$PRERELEASE"       >> "$GITHUB_OUTPUT"
+          # Release notes = this version's CHANGELOG section (fallback if absent, e.g. a test tag).
+          awk "/^## \[$CORE\]/{f=1;next} /^## \[/{f=0} f" CHANGELOG.md > "$GITHUB_WORKSPACE/release_notes.txt"
+          if [ ! -s "$GITHUB_WORKSPACE/release_notes.txt" ]; then
+            echo "Test/auto build of v$BUILD_VERSION. See CHANGELOG.md for details." > "$GITHUB_WORKSPACE/release_notes.txt"
+          fi
+          echo "--- notes ---"; cat "$GITHUB_WORKSPACE/release_notes.txt"
+
+      - name: Build signed installer
+        shell: bash
+        working-directory: instadesk-tauri
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx tauri build --bundles nsis
+
+      - name: Generate latest.json manifest
+        shell: bash
+        working-directory: instadesk-tauri
+        run: node src-tauri/scripts/make-latest-json.mjs "$(cat "$GITHUB_WORKSPACE/release_notes.txt")"
+
+      - name: Publish GitHub Release
+        shell: bash
+        working-directory: instadesk-tauri/src-tauri/target/release/bundle/nsis
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          V="${{ steps.meta.outputs.build_version }}"
+          if [ "${{ steps.meta.outputs.prerelease }}" = "true" ]; then FLAG="--prerelease"; else FLAG="--latest"; fi
+          gh release create "${{ steps.meta.outputs.tag }}" \
+            --repo FCCXE/InstaDesk-V2.0 \
+            --title "InstaDesk ${{ steps.meta.outputs.tag }}" \
+            --notes-file "$GITHUB_WORKSPACE/release_notes.txt" \
+            $FLAG \
+            "InstaDesk_${V}_x64-setup.exe" \
+            "InstaDesk_${V}_x64-setup.exe.sig" \
+            "latest.json"
