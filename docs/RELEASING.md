@@ -40,38 +40,50 @@ One version = one `vX.Y.Z` git tag = one GitHub Release = one `CHANGELOG.md` ent
 - [ ] `CHANGELOG.md` `## [Unreleased]` section describes everything in this release.
 - [ ] Decide the new version number per §1.
 
-## 4. The release procedure
+## 4. The release procedure (AUTOMATED — standard since 2026-06-18)
+
+A GitHub Actions robot (`.github/workflows/release.yml`) builds, signs, and publishes
+the release. You only prepare the version and push a tag:
 
 1. **Bump the version + roll the changelog** (one command):
    ```bash
-   node src-tauri/scripts/bump-version.mjs 0.1.29
+   node src-tauri/scripts/bump-version.mjs 0.1.29   # --dry-run to preview first
    ```
-   This updates `tauri.conf.json` + `Cargo.toml` to the new version and moves the
-   `## [Unreleased]` notes into a dated `## [0.1.29]` section in `CHANGELOG.md`.
-   Review the diff. (Run with `--dry-run` first to preview.)
-2. **Build signed** (from the inner repo root) — the signing key must be in the env:
+   Updates `tauri.conf.json` + `Cargo.toml` and moves `## [Unreleased]` into a dated
+   `## [0.1.29]` section in `CHANGELOG.md`. Review the diff.
+2. **Commit + push** the bump (`tauri.conf.json`, `Cargo.toml`, `CHANGELOG.md`, and any
+   built assets such as bundled manual PDFs) to `main`.
+3. **Tag + push the tag** — this triggers the robot:
+   ```bash
+   git tag v0.1.29 && git push origin v0.1.29
+   ```
+   The robot checks out the app + agent repos, builds + signs with the key from GitHub
+   Secrets, generates `latest.json`, and publishes the GitHub Release (notes from the
+   `CHANGELOG.md` section). Watch it under the repo's **Actions** tab.
+   - A **clean tag** (`v0.1.29`) → published as **Latest** (reaches all users).
+   - A **suffixed tag** (`v0.1.29-rc.1`) → published as a **prerelease** (never "Latest",
+     so it can't reach stable auto-update users) — for testing.
+4. **Verify** per §5.
+
+> The robot builds the WinAgent from the agent repo's `main` HEAD. *(Recording the exact
+> agent commit per release is a future refinement — Platform 3.4 release ledger.)*
+
+### 4b. Manual fallback (if Actions is unavailable)
+
+Run the steps the robot automates, from the inner repo root:
+1. `node src-tauri/scripts/bump-version.mjs <X.Y.Z>`
+2. Build signed — the signing key must be in the env:
    ```bash
    # PowerShell:  $env:TAURI_SIGNING_PRIVATE_KEY = Get-Content src-tauri\.tauri-keys\updater.key -Raw
    #              $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ""
-   # bash:
    export TAURI_SIGNING_PRIVATE_KEY="$(cat src-tauri/.tauri-keys/updater.key)"
    export TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""
    npx tauri build --bundles nsis
    ```
-   Produces, in `src-tauri/target/release/bundle/nsis/`:
-   `InstaDesk_<version>_x64-setup.exe` **and** `…-setup.exe.sig`.
-3. **Generate the manifest:**
-   ```bash
-   node src-tauri/scripts/make-latest-json.mjs "What changed in this release"
-   ```
-   Writes `latest.json` next to the installer.
-4. **Commit** the bump (`tauri.conf.json`, `Cargo.toml`, `Cargo.lock`, `CHANGELOG.md`, and any built assets like bundled PDFs) and **push** `main`.
-5. **Publish the GitHub Release** on `FCCXE/InstaDesk-V2.0`, tag **`v<version>`** (must match), `--latest`, uploading **three** assets:
-   - `InstaDesk_<version>_x64-setup.exe`
-   - `InstaDesk_<version>_x64-setup.exe.sig`
-   - `latest.json`
-   Release notes = the new `CHANGELOG.md` entry.
-6. **Record the bundled agent commit.** Note in the release (or commit message) the **outer-repo** (`FcXe-Studios---InstaDesk`) HEAD that the bundled WinAgent was built from, so the release is reproducible. *(Future: the bump script / CI will capture this automatically.)*
+   → `src-tauri/target/release/bundle/nsis/InstaDesk_<version>_x64-setup.exe` + `…-setup.exe.sig`.
+3. `node src-tauri/scripts/make-latest-json.mjs "What changed"` → writes `latest.json`.
+4. Commit + push the bump.
+5. `gh release create v<version> --repo FCCXE/InstaDesk-V2.0 --latest <exe> <sig> latest.json` (notes = the CHANGELOG entry).
 
 ## 5. Post-release verification
 
