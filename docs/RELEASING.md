@@ -1,21 +1,54 @@
-# Releasing InstaDesk (signed installer + auto‑update)
+# Releasing InstaDesk — Build & Release SOP
 
-InstaDesk ships a **signed auto‑updater**. Installed apps check
+The standard operating procedure for cutting an InstaDesk release. Following this
+top-to-bottom, anyone (not just the original author) can ship a version and roll
+one back. This is **Phase 0** of the FCLX Studios Platform plan; **Phase 1** will
+automate steps 4–8 with a CI robot — until then they are run by hand.
+
+InstaDesk ships a **signed auto-updater**. Installed apps poll
 `https://github.com/FCCXE/InstaDesk-V2.0/releases/latest/download/latest.json`
 and install a newer build **only if its signature matches the public key** baked
 into the app (`plugins.updater.pubkey` in `tauri.conf.json`). An unsigned or
 tampered build is rejected automatically.
 
-## One‑time setup (already done)
-- Updater keypair generated: **public** key in `tauri.conf.json`; **private** key at
-  `src-tauri/.tauri-keys/updater.key` — **gitignored**.
-- ⚠️ **Back up the private key (and its password, currently none) in a password
-  manager / secure vault.** It signs every update. If **lost**, you can't ship
-  updates (users must reinstall manually). If **leaked**, an attacker could sign
-  malicious "updates" — treat it like a code‑signing key.
+---
 
-## Each release
-1. **Bump the version** in `src-tauri/tauri.conf.json` (`"version"`), e.g. `0.1.1`.
+## 1. Versioning standard (SemVer)
+
+Versions are `MAJOR.MINOR.PATCH`. While **pre-1.0** (`0.MINOR.PATCH`):
+- **PATCH** (`0.1.27 → 0.1.28`) — a bug fix, a docs/manual change, or any user-invisible internal change.
+- **MINOR** (`0.1.x → 0.2.0`) — a new user-facing feature or capability.
+- **MAJOR** (`0.x → 1.0.0`) — reserved for the first stable/commercial milestone; thereafter, a breaking change.
+
+One version = one `vX.Y.Z` git tag = one GitHub Release = one `CHANGELOG.md` entry. These three must always agree.
+
+## 2. Where the record lives (system of record)
+
+- **`CHANGELOG.md`** (repo root) — the canonical *human-readable* history. Every release has an entry; newest at top under `## [Unreleased]`.
+- **`vX.Y.Z` git tags + GitHub Releases** — the canonical *machine* record of what was emitted (immutable; releases carry the installer + signature + `latest.json`).
+- **`latest.json` endpoint** — the canonical *"what's live now"* that installed apps read.
+- **Version files** — `src-tauri/tauri.conf.json` (`version`, the field the bundler stamps) and `src-tauri/Cargo.toml` (`version`). Keep them equal.
+
+> My (`.claude`) session memory and any local notes are **pointers** to the above, never the source of truth. If memory and this record disagree, the record wins.
+
+## 3. Pre-release checklist
+
+- [ ] All intended changes are committed and pushed to `main`.
+- [ ] UI gate passes: `cd ui && npm run build` (= `tsc -b && vite build`) — **not** `tsc --noEmit` (a no-op here).
+- [ ] Rust gate passes (if `src-tauri` changed): `cd src-tauri && cargo test --lib && cargo build --lib`.
+- [ ] i18n parity + zero duplicate keys (if locales changed).
+- [ ] `CHANGELOG.md` `## [Unreleased]` section describes everything in this release.
+- [ ] Decide the new version number per §1.
+
+## 4. The release procedure
+
+1. **Bump the version + roll the changelog** (one command):
+   ```bash
+   node src-tauri/scripts/bump-version.mjs 0.1.29
+   ```
+   This updates `tauri.conf.json` + `Cargo.toml` to the new version and moves the
+   `## [Unreleased]` notes into a dated `## [0.1.29]` section in `CHANGELOG.md`.
+   Review the diff. (Run with `--dry-run` first to preview.)
 2. **Build signed** (from the inner repo root) — the signing key must be in the env:
    ```bash
    # PowerShell:  $env:TAURI_SIGNING_PRIVATE_KEY = Get-Content src-tauri\.tauri-keys\updater.key -Raw
@@ -32,19 +65,51 @@ tampered build is rejected automatically.
    node src-tauri/scripts/make-latest-json.mjs "What changed in this release"
    ```
    Writes `latest.json` next to the installer.
-4. **Publish a GitHub release** on `FCCXE/InstaDesk-V2.0`, tag **`v<version>`**
-   (must match), and upload **three** assets:
+4. **Commit** the bump (`tauri.conf.json`, `Cargo.toml`, `Cargo.lock`, `CHANGELOG.md`, and any built assets like bundled PDFs) and **push** `main`.
+5. **Publish the GitHub Release** on `FCCXE/InstaDesk-V2.0`, tag **`v<version>`** (must match), `--latest`, uploading **three** assets:
    - `InstaDesk_<version>_x64-setup.exe`
    - `InstaDesk_<version>_x64-setup.exe.sig`
    - `latest.json`
-5. Done. Installed apps see it via **Settings → Updates → Check for updates**
-   (and can be made to auto‑check on launch later).
+   Release notes = the new `CHANGELOG.md` entry.
+6. **Record the bundled agent commit.** Note in the release (or commit message) the **outer-repo** (`FcXe-Studios---InstaDesk`) HEAD that the bundled WinAgent was built from, so the release is reproducible. *(Future: the bump script / CI will capture this automatically.)*
 
-## Notes
-- The **first** published release establishes the baseline; auto‑update only
-  triggers when a *newer* version is published than what's installed.
+## 5. Post-release verification
+
+- [ ] Endpoint serves the new version:
+  ```bash
+  curl -sL "https://github.com/FCCXE/InstaDesk-V2.0/releases/latest/download/latest.json" | grep '"version"'
+  ```
+- [ ] The release shows all three assets: `gh release view v<version> --json assets --jq '.assets[].name'`.
+- [ ] (When feasible) an installed older version offers the update via Settings → Updates.
+
+## 6. Rollback runbook (when a release is bad)
+
+A release can't be un-published safely, but the **updater follows whatever `latest.json` points to**, so you roll forward to a known-good build by changing what "latest" is:
+
+1. **Fastest:** publish a **new** patch version that restores the previous good behavior (e.g. revert the bad commit, bump `0.1.29 → 0.1.30`, ship). The updater offers it because it's newer. *(This is what we did for the 0.1.10 → 0.1.11 regression.)*
+2. **Or re-point "latest":** mark the previous good GitHub Release as `--latest` again
+   (`gh release edit v<good> --latest`) and/or move the bad release to draft, so the
+   `latest/download/latest.json` endpoint serves the good build. Verify with the §5 curl.
+3. Always add a `CHANGELOG.md` entry for the rollback/revert so the record stays honest.
+4. Keep the `pre-<slug>` rollback tag from before the bad change to restore the source quickly.
+
+## 7. Tag hygiene
+
+- **`vX.Y.Z`** tags = the version record. One per release; never reuse or move (except a deliberate rollback re-point).
+- **`pre-<slug>`** tags = disposable local safety markers made before risky edits. They are **not** the record. Prefer keeping them local; prune periodically (e.g. delete `pre-*` older than the last ~10 releases) so they don't bury the version tags. They may be pushed when a rollback point needs sharing, but treat them as scaffolding.
+
+## 8. One-time setup (already done)
+
+- Updater keypair generated: **public** key in `tauri.conf.json`; **private** key at
+  `src-tauri/.tauri-keys/updater.key` — **gitignored**.
+- ⚠️ **Back up the private key (and its password, currently none) in a password
+  manager / secure vault.** It signs every update. If **lost**, you can't ship
+  updates (users must reinstall manually). If **leaked**, an attacker could sign
+  malicious "updates" — treat it like a code-signing key.
+
+## 9. Notes & what's next
+
+- The **first** published release establishes the baseline; auto-update only triggers when a *newer* version is published than what's installed.
 - Keep the GitHub repo's releases public so the `latest.json` endpoint is reachable.
-- A GitHub Action (`tauri-apps/tauri-action`) can later automate steps 2–4.
-- **2.6 code signing (Azure)** is separate — it removes SmartScreen warnings on the
-  installer itself and is gated on the FcXe UK Ltd entity; the *updater* signature
-  here is independent and already active.
+- **Phase 1 (release automation):** a GitHub Action (`tauri-apps/tauri-action`) will run steps 4–8 from a tag push, with the signing key in encrypted GitHub Secrets — removing the local-machine dependency and most manual error.
+- **Code signing (Azure Trusted Signing)** is separate — it removes the Windows SmartScreen "unknown publisher" warning on the installer itself and is gated on the FCLX UK Ltd entity. The *updater* signature here is independent and already active.
