@@ -57,3 +57,6 @@ vite.config.*.timestamp-*
 
 # Updater signing keys — NEVER commit the private key.
 src-tauri/.tauri-keys/
+
+# Transient sandbox-publish override (written + auto-deleted by scripts/sandbox.mjs --publish).
+src-tauri/.sandbox-publish.tmp.json

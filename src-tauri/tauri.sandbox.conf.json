@@ -19,5 +19,12 @@
   },
   "bundle": {
     "createUpdaterArtifacts": false
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/FCCXE/InstaDesk-V2.0/releases/download/sandbox-channel/latest.json"
+      ]
+    }
   }
 }
