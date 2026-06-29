@@ -6,7 +6,13 @@ import react from '@vitejs/plugin-react'
 // version, and it can never drift from a hand-typed string again.
 import tauriConf from '../src-tauri/tauri.conf.json'
 
-const appVersion = (tauriConf as { version?: string }).version ?? '0.0.0'
+// Version stamped into the UI header. A sandbox `--publish` build overrides it with
+// the real "-sb.<n>" build id (INSTADESK_VERSION_OVERRIDE) so the header shows exactly
+// which build is running and changes visibly after a self-update; a normal build uses
+// tauri.conf.json's version.
+const envVersion = (globalThis as { process?: { env?: Record<string, string | undefined> } })
+  .process?.env?.INSTADESK_VERSION_OVERRIDE
+const appVersion = envVersion || (tauriConf as { version?: string }).version || '0.0.0'
 
 // SANDBOX flavor flag. Set by src-tauri/scripts/sandbox.mjs (INSTADESK_SANDBOX=1)
 // when building the isolated side-by-side sandbox app. Stamped into the UI so it

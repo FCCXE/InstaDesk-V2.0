@@ -84,6 +84,7 @@ if (publish) {
 
   const buildEnv = {
     ...env,
+    INSTADESK_VERSION_OVERRIDE: version, // header shows the real -sb build id (changes after self-update)
     TAURI_SIGNING_PRIVATE_KEY: readFileSync(keyFile, 'utf8'),
     TAURI_SIGNING_PRIVATE_KEY_PASSWORD: '',
   }
