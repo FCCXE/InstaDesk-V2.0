@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, type HealthResponse } from '../services/api'
-import { APP_VERSION } from '../services/version'
+import { APP_VERSION, IS_SANDBOX } from '../services/version'
 import { useTheme } from '../state/ThemeProvider'
 
 type ServerStatus =
@@ -42,14 +42,25 @@ export default function TopChrome() {
 
   return (
     <header className="h-14 border-b border-line bg-surface grid grid-cols-3 items-center px-4">
-      {/* Left: InstaDesk logo */}
-      <div className="flex items-center min-w-0">
+      {/* Left: InstaDesk logo (+ SANDBOX badge in sandbox builds) */}
+      <div className="flex items-center min-w-0 gap-3">
         <img
           src={instadeskLogo}
           alt="InstaDesk"
           className="max-h-8 object-contain select-none"
           draggable={false}
         />
+        {IS_SANDBOX && (
+          <span
+            className="px-2.5 py-1 rounded-md text-[0.7rem] font-extrabold uppercase
+                       tracking-wider text-white bg-orange-600 shadow-sm select-none
+                       whitespace-nowrap"
+            title="Isolated SANDBOX build — NOT the live app. Used to validate new versions before release."
+            aria-label="Sandbox build"
+          >
+            Sandbox
+          </span>
+        )}
       </div>
 
       {/* Center: Dashboard button */}

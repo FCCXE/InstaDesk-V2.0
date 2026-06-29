@@ -39,6 +39,37 @@ One version = one `vX.Y.Z` git tag = one GitHub Release = one `CHANGELOG.md` ent
 - [ ] i18n parity + zero duplicate keys (if locales changed).
 - [ ] `CHANGELOG.md` `## [Unreleased]` section describes everything in this release.
 - [ ] Decide the new version number per §1.
+- [ ] **Sandbox gate passed (§3.5)** — the candidate ran + was validated in the isolated, side-by-side Sandbox build before promotion.
+
+## 3.5 Sandbox validation gate (MANDATORY — robot-free, before any promotion)
+
+Before a version is promoted to a release (§4), it **MUST** pass the local **Sandbox
+gate**. The Sandbox is an isolated build with its own identity
+(`com.fcxestudios.instadesk.sandbox`, productName "InstaDesk Sandbox") that installs
+and runs **side-by-side** with the stable app without touching it, and carries an
+unmistakable on-screen **SANDBOX** badge. It is built **entirely locally** — no
+signing key, nothing on GitHub or any live endpoint, the release robot untouched. It
+**never auto-updates and ships no updater artifacts**, so it can never reach stable
+users. (Override: `src-tauri/tauri.sandbox.conf.json`, layered via `tauri build
+--config`; driver: `src-tauri/scripts/sandbox.mjs`; badge flag stamped in
+`ui/vite.config.ts` → `ui/src/services/version.ts` → `ui/src/components/TopChrome.tsx`.)
+
+This gate is **deterministic** — anyone (you, a teammate, or an AI) runs the same
+steps every time:
+
+1. **Iterate (no install):** `node src-tauri/scripts/sandbox.mjs --dev` — runs the
+   candidate LIVE (hot-reload, isolated identity + badge). Fix until correct.
+2. **Build the artifact:** `node src-tauri/scripts/sandbox.mjs` → the unsigned
+   side-by-side installer at
+   `src-tauri/target/release/bundle/nsis/InstaDesk Sandbox_<version>_x64-setup.exe`.
+3. **Validate the real product:** install it (an in-place upgrade of the *single*
+   Sandbox app — never touches stable) and confirm: the SANDBOX badge shows, the
+   version is correct, and the change under test works.
+4. **Record the pass** in the `CHANGELOG.md` `[Unreleased]` notes ("sandbox-validated")
+   — only then proceed to §4.
+
+> This is the InstaDesk reference implementation of the FCLX Studios pre-release
+> Sandbox gate (Platform P1.6 / X.2). New apps inherit it via the bootstrap template.
 
 ## 4. The release procedure (AUTOMATED — standard since 2026-06-18)
 

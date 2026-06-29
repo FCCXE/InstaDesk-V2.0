@@ -9,6 +9,7 @@
 import { check, type Update } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { inTauri } from './api'
+import { IS_SANDBOX } from './version'
 
 export type { Update }
 
@@ -16,6 +17,9 @@ export type { Update }
  *  Throws on network/endpoint errors (caller surfaces them). No-op in web. */
 export async function checkForUpdate(): Promise<Update | null> {
   if (!inTauri()) return null
+  // Sandbox builds are an isolated test channel — they never auto-update (their
+  // identity differs from stable, and the build ships no updater artifacts).
+  if (IS_SANDBOX) return null
   return await check()
 }
 

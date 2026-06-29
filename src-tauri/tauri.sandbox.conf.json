@@ -1,0 +1,23 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "InstaDesk Sandbox",
+  "mainBinaryName": "InstaDesk-Sandbox",
+  "identifier": "com.fcxestudios.instadesk.sandbox",
+  "app": {
+    "windows": [
+      {
+        "title": "InstaDesk — SANDBOX",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 1024,
+        "minHeight": 680,
+        "center": true,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ]
+  },
+  "bundle": {
+    "createUpdaterArtifacts": false
+  }
+}
