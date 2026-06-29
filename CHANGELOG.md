@@ -10,6 +10,11 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 
 ## [Unreleased]
 
+## [0.1.29] - 2026-06-29
+
+### Added
+- WinAgent can now place a window selected **by its title** (`--snap-region --title "<window title>"`). Placement previously required a window handle, so it could not distinguish the several windows a single-process app (e.g. an Electron app) opens; title matching (exact → prefix → contains, largest window on ties) lets InstaDesk target a *specific* such window. Foundation for reliably arranging multi-window apps. No visible UI change in this release.
+
 ## [0.1.28] - 2026-06-18
 ### Changed
 - User manual fully illustrated: refreshed the dashboard and Settings screenshots to the current light theme + FCLX Studios branding, and added the drag-to-snap and monitor-identify illustrations. Documents the Minimize all / Restore all button. (Documentation only — ships the updated bundled PDF manuals, EN + ES.)
@@ -126,7 +131,8 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 ### Added
 - First InstaDesk release — establishes the signed auto-update baseline. Windows x64 installer.
 
-[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.1.28...HEAD
+[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.1.29...HEAD
+[0.1.29]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.1.29
 [0.1.28]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.1.28
 [0.1.27]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.1.27
 [0.1.26]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.1.26
