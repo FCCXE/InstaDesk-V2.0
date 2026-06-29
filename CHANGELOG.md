@@ -10,6 +10,12 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 
 ## [Unreleased]
 
+## [0.1.30] - 2026-06-29
+
+### Fixed
+- **Capture Layout no longer traps the window.** With many windows captured, the review dialog's header and Cancel/Save footer could land off-screen with no way to scroll or exit (you had to force-close the app). The dialog now renders at the top level so it stays fully on screen, and you can also close it with **Esc** or by clicking outside it.
+- **Capture Layout now includes narrow windows.** Windows narrower than 500 px (e.g. an app's slim side-panel window) were silently left out of a capture. The capture review now uses a smaller minimum size — you pick which windows to keep anyway — while window snapping keeps the stricter filter that hides splash/loading windows.
+
 ## [0.1.29] - 2026-06-29
 
 ### Added
@@ -131,7 +137,8 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 ### Added
 - First InstaDesk release — establishes the signed auto-update baseline. Windows x64 installer.
 
-[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.1.29...HEAD
+[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.1.30...HEAD
+[0.1.30]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.1.30
 [0.1.29]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.1.29
 [0.1.28]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.1.28
 [0.1.27]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.1.27
