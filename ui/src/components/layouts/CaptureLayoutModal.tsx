@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import type { Assignment, CapturedWindow } from "../../services/api";
 
@@ -71,6 +72,16 @@ export default function CaptureLayoutModal({ windows, monitorLabel, onCancel, on
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
+  // Esc closes the modal (unless a save is in flight) — a guaranteed exit even if
+  // the footer is ever scrolled or clipped out of view.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !busy) onCancel();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [busy, onCancel]);
+
   // Group window indices by monitor for display.
   const byMonitor = useMemo(() => {
     const m = new Map<number, number[]>();
@@ -126,9 +137,22 @@ export default function CaptureLayoutModal({ windows, monitorLabel, onCancel, on
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl border border-line bg-surface shadow-xl">
+  // Rendered through a portal to document.body so it escapes the App's
+  // `transform: scale()` construct (App.tsx). A transformed ancestor becomes the
+  // containing block for this `position: fixed` overlay, which mis-sizes it and
+  // pushes the header + footer (Cancel) out of view — the trap this fixes. The
+  // backdrop (click outside the card) also closes.
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
+      onClick={() => { if (!busy) onCancel(); }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => e.stopPropagation()}
+        className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl border border-line bg-surface shadow-xl"
+      >
         {/* Header */}
         <div className="border-b border-line px-5 py-3">
           <div className="text-base font-semibold text-fg">{t("capture.title")}</div>
@@ -236,6 +260,7 @@ export default function CaptureLayoutModal({ windows, monitorLabel, onCancel, on
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
