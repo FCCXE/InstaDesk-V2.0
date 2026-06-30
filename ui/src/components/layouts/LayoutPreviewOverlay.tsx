@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { api, type Assignment, type SavedPreset } from "../../services/api";
 import { useAppState, type Monitor } from "../../state/AppState";
@@ -97,15 +98,20 @@ export default function LayoutPreviewOverlay() {
   const slotForHeader = underscoreIx > 0 ? previewedLayoutId.slice(underscoreIx + 1) : previewedLayoutId;
   const titleForHeader = `${kindForHeader === "general" ? t("layouts.layout") : t("layouts.single")} ${slotForHeader.toUpperCase()}`;
 
-  return (
+  // Rendered as a FULL-WINDOW modal via a portal to document.body (not confined to
+  // the center pane, and free of the App's scaling transform) so the monitor array
+  // gets the whole window — large, legible tiles/labels even for several wide
+  // monitors. Backdrop click / Esc / the header button all close it.
+  return createPortal(
     <div
-      // Semi-transparent backdrop. Click here closes the overlay; clicks
-      // INSIDE the panel are stopped from propagating.
-      className="absolute inset-0 z-30 flex flex-col items-stretch bg-slate-900/40 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[2px]"
       onClick={() => setPreviewedLayout(null)}
     >
       <div
-        className="m-3 flex flex-1 flex-col rounded-2xl border border-line bg-surface/95 shadow-2xl"
+        // Definite height (not max-h) so the inner flex column can divide it and
+        // the monitor grid (flex-1) actually gets height — a max-h alone collapses
+        // the flex children to zero.
+        className="flex h-[88vh] w-[min(96vw,1280px)] flex-col rounded-2xl border border-line bg-surface shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header: layout name + close. */}
@@ -146,7 +152,8 @@ export default function LayoutPreviewOverlay() {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -168,9 +175,26 @@ function PreviewBody({ preset, monitors }: { preset: SavedPreset; monitors: Moni
   const { t } = useTranslation();
   const layout = useMemo(() => {
     const byMonitor = new Map<number, Assignment[]>();
-    for (const a of preset.assignments) {
+    const push = (a: Assignment) => {
       if (!byMonitor.has(a.monitor)) byMonitor.set(a.monitor, []);
       byMonitor.get(a.monitor)!.push(a);
+    };
+    for (const a of preset.assignments) {
+      // A multi-window app expands into one tile per contained window, placed on
+      // each window's own monitor — so the preview shows the real arrangement
+      // (instead of one placeholder tile). The label is the distinct part of the
+      // window title (after the " — " separator), e.g. "World Map".
+      if (a.type === "multiWindowApp" && Array.isArray(a.windows)) {
+        const EM = "—";
+        for (const w of a.windows) {
+          const label = w.title.includes(EM)
+            ? w.title.slice(w.title.lastIndexOf(EM) + 1).trim()
+            : w.title;
+          push({ type: "program", title: label, monitor: w.monitor, grid: w.grid, gridSize: w.gridSize });
+        }
+        continue;
+      }
+      push(a);
     }
     const indices = [...byMonitor.keys()].sort((a, b) => a - b);
     const items = indices.map((idx) => {
@@ -315,85 +339,80 @@ function MonitorPanel({
             />
           ))}
 
-          {/* Filled regions with title + optional args label. */}
-          {assignments.map((a, ai) => {
-            const parts = (a.grid || "")
-              .split(",")
-              .map((s) => parseInt(s.trim(), 10));
-            if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n) || n <= 0)) {
-              return null;
-            }
-            const [gx, gy, gw, gh] = parts;
-            const ax = (gx - 1) * cellW;
-            const ay = (gy - 1) * cellH;
-            const aw = gw * cellW;
-            const ah = gh * cellH;
-
-            const title = a.title ?? "?";
-            const args = (a.args ?? "").trim();
-
-            // Font sizes scale with the region's smaller dimension.
-            // Bounds keep them legible at small regions and not absurd at
-            // large ones.
-            const minDim = Math.min(aw, ah);
-            const titleFont = Math.max(28, Math.min(70, minDim * 0.16));
-            const argsFont = titleFont * 0.7;
-            // Show args only if the region is tall enough to host two
-            // lines without overlap.
-            const canShowArgs = ah >= titleFont * 3.2 && args.length > 0;
-
-            // Crude char-width estimate (each char ~= 0.55 * fontSize).
-            const titleMaxChars = Math.max(6, Math.floor(aw / (titleFont * 0.55)));
-            const argsMaxChars = Math.max(6, Math.floor(aw / (argsFont * 0.55)));
-
+          {/* Compute every tile's geometry once, then draw ALL rectangles, THEN
+              all labels on top — so a label is never hidden behind an overlapping
+              neighbor's rectangle (e.g. two windows sharing a grid column). Tiles
+              are slightly translucent so overlaps read clearly. */}
+          {(() => {
+            const tiles = assignments
+              .map((a, ai) => {
+                const parts = (a.grid || "").split(",").map((s) => parseInt(s.trim(), 10));
+                if (parts.length !== 4 || parts.some((n) => !Number.isFinite(n) || n <= 0)) return null;
+                const [gx, gy, gw, gh] = parts;
+                const ax = (gx - 1) * cellW;
+                const ay = (gy - 1) * cellH;
+                const aw = gw * cellW;
+                const ah = gh * cellH;
+                const title = a.title ?? "?";
+                const args = (a.args ?? "").trim();
+                // Font sizes scale with the region's smaller dimension; bounds keep
+                // them legible at small regions and not absurd at large ones.
+                const minDim = Math.min(aw, ah);
+                const titleFont = Math.max(28, Math.min(70, minDim * 0.16));
+                const argsFont = titleFont * 0.7;
+                const canShowArgs = ah >= titleFont * 3.2 && args.length > 0;
+                // Crude char-width estimate (each char ~= 0.55 * fontSize).
+                const titleMaxChars = Math.max(6, Math.floor(aw / (titleFont * 0.55)));
+                const argsMaxChars = Math.max(6, Math.floor(aw / (argsFont * 0.55)));
+                return { ai, ax, ay, aw, ah, title, args, titleFont, argsFont, canShowArgs, titleMaxChars, argsMaxChars };
+              })
+              .filter((t): t is NonNullable<typeof t> => t !== null);
             return (
-              <g key={ai}>
-                <rect
-                  x={ax + 4}
-                  y={ay + 4}
-                  width={Math.max(0, aw - 8)}
-                  height={Math.max(0, ah - 8)}
-                  rx={8}
-                  ry={8}
-                  fill="#bae6fd" /* sky-200 */
-                  stroke="#0284c7" /* sky-600 */
-                  strokeWidth={2}
-                />
-                <text
-                  x={ax + aw / 2}
-                  y={
-                    canShowArgs
-                      ? ay + ah / 2 - argsFont * 0.2
-                      : ay + ah / 2 + titleFont / 3
-                  }
-                  fontSize={titleFont}
-                  fill="#0c4a6e" /* sky-900 */
-                  textAnchor="middle"
-                  style={{
-                    fontFamily: "system-ui, -apple-system, sans-serif",
-                    fontWeight: 600,
-                  }}
-                >
-                  {truncate(title, titleMaxChars)}
-                </text>
-                {canShowArgs && (
-                  <text
-                    x={ax + aw / 2}
-                    y={ay + ah / 2 + titleFont * 0.95}
-                    fontSize={argsFont}
-                    fill="#075985" /* sky-800 */
-                    textAnchor="middle"
-                    style={{
-                      fontFamily: "system-ui, -apple-system, sans-serif",
-                      fontWeight: 400,
-                    }}
-                  >
-                    {truncate(args, argsMaxChars)}
-                  </text>
-                )}
-              </g>
+              <>
+                {tiles.map((t) => (
+                  <rect
+                    key={`r-${t.ai}`}
+                    x={t.ax + 4}
+                    y={t.ay + 4}
+                    width={Math.max(0, t.aw - 8)}
+                    height={Math.max(0, t.ah - 8)}
+                    rx={8}
+                    ry={8}
+                    fill="#bae6fd" /* sky-200 */
+                    fillOpacity={0.82}
+                    stroke="#0284c7" /* sky-600 */
+                    strokeWidth={2}
+                  />
+                ))}
+                {tiles.map((t) => (
+                  <g key={`t-${t.ai}`}>
+                    <text
+                      x={t.ax + t.aw / 2}
+                      y={t.canShowArgs ? t.ay + t.ah / 2 - t.argsFont * 0.2 : t.ay + t.ah / 2 + t.titleFont / 3}
+                      fontSize={t.titleFont}
+                      fill="#0c4a6e" /* sky-900 */
+                      textAnchor="middle"
+                      style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontWeight: 600 }}
+                    >
+                      {truncate(t.title, t.titleMaxChars)}
+                    </text>
+                    {t.canShowArgs && (
+                      <text
+                        x={t.ax + t.aw / 2}
+                        y={t.ay + t.ah / 2 + t.titleFont * 0.95}
+                        fontSize={t.argsFont}
+                        fill="#075985" /* sky-800 */
+                        textAnchor="middle"
+                        style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontWeight: 400 }}
+                      >
+                        {truncate(t.args, t.argsMaxChars)}
+                      </text>
+                    )}
+                  </g>
+                ))}
+              </>
             );
-          })}
+          })()}
         </svg>
       </div>
     </div>

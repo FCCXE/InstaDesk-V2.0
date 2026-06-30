@@ -28,7 +28,12 @@
     "saving": "Guardando…",
     "save": "Guardar Layout ({{count}})",
     "nothingIncluded": "Incluye al menos una ventana.",
-    "saved": "Capturado «{{name}}» • {{count}} ventanas"
+    "saved": "Capturado «{{name}}» • {{count}} ventanas",
+    "multiWindowApps": "Apps multiventana",
+    "launchOnceArrange": "{{count}} ventanas · iniciar una vez, ordenar cada una por título",
+    "launchProgPlaceholder": "Programa de inicio (p. ej. powershell.exe)",
+    "launchArgsPlaceholder": "Argumentos (p. ej. -File \"…\\Launch.ps1\" -ExternalLayout)",
+    "launchHint": "Cada ventana se coloca por su título — las ventanas deben tener títulos distintos."
   },
   "header": {
     "dashboard": "Panel de Control",

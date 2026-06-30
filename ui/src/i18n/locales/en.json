@@ -28,7 +28,12 @@
     "saving": "Saving…",
     "save": "Save Layout ({{count}})",
     "nothingIncluded": "Include at least one window.",
-    "saved": "Captured “{{name}}” • {{count}} windows"
+    "saved": "Captured “{{name}}” • {{count}} windows",
+    "multiWindowApps": "Multi-window apps",
+    "launchOnceArrange": "{{count}} windows · launch once, arrange each by title",
+    "launchProgPlaceholder": "Launch program (e.g. powershell.exe)",
+    "launchArgsPlaceholder": "Arguments (e.g. -File \"…\\Launch.ps1\" -ExternalLayout)",
+    "launchHint": "Each window is placed by its title — the windows must have distinct titles."
   },
   "header": {
     "dashboard": "DASHBOARD",

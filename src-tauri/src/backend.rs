@@ -1038,8 +1038,9 @@ async fn apply_preset(kind: &str, slot: &str, margin_px: Option<i64>) -> Result<
         .and_then(|s| serde_json::from_str(&s).map_err(|e| e.to_string()))?;
     let assignments = raw.get("assignments").and_then(|v| v.as_array()).cloned().unwrap_or_default();
 
-    let mut bodies: Vec<LaunchBody> = Vec::new();
-    for a in &assignments {
+    let mut bodies: Vec<(usize, LaunchBody)> = Vec::new();
+    let mut mwapps: Vec<(usize, Value)> = Vec::new();
+    for (i, a) in assignments.iter().enumerate() {
         let has_url = a.get("url").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false);
         let has_prog = a.get("program").and_then(|v| v.as_str()).map(|s| !s.is_empty()).unwrap_or(false);
         let atype = a
@@ -1047,6 +1048,14 @@ async fn apply_preset(kind: &str, slot: &str, margin_px: Option<i64>) -> Result<
             .and_then(|v| v.as_str())
             .map(String::from)
             .unwrap_or_else(|| if has_url && !has_prog { "url".into() } else { "program".into() });
+        // Multi-window single-process app (e.g. an Electron app whose ONE launch
+        // command opens several windows): launch once, then arrange each window by
+        // title. Stored as { launch: {program, args}, windows: [{title, monitor,
+        // grid, gridSize}] }. Handled out-of-band from the per-program launch path.
+        if atype == "multiWindowApp" {
+            mwapps.push((i, a.clone()));
+            continue;
+        }
         let mut body: LaunchBody = serde_json::from_value(a.clone()).unwrap_or_default();
         if atype == "program" {
             body.url = None;
@@ -1067,17 +1076,17 @@ async fn apply_preset(kind: &str, slot: &str, margin_px: Option<i64>) -> Result<
             body.wait_ready_ms = Some(120);
         }
         body.margin_px = margin_px;
-        bodies.push(body);
+        bodies.push((i, body));
     }
-    if bodies.is_empty() {
+    if bodies.is_empty() && mwapps.is_empty() {
         return Ok(json!({ "ok": true, "results": [] }));
     }
 
-    // Group by program (url-only bodies together); run groups concurrently,
-    // each group's launches serially.
+    // Normal assignments: group by program (url-only bodies together); groups run
+    // concurrently, each group's launches serially.
     let mut groups: std::collections::BTreeMap<String, Vec<(usize, LaunchBody)>> =
         std::collections::BTreeMap::new();
-    for (i, b) in bodies.into_iter().enumerate() {
+    for (i, b) in bodies {
         let key = b.program.as_deref().map(|s| s.to_lowercase()).unwrap_or_else(|| "url-only".into());
         groups.entry(key).or_default().push((i, b));
     }
@@ -1091,11 +1100,134 @@ async fn apply_preset(kind: &str, slot: &str, margin_px: Option<i64>) -> Result<
             out
         })
         .collect();
-    let group_outputs = futures::future::join_all(group_futs).await;
+    // Multi-window apps run concurrently with the normal program groups.
+    let mw_futs: Vec<_> = mwapps
+        .into_iter()
+        .map(|(i, a)| async move { (i, apply_multiwindow(&a, margin_px).await) })
+        .collect();
+
+    let (group_outputs, mw_outputs) = futures::future::join(
+        futures::future::join_all(group_futs),
+        futures::future::join_all(mw_futs),
+    )
+    .await;
     let mut flat: Vec<(usize, Value)> = group_outputs.into_iter().flatten().collect();
+    flat.extend(mw_outputs);
     flat.sort_by_key(|(i, _)| *i);
     let results: Vec<Value> = flat.into_iter().map(|(_, r)| r).collect();
     Ok(json!({ "ok": true, "results": results }))
+}
+
+/// Apply a multi-window single-process app: launch its single command ONCE
+/// (detached), then place each window into a saved monitor+grid slot by matching
+/// the window TITLE. The arrange call doubles as the readiness poll — it fails
+/// while a window isn't up yet and succeeds once it is — so each window is retried
+/// for a bounded time, covering the app's (possibly slow) startup.
+async fn apply_multiwindow(a: &Value, margin_px: Option<i64>) -> Value {
+    let launch = a.get("launch").cloned().unwrap_or_else(|| json!({}));
+    let program = launch.get("program").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+    let args_line = launch.get("args").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    if program.is_empty() {
+        return json!({ "ok": false, "type": "multiWindowApp", "error": "missing launch.program" });
+    }
+    if let Err(e) = spawn_program_detached(&expand_env_vars(&program), &args_line) {
+        return json!({ "ok": false, "type": "multiWindowApp", "error": format!("launch failed: {e}") });
+    }
+
+    let windows = a.get("windows").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+    let mut win_results: Vec<Value> = Vec::new();
+    for w in &windows {
+        let title = w.get("title").and_then(|v| v.as_str()).unwrap_or("").to_string();
+        if title.is_empty() {
+            continue;
+        }
+        let monitor = w.get("monitor").and_then(|v| v.as_i64()).unwrap_or(1);
+        let grid = w.get("grid").and_then(|v| v.as_str()).unwrap_or("1,1,3,3").to_string();
+        let grid_size = w.get("gridSize").and_then(|v| v.as_str()).unwrap_or("6x6").to_string();
+        let mut flags: Vec<String> = vec![
+            "--snap-region".into(),
+            "--title".into(), title.clone(),
+            "--monitor".into(), monitor.to_string(),
+            "--grid".into(), grid,
+            "--grid-size".into(), grid_size,
+            "--activate".into(), "false".into(),
+            "--frameMode".into(), "frameless".into(),
+        ];
+        if let Some(m) = margin_px {
+            if m > 0 {
+                flags.push("--cell-margin-px".into());
+                flags.push(m.to_string());
+            }
+        }
+        // Retry until the window appears (bounded, ~40s) — covers app startup.
+        let mut placed = false;
+        for _ in 0..40 {
+            let (_rc, out) = run_agent_raw(&flags).await;
+            if out.contains("\"ok\":true") {
+                placed = true;
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+        }
+        win_results.push(json!({ "title": title, "placed": placed }));
+    }
+    let all_placed = !win_results.is_empty()
+        && win_results.iter().all(|w| w.get("placed").and_then(|v| v.as_bool()).unwrap_or(false));
+    json!({ "ok": all_placed, "type": "multiWindowApp", "windows": win_results })
+}
+
+/// Run the agent with raw flags (e.g. `--snap-region`) and return (exit code,
+/// stdout). Like `run_launch` but flag-driven, short-timeout, stderr discarded.
+async fn run_agent_raw(flags: &[String]) -> (i32, String) {
+    let agent = agent_path();
+    if !agent.exists() {
+        return (1, format!("Agent not found at {}", agent.display()));
+    }
+    let so = match tempfile::tempfile() {
+        Ok(f) => f,
+        Err(e) => return (1, e.to_string()),
+    };
+    let so_read = match so.try_clone() {
+        Ok(f) => f,
+        Err(e) => return (1, e.to_string()),
+    };
+    let spawned = agent_command(flags)
+        .stdout(std::process::Stdio::from(so))
+        .stderr(std::process::Stdio::null())
+        .spawn();
+    let mut child = match spawned {
+        Ok(c) => c,
+        Err(e) => return (1, format!("spawn: {e}")),
+    };
+    let rc = match tokio::time::timeout(std::time::Duration::from_secs(15), child.wait()).await {
+        Ok(Ok(s)) => s.code().unwrap_or(1),
+        Ok(Err(_)) => 1,
+        Err(_) => {
+            let _ = child.kill().await;
+            124
+        }
+    };
+    (rc, read_temp(so_read))
+}
+
+/// Spawn an arbitrary program DETACHED (fire-and-forget) with a VERBATIM argument
+/// line — used to launch a multi-window app's single launch command. The args
+/// string is passed raw so embedded quotes (e.g. `-File "C:\path with space"`) are
+/// preserved. No console window; the child keeps running after we return.
+#[cfg(windows)]
+fn spawn_program_detached(program: &str, args_line: &str) -> std::io::Result<()> {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    let mut cmd = std::process::Command::new(program);
+    if !args_line.trim().is_empty() {
+        cmd.raw_arg(args_line);
+    }
+    cmd.creation_flags(CREATE_NO_WINDOW);
+    cmd.spawn().map(|_| ())
+}
+#[cfg(not(windows))]
+fn spawn_program_detached(_program: &str, _args_line: &str) -> std::io::Result<()> {
+    Ok(())
 }
 
 /// `POST /launch`

@@ -93,12 +93,58 @@ export default function CaptureLayoutModal({ windows, monitorLabel, onCancel, on
     return [...m.entries()].sort((a, b) => a[0] - b[0]);
   }, [windows]);
 
+  // Windows sharing a PID are one process; a group of >=2 is a candidate
+  // "multi-window app" — one launch command opens them all, so on apply we launch
+  // once and arrange each window by its title. Opt-in per group (default OFF =
+  // capture each window separately, the existing behavior).
+  const pidGroups = useMemo(() => {
+    const m = new Map<number, number[]>();
+    windows.forEach((w, i) => {
+      const list = m.get(w.pid) ?? [];
+      list.push(i);
+      m.set(w.pid, list);
+    });
+    return [...m.entries()].filter(([, idxs]) => idxs.length >= 2);
+  }, [windows]);
+  const [asApp, setAsApp] = useState<Record<number, boolean>>({});
+  const [launchProg, setLaunchProg] = useState<Record<number, string>>({});
+  const [launchArgs, setLaunchArgs] = useState<Record<number, string>>({});
+
   const includedCount = included.filter(Boolean).length;
 
   const buildAssignments = (): Assignment[] => {
     const out: Assignment[] = [];
+    // 1. Multi-window apps (opt-in groups with a launch command): one assignment
+    //    carrying the launch command + each included window, arranged by title.
+    const usedPids = new Set<number>();
+    for (const [pid, idxs] of pidGroups) {
+      if (!asApp[pid]) continue;
+      const program = (launchProg[pid] ?? "").trim();
+      if (!program) continue; // a launch command is required to fold a group into an app
+      const appWindows = idxs
+        .filter((i) => included[i])
+        .map((i) => {
+          const w = windows[i];
+          return { title: w.title, monitor: w.monitor, grid: w.grid, gridSize: w.gridSize };
+        })
+        .filter((w) => w.title.length > 0);
+      if (appWindows.length === 0) continue;
+      const args = (launchArgs[pid] ?? "").trim();
+      out.push({
+        type: "multiWindowApp",
+        launch: { program, ...(args ? { args } : {}) },
+        windows: appWindows,
+        // Top-level monitor/grid are unused for this type — sane placeholders.
+        monitor: appWindows[0].monitor,
+        grid: "1,1,1,1",
+        gridSize: "6x6",
+      });
+      usedPids.add(pid);
+    }
+    // 2. Normal per-window assignments (skip windows folded into a multi-window app).
     windows.forEach((w, i) => {
       if (!included[i] || !w.exe) return;
+      if (usedPids.has(w.pid)) return;
       const raw = (urls[i] ?? "").split(/[\s\n]+/).map((s) => s.trim()).filter(Boolean);
       const a: Assignment = {
         type: "program",
@@ -163,6 +209,57 @@ export default function CaptureLayoutModal({ windows, monitorLabel, onCancel, on
 
         {/* Body — windows grouped by monitor */}
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3">
+          {/* Multi-window apps — opt-in: launch the app once, arrange each window
+              by title (for apps whose one process opens several windows). */}
+          {pidGroups.length > 0 && (
+            <div className="mb-4 rounded-lg border border-primary/40 bg-primary/5 p-3">
+              <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                {t("capture.multiWindowApps")}
+              </div>
+              <div className="space-y-2">
+                {pidGroups.map(([pid, idxs]) => {
+                  const w0 = windows[idxs[0]];
+                  return (
+                    <div key={pid}>
+                      <label className="flex items-center gap-2 text-[13px] text-fg">
+                        <input
+                          type="checkbox"
+                          checked={!!asApp[pid]}
+                          onChange={(e) => setAsApp((p) => ({ ...p, [pid]: e.target.checked }))}
+                          className="size-4 shrink-0 accent-primary"
+                        />
+                        <span className="font-medium">{appName(w0)}</span>
+                        <span className="text-[11px] text-muted">
+                          {t("capture.launchOnceArrange", { count: idxs.length })}
+                        </span>
+                      </label>
+                      {asApp[pid] && (
+                        <div className="mt-1.5 grid gap-1.5 pl-6">
+                          <input
+                            type="text"
+                            value={launchProg[pid] ?? ""}
+                            onChange={(e) => setLaunchProg((p) => ({ ...p, [pid]: e.target.value }))}
+                            placeholder={t("capture.launchProgPlaceholder")}
+                            className="w-full rounded-md border border-line bg-bg px-2 py-1 text-[12px] text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                          />
+                          <input
+                            type="text"
+                            value={launchArgs[pid] ?? ""}
+                            onChange={(e) => setLaunchArgs((p) => ({ ...p, [pid]: e.target.value }))}
+                            placeholder={t("capture.launchArgsPlaceholder")}
+                            className="w-full rounded-md border border-line bg-bg px-2 py-1 text-[12px] text-fg placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                          />
+                          <div className="text-[10px] text-muted">
+                            {t("capture.launchHint")}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {byMonitor.map(([mon, idxs]) => (
             <div key={mon} className="mb-4">
               <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">

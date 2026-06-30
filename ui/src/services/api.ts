@@ -53,8 +53,12 @@ export type LaunchResponse = {
   cmd: string
 }
 
+// One window of a multi-window single-process app (e.g. an Electron app). On apply,
+// the app's single launch command runs once and each window is placed by its title.
+export type MultiWindowAppWindow = { title: string; monitor: number; grid: string; gridSize: string }
+
 export type Assignment = {
-  type?: 'program' | 'url'
+  type?: 'program' | 'url' | 'multiWindowApp'
   program?: string
   url?: string
   title?: string
@@ -68,6 +72,9 @@ export type Assignment = {
   activate?: boolean
   topmost?: boolean
   waitReadyMs?: number
+  // `multiWindowApp` variant: one launch command opens N windows, each arranged by title.
+  launch?: { program: string; args?: string }
+  windows?: MultiWindowAppWindow[]
 }
 
 export type PresetKind = 'general' | 'single'
@@ -116,6 +123,7 @@ export type MonitorsResponse = { ok: boolean; monitors: ApiMonitor[] }
 export type CapturedWindow = {
   exe: string | null
   title: string
+  pid: number          // owning process id — windows sharing a pid are one app instance
   monitor: number
   grid: string
   gridSize: string

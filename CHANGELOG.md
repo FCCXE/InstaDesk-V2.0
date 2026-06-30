@@ -10,6 +10,11 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-30
+
+### Added
+- **Multi-window app layouts.** You can now capture and re-apply apps whose *single* launch command opens several windows (e.g. an Electron app). In the Capture review, a **Multi-window apps** section lets you treat such a group as one app: enter its launch command, and on Apply InstaDesk launches it **once** and places each window into its saved monitor + grid slot by matching the **window title** (so even narrow side-panels land correctly). The layout preview shows each window of the group, and now opens as a large, readable full-window view.
+
 ## [0.1.30] - 2026-06-29
 
 ### Fixed
@@ -137,7 +142,8 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 ### Added
 - First InstaDesk release — establishes the signed auto-update baseline. Windows x64 installer.
 
-[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.1.30...HEAD
+[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.2.0
 [0.1.30]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.1.30
 [0.1.29]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.1.29
 [0.1.28]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.1.28
