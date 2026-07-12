@@ -10,6 +10,11 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-12
+
+### Fixed
+- **File Explorer windows in a Layout now land on the correct monitor.** A File Explorer window that opened at a small remembered size was skipped by InstaDesk's new‑window detection (an internal size filter), so it repositioned the wrong window and the File Explorer window stayed wherever Windows last left it — often the wrong monitor. Detection now includes small newly‑opened windows, so File Explorer entries land where the Layout places them.
+
 ## [0.2.0] - 2026-06-30
 
 ### Added
@@ -142,7 +147,8 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 ### Added
 - First InstaDesk release — establishes the signed auto-update baseline. Windows x64 installer.
 
-[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.2.1
 [0.2.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.2.0
 [0.1.30]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.1.30
 [0.1.29]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.1.29
