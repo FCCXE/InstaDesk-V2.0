@@ -230,6 +230,35 @@ pub async fn arrange_all_windows(action: String) -> Result<Value, String> {
     }
 }
 
+/// Close EVERY normal top-level window across all monitors — the one-click
+/// "clear my desktop" action (the UI gates it behind a destructive confirm).
+/// Sends each window WM_CLOSE (the graceful "click the ✕" request) so an app
+/// with unsaved work shows its own save prompt — nothing is force-killed.
+/// InstaDesk's own windows are excluded and elevated apps are skipped +
+/// reported (Windows UIPI). Returns the agent's
+/// `{ ok, action, affected, skippedElevated }`.
+#[tauri::command]
+pub async fn close_all_windows() -> Result<Value, String> {
+    locked_guard()?;
+    #[cfg(windows)]
+    {
+        let (_rc, out, err, tmsg) = run_agent(&["--close-all".to_string()], 15).await?;
+        for line in out.lines().rev() {
+            let l = line.trim();
+            if l.starts_with('{') && l.ends_with('}') {
+                if let Ok(v) = serde_json::from_str::<Value>(l) {
+                    return Ok(v);
+                }
+            }
+        }
+        Err(format!("No result from agent. {}{}", err, tmsg))
+    }
+    #[cfg(not(windows))]
+    {
+        Ok(serde_json::json!({ "ok": true, "action": "close", "affected": 0, "skippedElevated": 0 }))
+    }
+}
+
 // ----------------------------------------------------------------------------
 // Shared storage helpers — mirror the Python server's DATA_DIR layout exactly,
 // so the Rust commands read/write the SAME files (existing presets keep working).

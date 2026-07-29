@@ -385,6 +385,16 @@ export const api = {
       ? invoke('arrange_all_windows', { action })
       : Promise.resolve({ ok: true, action, affected: 0, skippedElevated: 0 }),
 
+  // Close EVERY open window (the bottom bar gates this behind a destructive
+  // confirm). Sends each window a graceful close (WM_CLOSE — same as clicking
+  // its ✕), so an app with unsaved work shows its OWN save prompt; nothing is
+  // force-killed. InstaDesk's own windows and elevated apps can't be closed by
+  // the non-elevated helper and are excluded/skipped + reported. Web no-ops.
+  closeAllWindows: (): Promise<{ ok: boolean; action?: string; affected: number; skippedElevated: number; error?: string }> =>
+    inTauri()
+      ? invoke('close_all_windows')
+      : Promise.resolve({ ok: true, action: 'close', affected: 0, skippedElevated: 0 }),
+
   // Licensing/trial status (app-side, dormant by default). Returns enabled:false
   // when licensing is off (then the app is unrestricted). Web preview = off.
   licenseStatus: (): Promise<LicenseStatus> =>

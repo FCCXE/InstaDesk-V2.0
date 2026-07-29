@@ -10,6 +10,14 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-29
+
+### Added
+- **Close all windows.** A new one‑click button in the bottom bar (to the right of the grid‑size picker) closes every open window across all monitors at once. It always asks you to confirm first, and closes windows *gracefully* — any app with unsaved work still prompts you to save; nothing is force‑killed. InstaDesk itself and windows run as administrator are left open (and any skipped admin windows are reported).
+
+### Changed
+- **Tidier bottom control bar.** The bottom‑bar buttons are now evenly laid out and centered across the bar instead of crowding together and overlapping, and the small technical size readout next to "Ready" was removed — a cleaner, less cluttered strip.
+
 ## [0.2.1] - 2026-07-12
 
 ### Fixed
@@ -147,7 +155,8 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 ### Added
 - First InstaDesk release — establishes the signed auto-update baseline. Windows x64 installer.
 
-[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.3.0
 [0.2.1]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.2.1
 [0.2.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.2.0
 [0.1.30]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.1.30

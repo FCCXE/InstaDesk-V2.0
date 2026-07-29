@@ -100,6 +100,7 @@ export default function BottomControls() {
   // windows manually it just re-toggles next click.
   const [minimized, setMinimized] = useState(false)
   const [arrangeBusy, setArrangeBusy] = useState(false)
+  const [closeBusy, setCloseBusy] = useState(false)
 
   const onArrangeAll = async () => {
     if (arrangeBusy) return
@@ -124,6 +125,38 @@ export default function BottomControls() {
       setSnapState({ kind: 'err', msg: (e as Error).message })
     } finally {
       setArrangeBusy(false)
+    }
+  }
+
+  // Close all windows — the one-click "clear my desktop". Destructive, so it's
+  // gated behind a red confirm. The agent sends each window a graceful WM_CLOSE
+  // (apps with unsaved work show their own save prompt); InstaDesk and elevated
+  // apps are excluded/skipped. Result is surfaced in the shared status line.
+  const onCloseAll = async () => {
+    if (closeBusy) return
+    const ok = await confirm({
+      title: t('bottomBar.closeAllConfirmTitle'),
+      body: t('bottomBar.closeAllConfirmBody'),
+      confirmLabel: t('bottomBar.closeAll'),
+      danger: true,
+    })
+    if (!ok) return
+    setCloseBusy(true)
+    try {
+      const r = await api.closeAllWindows()
+      if (r.ok) {
+        track('close_all_windows', { affected: r.affected })
+        const base = t('bottomBar.closedAll', { count: r.affected })
+        const skip = r.skippedElevated > 0 ? t('bottomBar.skippedElevated', { count: r.skippedElevated }) : ''
+        setSnapState({ kind: 'ok', msg: base + skip })
+        window.setTimeout(() => setSnapState({ kind: 'idle' }), 5000)
+      } else {
+        setSnapState({ kind: 'err', msg: r.error ?? 'failed' })
+      }
+    } catch (e) {
+      setSnapState({ kind: 'err', msg: (e as Error).message })
+    } finally {
+      setCloseBusy(false)
     }
   }
 
@@ -215,17 +248,21 @@ export default function BottomControls() {
     'text-muted'
 
   return (
-    <div className="mt-4 h-12 border-t border-line bg-surface grid grid-cols-[284px_1fr_320px] gap-3 items-center">
-      {/* Left column (under the left pane) — kept empty so the controls
-          center under the CENTER grid column, not the whole bar. The
-          column template mirrors App.tsx's dashboard grid exactly, so the
-          buttons land precisely under the main grid (whose center sits
-          ~18px left of the bar midpoint because the left pane is narrower
-          than the right). */}
-      <div />
-
-      {/* Center column — Snap / Clear All / Grid, centered under the grid. */}
-      <div className="flex items-center justify-center gap-2">
+    <div className="mt-4 h-12 border-t border-line bg-surface flex items-center gap-2 px-3">
+      {/* Bottom-bar strip (2026-07-27): three zones — a fixed LEFT spacer, the
+          flex-1 CENTER that holds the button group (justify-center), and a fixed
+          RIGHT status zone. The group centers within the flex-1 middle; because
+          the left spacer is NARROWER than the right status zone, that middle is
+          biased left, so the group sits a touch left of the bar's raw center —
+          optically balancing the right-hand "Ready" so it reads as centered.
+          Shift = (rightZone − leftSpacer) / 2 ≈ (176 − 112) / 2 ≈ 32px; make the
+          LEFT spacer smaller to shift further left, larger to shift right. Both
+          zones are FIXED widths, so the centered group never moves as transient
+          snap messages come and go. Supersedes the earlier 3-column grid that
+          crammed every control into the center third (decision δ 2026-06-09). */}
+      {/* Left spacer — narrower than the right status zone (see above). */}
+      <div className="w-28 shrink-0" />
+      <div className="flex-1 flex items-center justify-center gap-2">
         {/* Snap moves first — it's the most-used utility action and the
             operator wanted it at the head of the row for muscle memory. */}
         <button
@@ -317,12 +354,27 @@ export default function BottomControls() {
             ))}
           </select>
         </label>
+        {/* Close all windows — one-click "clear my desktop", placed to the RIGHT
+            of the Grid picker (operator request 2026-07-27). Destructive (closes
+            every open window), so it's gated behind a red confirm; the agent
+            sends a graceful WM_CLOSE so apps with unsaved work still prompt to
+            save. Red styling signals the destruction, matching Clear All Grids. */}
+        <button
+          type="button"
+          onClick={onCloseAll}
+          disabled={closeBusy}
+          className="px-3 py-1.5 rounded-lg border border-red-300 bg-red-50 text-sm font-medium text-red-700 hover:bg-red-100 hover:border-red-400 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20 dark:hover:border-red-400/60"
+          title={t('bottomBar.closeAllTitle')}
+        >
+          {closeBusy ? t('bottomBar.closingAll') : `✕ ${t('bottomBar.closeAll')}`}
+        </button>
       </div>
-      {/* Right column (under the right pane) — status, right-aligned.
-          Truncates long transient snap messages (full text on hover). */}
-      <div className="flex min-w-0 items-center justify-end">
+      {/* Status — FIXED-width right zone (w-44), right-aligned; long transient
+          snap messages truncate (full text on hover). Its fixed width is what
+          holds the button group's center stable regardless of the message. */}
+      <div className="w-44 shrink-0 flex min-w-0 items-center justify-end">
         <span className={`truncate text-xs ${statusColor}`} title={statusText}>
-          {statusText} <span className="ml-2 text-muted">• 1280×820</span>
+          {statusText}
         </span>
       </div>
     </div>
