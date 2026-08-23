@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "checks": "node scripts/check-i18n-parity.mjs",
+    "checks": "node scripts/check-i18n-parity.mjs && node scripts/check-tour-safety.mjs",
     "prebuild": "npm run -s checks",
     "build": "tsc -b && vite build",
     "lint": "eslint .",

@@ -124,7 +124,7 @@ next build. Weaker than a commit hook, and far safer.
 |---|---|---|---|---|
 | I-0 | Programme setup — rollback tag + records committed | no | git | ✅ `cc3c64d` |
 | I-1 | **i18n parity check**, written first, proven to bite | no | build | ✅ |
-| I-2 | **Tour safety check** (3 axes), written before any tour code | no | build | ☐ |
+| I-2 | **Tour safety check** (3 axes), written before any tour code | no | build | ✅ |
 | I-3 | **Geometry spike** — throwaway, de-risks the scaled construct | no | Sandbox | ☐ |
 | I-4 | Anchor registry + anchor check (both directions), proven to bite | no | build | ☐ |
 | I-5 | Anchor sweep across 8 components (~40–48 attributes) | **yes** | build + Sandbox | ☐ |
@@ -235,7 +235,34 @@ on its own** and is explicitly not accepted as evidence.
     would miss, and is the specific defect F-8 exists to prevent.
 **Done when.** Both bite tests recorded; check wired and observed in the build output.
 **Verification.** Both failing transcripts, plus the passing run after removal.
-**Status.** ☐
+
+**Status. ✅ DONE 2026-08-23.** Delivered: `ui/scripts/check-tour-safety.mjs`, added to `checks`.
+
+- **Re-investigation:** the three lists were **re-derived from source**, not copied from §2.1.
+  Transitive closure re-run independently: **32 commands, 9 reach the agent, 23 do not, 9 + 23 = 32 ✔**.
+  Axis-2 filesystem operations re-confirmed at `backend.rs:616/630/745/758`.
+- **Enforces 18 identifiers plus a bypass rule.** Direct `invoke(` is forbidden in walkthrough
+  modules — without that, a step could reach a forbidden command straight past the identifier list.
+- **One deliberate addition beyond the ruled list:** `licenseActivate`. The ruling named
+  `license_deactivate` (frees a seat); activating **consumes** a seat from a limited device
+  allowance, so a tutorial must not call it either. Flagged in the source comment as an addition.
+- **Dry run:** passes with `0 walkthrough files found — NOTHING WAS CHECKED`. The wording is
+  deliberate: a pass over nothing is not evidence, and the increment that creates `src/tour/` must
+  see that line change.
+- **Bite tests — 4 of 4 caught**, each naming file, line, identifier and axis:
+  1. `closeAllWindows` (axis 1) → exit 1
+  2. **`clearAllGrids` (axis 3) → exit 1** — the case that never reaches Rust and that an
+     `api.ts`-level guard would not see. This is the specific defect F-8 exists to prevent.
+  3. `presetsDelete` (axis 2) → exit 1
+  4. `invoke('close_all_windows')` (bypass) → exit 1
+- **CONTROL — and this one matters as much as the bites:** a harmless walkthrough file
+  (`{ anchor: 'snap-button', title: 'This is Snap' }`) → **exit 0, "1 file scanned"**. A check
+  nobody has seen *pass* on real content is as unproven as one nobody has seen fail; this proves it
+  is not simply rejecting everything.
+- **Fixture fully removed**; `ui/src/tour/` confirmed absent, tree clean.
+- Observed running inside `npm run build` alongside the parity check; **exit 0, bundle 745.79 kB,
+  unchanged from baseline**.
+**Status.** ✅
 
 ---
 
