@@ -122,8 +122,8 @@ next build. Weaker than a commit hook, and far safer.
 
 | # | Increment | Risky? | Gate | Status |
 |---|---|---|---|---|
-| I-0 | Programme setup — rollback tag + records committed | no | git | ☐ |
-| I-1 | **i18n parity check**, written first, proven to bite | no | build | ☐ |
+| I-0 | Programme setup — rollback tag + records committed | no | git | ✅ `cc3c64d` |
+| I-1 | **i18n parity check**, written first, proven to bite | no | build | ✅ |
 | I-2 | **Tour safety check** (3 axes), written before any tour code | no | build | ☐ |
 | I-3 | **Geometry spike** — throwaway, de-risks the scaled construct | no | Sandbox | ☐ |
 | I-4 | Anchor registry + anchor check (both directions), proven to bite | no | build | ☐ |
@@ -151,7 +151,27 @@ next build. Weaker than a commit hook, and far safer.
 **Dry run.** n/a — no app code.
 **Done when.** `git rev-parse pre-assisted-help-v1` resolves; both documents are committed; `git status --short` no longer lists `docs/workplans/`.
 **Verification.** `git tag -l 'pre-assisted-help-v1'` returns the tag; `git log --oneline -1 -- docs/workplans/` shows the commit; `git diff --cached --stat` reviewed before the commit lands.
-**Status.** ☐
+
+**Status. ✅ DONE 2026-08-23.** Verification record:
+
+- Re-investigation: `main` == `origin/main` == `303fce2`, 0 ahead / 0 behind; tree carried only the
+  three known untracked entries.
+- Tag `pre-assisted-help-v1` created at `303fce2`; **verified by `git tag -l`**, not by `git rev-parse`
+  — `rev-parse` on a missing ref echoes the argument back, which read as a false positive on the
+  first attempt. Tag confirmed to point at the same commit as HEAD-at-the-time.
+- Staged with **explicit paths**; `git diff --cached --stat` reviewed and confirmed **exactly 2 files,
+  1128 insertions**. `docs/marketing/` and `ui/public/brand/FLCX Studios.png` confirmed still
+  untracked and **not** swept in.
+- ⚠ **Defect caught and corrected in-flight:** the first commit was made with PowerShell here-string
+  syntax (`@'…'@`) inside **Bash**, which wrapped the message in literal `@` lines. Caught by reading
+  the stored message back rather than trusting the commit's success. Amended (unpushed, so clean) via
+  `git commit --amend -F <file>`; leading/trailing `@` removed, em-dash and co-author line verified
+  intact, file count re-verified as 2. Final commit **`cc3c64d`**.
+- Pushed to `origin/main`; `HEAD == origin/main == cc3c64d` verified after an explicit `git fetch`.
+- Tag deliberately **kept local** per `docs/RELEASING.md §7`; confirmed **0** remote copies.
+- **Lesson for later increments:** this session's Bash tool is POSIX `sh`, not PowerShell. Use a
+  heredoc or `-F <file>` for any multi-line message. Recorded because the same mistake will otherwise
+  recur at I-15's release commit.
 
 ---
 
@@ -170,7 +190,32 @@ Read the JSON with Node's `fs`; **do not shell out to grep** (F-1).
 **Done when.** Check passes on the untouched tree; **both** bite tests recorded; the check is
 observed running inside `npm run build` output, not merely assumed to be wired.
 **Verification.** Paste of the failing run, the restored passing run, and the build output line showing `prebuild` executing.
-**Status.** ☐
+
+**Status. ✅ DONE 2026-08-23.** Delivered: `ui/scripts/check-i18n-parity.mjs`, wired as
+`checks` + `prebuild` in `ui/package.json`.
+
+- **Re-investigation:** counts re-derived at the moment of writing — **EN 471 / ES 471, sets
+  identical**. The investigation's figure was confirmed, not assumed.
+- **Detects three failure classes**, not one: MISSING (key in one locale only), SHAPE (object in one,
+  string in the other — `t()` returns an object and the UI renders nothing useful), and DUPLICATE.
+  Duplicates required a **raw-text scanner**: `JSON.parse` silently keeps the last value for a
+  repeated key, so a duplicate is *invisible* after parsing while one of the two strings is dead.
+- **Dry run:** PASS on the untouched tree — recorded, and explicitly **not** accepted as evidence.
+- **Bite tests — 3 of 3 caught** (harness took a SHA-256 backup and restored byte-for-byte):
+  1. deleted `help.openManual` from ES → exit 1, `[es] missing key present in en: help.openManual`
+  2. duplicated `common.cancel` → exit 1, `[es] duplicate key: common.cancel` — the case
+     `JSON.parse` cannot see
+  3. `help.sections` made a string instead of an object → exit 1, 17 problems reported
+- **Control:** re-run on the restored file → PASS. `git status` and `git diff` confirm
+  `ui/src/i18n/locales/` is **unmodified**.
+- **The wiring was proven too, not just the script.** A script that exists but never runs would still
+  print OK when invoked by hand. Deleted a key and ran `npm run build`: **exit 1, and `tsc`/`vite`
+  never executed** — the gate stopped the build before compilation. Then restored byte-identically.
+- **Bundle unchanged at 745.79 kB** — matches the baseline exactly; the check adds no runtime code.
+- ⚠ **Instrument fault caught during verification:** the first `npm run build` appeared to fail with
+  `EXIT=1`. It had not — `head -12` closed the pipe and killed npm with EPIPE. Re-run without
+  truncation: **exit 0**. Suspect the instrument before the program.
+**Status.** ✅
 
 ---
 
