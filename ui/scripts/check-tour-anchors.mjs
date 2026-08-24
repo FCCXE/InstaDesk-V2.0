@@ -106,8 +106,20 @@ const ATTR = /(?:data-tour|tourId)\s*=\s*"([a-z0-9-]+)"/g
 const DYNAMIC = /data-tour\s*=\s*\{/g
 const DYNAMIC_FORWARDERS = new Set(['components/RightPane.tsx'])
 
+// A walkthrough STEP names an anchor too. The engine catches an unregistered
+// one at runtime and says so plainly, but runtime detection is the safety net,
+// not the gate: a step pointing at a bogus anchor should never reach a build.
+const STEP_ANCHOR = /\banchor\s*:\s*['"]([a-zA-Z0-9_-]+)['"]/g
+
+// DevTourLauncher deliberately contains a broken step, because REQ-1 is signed
+// off by demonstrating that the exit survives one. It is dev-only and renders
+// nothing in production, so it is exempt - named explicitly rather than
+// pattern-matched, so a second exemption cannot appear by accident.
+const STEP_ANCHOR_EXEMPT = new Set(['tour/DevTourLauncher.tsx'])
+
 const files = walk(SRC)
 const found = new Map() // id -> [{file, line}]
+const stepAnchors = [] // {id, file, line} — anchors named by walkthrough STEPS
 for (const file of files) {
   const r = rel(file)
   const lines = readFileSync(file, 'utf8').split('\n')
@@ -116,6 +128,11 @@ for (const file of files) {
       const id = m[1]
       if (!found.has(id)) found.set(id, [])
       found.get(id).push({ file: r, line: i + 1 })
+    }
+    if (!STEP_ANCHOR_EXEMPT.has(r)) {
+      for (const m of line.matchAll(STEP_ANCHOR)) {
+        stepAnchors.push({ id: m[1], file: r, line: i + 1 })
+      }
     }
     if (DYNAMIC.test(line) && !DYNAMIC_FORWARDERS.has(r)) {
       problems.push(
@@ -148,6 +165,16 @@ for (const a of anchors) {
   }
 }
 
+// ---- 3b. every anchor a STEP names must be registered --------------------
+for (const s of stepAnchors) {
+  if (!seenIds.has(s.id)) {
+    problems.push(
+      `step names an UNREGISTERED anchor "${s.id}" at src/${s.file}:${s.line} — ` +
+        `the engine would report this at runtime; it must not reach a build`,
+    )
+  }
+}
+
 // ---- 4. direction B: every attribute in source is registered -------------
 for (const [id, hits] of found) {
   if (!seenIds.has(id)) {
@@ -171,5 +198,5 @@ if (anchors.length === 0 && found.size === 0) {
   // Say it loudly: a pass over nothing is not evidence. I-5 must see this change.
   console.log('tour anchors: 0 registered, 0 in source — NOTHING WAS CHECKED (I-5 populates this)')
 } else {
-  console.log(`tour anchors: OK — ${anchors.length} registered, ${found.size} in source, both directions agree`)
+  console.log(`tour anchors: OK — ${anchors.length} registered, ${found.size} in source, ${stepAnchors.length} step reference(s), all agree`)
 }

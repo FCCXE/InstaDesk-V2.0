@@ -10,6 +10,7 @@
 import { useRef, useState } from 'react'
 import { useConfirm } from '../components/common/ConfirmDialog'
 import { useAppState } from '../state/AppState'
+import { SPINE } from './chapters'
 import { useTour } from './TourProvider'
 import type { TourChapter } from './types'
 
@@ -124,7 +125,7 @@ export default function DevTourLauncher() {
       appRef.current.setAppsSubTab('URLs')
       await wait(250)
       const before = appRef.current.captureTourSnapshot()
-      push(`before : tab=${before.mainTab} sub=${before.appsSubTab} selection=${before.selection.length}`)
+      push(`before : tab=${before.mainTab} selection=${before.selection.length} assigned=(counted below)`)
 
       // 2. start a chapter whose only step is behind the Settings tab
       tourRef.current.start(SNAPSHOT_PROBE)
@@ -136,23 +137,34 @@ export default function DevTourLauncher() {
       // teaching "put an app in these squares" will legitimately change them.
       // Without this the restore path for those fields ships unexercised.
       appRef.current.toggleCell(0, 0)
+      // 2c. And ACTUALLY ASSIGN an app, so assignmentsByMonitor - the field a
+      // real user will change during the spine's "put an app in the region"
+      // step - is exercised rather than merely captured. Carried obligation
+      // from I-8: proving the restore MECHANISM on one field is not proof for
+      // the field that will actually move in anger.
+      appRef.current.setSelectedApp('Notepad')
+      await wait(150)
+      appRef.current.assignSelected()
       await wait(300)
       const during = appRef.current.captureTourSnapshot()
-      push(`during : tab=${during.mainTab} sub=${during.appsSubTab} selection=${during.selection.length}`)
+      const nAssigned = (m: Record<string, Record<string, string | null>>): number =>
+        Object.values(m).reduce((n, cells) => n + Object.values(cells).filter(Boolean).length, 0)
+      push(`during : tab=${during.mainTab} selection=${during.selection.length} assigned=${nAssigned(during.assignmentsByMonitor)}`)
 
       // 3. CONTROL — the tour must actually have moved something, on BOTH axes
       const movedTab = during.mainTab !== before.mainTab
       const movedSel = during.selection.length !== before.selection.length
-      const moved = movedTab && movedSel
+      const movedAssign = nAssigned(during.assignmentsByMonitor) !== nAssigned(before.assignmentsByMonitor)
+      const moved = movedTab && movedSel && movedAssign
       push(moved
-        ? '  CONTROL: state changed on both axes (tab + selection) — assertion is meaningful'
-        : `  CONTROL FAILED: tab moved=${movedTab} selection moved=${movedSel} — comparison proves nothing`)
+        ? '  CONTROL: tab + selection + ASSIGNMENTS all changed — assertion is meaningful'
+        : `  CONTROL FAILED: tab=${movedTab} selection=${movedSel} assigned=${movedAssign} — proves nothing`)
 
       // 4. exit, then compare
       tourRef.current.end()
       await wait(500)
       const after = appRef.current.captureTourSnapshot()
-      push(`after  : tab=${after.mainTab} sub=${after.appsSubTab} selection=${after.selection.length}`)
+      push(`after  : tab=${after.mainTab} selection=${after.selection.length} assigned=${nAssigned(after.assignmentsByMonitor)}`)
 
       const same = JSON.stringify(before) === JSON.stringify(after)
       if (!same) {
@@ -197,6 +209,11 @@ export default function DevTourLauncher() {
         {!tour.active && (
           <button type="button" onClick={() => tour.start(SCHEMATICS)} style={devBtn}>
             ▶ DEV: preview the 4 schematics
+          </button>
+        )}
+        {!tour.active && (
+          <button type="button" onClick={() => tour.start(SPINE)} style={{ ...devBtn, background: '#15803d', borderColor: '#22c55e' }}>
+            ▶ RUN THE SPINE (first 90 seconds)
           </button>
         )}
         <button type="button" onClick={runSnapshotAssertion} disabled={busy} style={devBtn}>

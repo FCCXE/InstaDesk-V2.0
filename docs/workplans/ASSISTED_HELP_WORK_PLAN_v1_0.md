@@ -132,7 +132,7 @@ next build. Weaker than a commit hook, and far safer.
 | I-7 | Lift `tab` / `sub` into `AppState` | **yes** | build + Sandbox | ✅ |
 | I-8 | Snapshot / restore + the "changed nothing" assertion | **yes** | build + Sandbox | ✅ |
 | I-9 | Schematic animation component (REQ-2) | no | build + Sandbox | ✅ |
-| I-10 | Spine chapter — content, EN only | no | build + Sandbox | ☐ |
+| I-10 | Spine chapter — content, EN only | no | build + Sandbox | ✅ |
 | I-11 | Remaining chapters — content, EN only | no | build + Sandbox | ☐ |
 | I-12 | Entry points — Help "Show me", Settings replay, first-run offer | no | build + Sandbox | ☐ |
 | I-13 | ES parity sweep (all new keys) | no | build | ☐ |
@@ -713,7 +713,53 @@ Layout → (schematic) what Apply does. **EN only**, deliberately, so the *feel*
 translation is paid for.
 **Done when.** The chapter runs start to finish; exit works at every step; safety check green.
 **Verification.** Operator walks it in the Sandbox as a first-time user would.
-**Status.** ☐
+
+**Status. ✅ DONE 2026-08-24.** Delivered `ui/src/tour/chapters.ts` with `SPINE` — six steps:
+choose a screen → decide the grid → pick a region → put an app in it → save it as a Layout → what
+Apply does (schematic, because applying is axis-1 forbidden).
+
+**Operator verdict: *"It feels great!"*** — the plan's stated acceptance for this increment.
+
+⚠ **Recorded precisely:** the operator attested the **feel**. The restore-on-exit behaviour flagged
+alongside it (see below) was **not explicitly ruled on**, so it stands as *proceeding on the stated
+recommendation*, not as approved. One line to change if that judgement differs later.
+
+**English only, and the reason is not laziness.** The parity gate verifies a key **exists** in both
+locales, not that it has been **translated**. Adding keys now would mean putting English text into
+`es.json` to keep the gate green — precisely the *"a Spanish user silently sees English"* failure the
+gate exists to prevent, committed on purpose. The prose therefore lives as plain strings until the
+wording settles; **I-13 extracts to i18n keys and adds Spanish in one pass**, so the gate never sees
+a fake translation.
+
+**➜ I-6's carried obligation DISCHARGED.** The anchor gate now verifies every step's `anchor` at
+**build** time, not only at runtime. `DevTourLauncher.tsx` is exempt — named explicitly, not
+pattern-matched — because it contains a deliberately broken step that REQ-1 is signed off against.
+Build output now reads **`6 step reference(s)`**.
+
+⚠ **The gate was written, looked correct, reported OK — and was completely blind.** Its regex reached
+the file with a literal **backspace control character (`0x08`)** where `` should have been: the Bash
+heredoc stripped a backslash level, Python read `` as its backspace escape, and the resulting
+regex required a literal backspace before the word `anchor` — matching **nothing, ever**. The
+read-back looked right because a control character is invisible, and the check happily reported
+`0 step reference(s)`. **Only the bite test exposed it.** Repaired at byte level; re-bitten (exit 1,
+names the bogus anchor with file and line) and the control now reports a live count. *Second time the
+heredoc backslash trap has bitten this programme — see I-4. Use the editor tool for anything
+containing escapes.*
+
+**➜ I-8's carried obligation DISCHARGED.** The snapshot assertion now also calls `setSelectedApp` +
+`assignSelected`, so `assignmentsByMonitor` — the field a real user changes at spine step 4 — is
+exercised rather than merely captured. The control demands movement on **three** axes
+(tab + selection + assignments); anything less returns `INVALID`.
+
+**Restore-on-exit, flagged for judgement:** a user who follows step 4 assigns an app, and exiting
+undoes it. Assessed as correct: the working grid is **session-only and never persisted**, step 5
+teaches saving it as a **Layout**, and a Layout is a **file** — outside the snapshot, so it survives.
+Practice is tidied; the artifact the user was taught to create is kept.
+
+**Known step-5 nuance:** `+ New Layout` is disabled until something is assigned, so skipping step 4
+leaves step 5's ring on a dimmed button. Honest behaviour, not a fault, but it changes how the step
+reads.
+**Status.** ✅
 
 ---
 
