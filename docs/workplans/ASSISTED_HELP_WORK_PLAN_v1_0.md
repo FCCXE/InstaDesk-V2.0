@@ -127,7 +127,7 @@ next build. Weaker than a commit hook, and far safer.
 | I-2 | **Tour safety check** (3 axes), written before any tour code | no | build | ✅ |
 | I-3 | **Geometry spike** — throwaway, de-risks the scaled construct | no | Sandbox | ✅ PASS |
 | I-4 | Anchor registry + anchor check (both directions), proven to bite | no | build | ✅ |
-| I-5 | Anchor sweep across 8 components (~40–48 attributes) | **yes** | build + Sandbox | ☐ |
+| I-5 | Anchor sweep across 8 components (~40–48 attributes) | **yes** | build + Sandbox | ✅ |
 | I-6 | Tour engine + REQ-1 exit, incl. broken-step exit proof | **yes** | build + Sandbox | ☐ |
 | I-7 | Lift `tab` / `sub` into `AppState` | **yes** | build + Sandbox | ☐ |
 | I-8 | Snapshot / restore + the "changed nothing" assertion | **yes** | build + Sandbox | ☐ |
@@ -415,7 +415,58 @@ edit touches 8 files including the two largest in the codebase (`RightPane.tsx` 
 identical to before** — attributes must change nothing.
 **Verification.** Side-by-side confirmation in the Sandbox that no layout, spacing or behaviour moved.
 Bundle size compared against the 745.79 kB baseline.
-**Status.** ☐
+
+**Status. ✅ DONE 2026-08-24.**
+
+Rollback point: **`pre-assisted-help-anchors` @ `242160c`** (local).
+
+**40 anchors across 8 files**, in four commits (`a48c082`, `4c0fa91`, `78923cc`, `8d3b1b0`):
+
+| Component | Anchors |
+|---|---|
+| `TopChrome.tsx` | 2 |
+| `BottomControls.tsx` | 8 |
+| `MonitorSelector.tsx` | 7 |
+| `DisplayArray.tsx` | 1 |
+| `WorkspaceGrid.tsx` | 2 |
+| `RightPane.tsx` | 9 |
+| `layouts/LayoutsPane.tsx` | 5 |
+| `settings/SettingsPane.tsx` | 6 |
+
+- **Scripted edits, each with an exactly-one-match assertion** before replacing. Several of these
+  buttons are distinguishable *only* by their `onClick` handler, so a positional or fuzzy replace
+  would have silently anchored the wrong control. A replace without an assertion is a hope.
+- **ACCEPTANCE PROVEN MECHANICALLY, not by eye.** Diffed against the rollback tag: **44 lines added,
+  18 removed, and ZERO added lines that are not an anchor or a doc comment.** Every one of the 18
+  removed lines **reappears byte-identical** once the inserted attribute is stripped and whitespace
+  normalised. The single non-attribute change is `TopTab` gaining an optional `tourId` prop, which is
+  purely additive.
+- **Bundle 747.00 kB** vs the 745.79 kB baseline — **+1.21 kB**, consistent with 40 attribute strings
+  and nothing else.
+
+⚠ **GATE HARDENED MID-INCREMENT — a hole found by using it.** The four right-pane tabs render through
+a shared `TopTab`, so anchoring them needs a forwarded prop — and `data-tour={tourId}` would have been
+read by the I-4 scanner as an anchor literally named **"tourId"**. Two fixes, both proven:
+  1. the scanner now accepts **string literals only**, in `data-tour="…"` or `tourId="…"` form, so the
+     literal at the **call site** is what gets verified;
+  2. `data-tour={…}` in any file not on a short allow-list of forwarders is now a **failure** — a
+     dynamic anchor is otherwise a way to smuggle in an unregistered, unverifiable one.
+  **Regression checked** (the tightened regex still finds all 18 pre-existing anchors) and **bitten**
+  (a fixture using a dynamic anchor in a non-forwarder file is caught by file and line).
+
+**Scope decision recorded:** `QuickPresetsManager` is deliberately **not** anchored. It is a modal, so
+its `reachableWhen` would need a `modal` kind — and inventing a state kind before any step requires it
+would be a contract nothing enforces. The Quick Presets chapter is served by `qp-manage-button`,
+`qp-dropdown` and `qp-apply-button` in the left pane.
+
+**Two anchors resolve to the FIRST card** (`layout-card-actions`, `layout-show-content`) because they
+are rendered per Layout card. Recorded in their `describes` rather than left to be discovered at
+runtime.
+
+**Sandbox confirmation received 2026-08-24** — operator: *"Everything seems in place."* Bottom bar
+spacing, tab row, left pane, Display Array and Settings rows all unchanged. The mechanical proof
+above was the primary evidence; this was the belt-and-braces.
+**Status.** ✅
 
 ---
 
