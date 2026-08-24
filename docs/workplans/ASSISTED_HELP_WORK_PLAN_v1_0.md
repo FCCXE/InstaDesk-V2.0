@@ -131,7 +131,7 @@ next build. Weaker than a commit hook, and far safer.
 | I-6 | Tour engine + REQ-1 exit, incl. broken-step exit proof | **yes** | build + Sandbox | ✅ |
 | I-7 | Lift `tab` / `sub` into `AppState` | **yes** | build + Sandbox | ✅ |
 | I-8 | Snapshot / restore + the "changed nothing" assertion | **yes** | build + Sandbox | ✅ |
-| I-9 | Schematic animation component (REQ-2) | no | build + Sandbox | ☐ |
+| I-9 | Schematic animation component (REQ-2) | no | build + Sandbox | ✅ |
 | I-10 | Spine chapter — content, EN only | no | build + Sandbox | ☐ |
 | I-11 | Remaining chapters — content, EN only | no | build + Sandbox | ☐ |
 | I-12 | Entry points — Help "Show me", Settings replay, first-run offer | no | build + Sandbox | ☐ |
@@ -668,7 +668,41 @@ SVG) rather than inventing a second picture of the same thing.
 measured against the 745.79 kB baseline and recorded.
 **Verification.** Operator confirms the animation communicates the action. Safety check still green —
 the animation must not import anything on the three lists.
-**Status.** ☐
+
+**Status. ✅ DONE 2026-08-24.** Delivered `ui/src/tour/SchematicAction.tsx`; `TourStep` gains an
+optional `schematic` field; the card renders it above the body text.
+
+- **Vocabulary borrowed, not invented:** monitor boxes, grid lines at the same weight and colour,
+  sky-200 tiles with a sky-600 stroke — the picture users already meet via **"Show content"** on every
+  Layout card. A second diagram of the same concept would have been a new thing to learn.
+- **No i18n keys added.** The component takes an `action` prop and draws; all prose comes from the
+  step. That keeps I-13 as the single translation pass and avoids polluting the parity check with
+  placeholder text.
+- **Bundle +2.89 kB** (760.72 → 763.61 kB). The D-11 ruling paying off concretely: recorded video
+  would have added **10–30 MB** to a download re-fetched on every update, and could not be diffed,
+  linted or type-checked.
+- Safety gate green throughout — the file draws, it never acts; no `api` import by construction.
+
+**Three defects found in the Sandbox review, all fixed:**
+
+1. **The card covered its own anchor.** Placement assumed a fixed 190 px card height; a card carrying
+   a schematic is ~300 px, so "place it above" was not high enough and it spilled back down over the
+   button being explained. **The card height is now MEASURED**, and it only goes below when it
+   genuinely fits. Confirmed on three bottom-bar anchors.
+2. **Three of four were indistinguishable at rest.** Apply, Snap and Minimize-all settle into the
+   same frame; only the motion differed. Under `prefers-reduced-motion` — where the settled state is
+   shown *deliberately* — **Apply and Snap were literally identical**. Snap now marks its **subject
+   window** (one solid tile against three muted, dashed ones), so "moves one" versus "moves them all"
+   reads with no motion at all.
+3. **Reduced-motion Close-all was a blank diagram.** Its settled state is fully faded, which is right
+   while looping but the wrong *still* frame: two empty monitors read as "failed to load", not as
+   "the windows closed". The static case now keeps a ghost at 16 % opacity.
+
+⚠ **Stated limitation, not fixed:** Minimize-all and Close-all still share a paused frame in normal
+motion — both begin from the settled arrangement and differ only in how they leave it. Accepted: the
+loop runs every 2.4 s, the card titles differ, and under reduced motion they *are* distinct
+(collapsed bars vs ghost).
+**Status.** ✅
 
 ---
 

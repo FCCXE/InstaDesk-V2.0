@@ -43,6 +43,39 @@ const DRY_RUN: TourChapter = {
   ],
 }
 
+/** All four walled-off actions, each on its real control, so the schematic can
+ *  be judged at the card's actual width rather than in isolation. */
+const SCHEMATICS: TourChapter = {
+  id: 'dev-schematics',
+  title: 'Schematics',
+  steps: [
+    {
+      anchor: 'qp-apply-button',
+      title: 'Apply a Layout',
+      body: 'Every app in the Layout opens and lands in its saved square, across all your monitors. The tour shows it rather than doing it.',
+      schematic: 'apply',
+    },
+    {
+      anchor: 'snap-button',
+      title: 'Snap',
+      body: 'The window you last used jumps into the region you pick.',
+      schematic: 'snap',
+    },
+    {
+      anchor: 'minimize-all-button',
+      title: 'Minimize all',
+      body: 'Every window drops out of the way; press again and each returns to the exact frame it was in.',
+      schematic: 'minimize-all',
+    },
+    {
+      anchor: 'close-all-button',
+      title: 'Close all windows',
+      body: 'Every window is asked to close gracefully — anything with unsaved work still prompts you first.',
+      schematic: 'close-all',
+    },
+  ],
+}
+
 /** One step, deliberately behind the Settings tab, so merely STARTING it forces
  *  the engine to navigate. That is what makes the D-12 assertion non-vacuous. */
 const SNAPSHOT_PROBE: TourChapter = {
@@ -159,6 +192,11 @@ export default function DevTourLauncher() {
         {!tour.active && (
           <button type="button" onClick={() => tour.start(DRY_RUN)} style={devBtn}>
             ▶ DEV: run tour dry-run
+          </button>
+        )}
+        {!tour.active && (
+          <button type="button" onClick={() => tour.start(SCHEMATICS)} style={devBtn}>
+            ▶ DEV: preview the 4 schematics
           </button>
         )}
         <button type="button" onClick={runSnapshotAssertion} disabled={busy} style={devBtn}>

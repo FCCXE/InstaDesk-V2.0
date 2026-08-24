@@ -23,6 +23,7 @@ import {
 import { createPortal } from 'react-dom'
 import { useAppState, type TourSnapshot } from '../state/AppState'
 import { anchorSelector, anchorSpec } from './anchors'
+import SchematicAction from './SchematicAction'
 import type { AnchorResolution, TourChapter } from './types'
 
 /** Above the app's modals (z-[80]) and BELOW ConfirmDialog (z-[100]) — a
@@ -296,14 +297,28 @@ function TourOverlay({
   const step = chapter.steps[index]
   const rect = resolution?.kind === 'ready' ? resolution.rect : null
 
-  // Card placement: below the anchor when there is room, otherwise above.
-  // Clamped to the viewport so it can never leave the screen — but note the
-  // EXIT does not depend on any of this (R1.3).
+  // The card's height is MEASURED, not assumed. A step carrying a schematic is
+  // roughly 300px tall against ~190 without one, and a hardcoded estimate put
+  // the card on top of the very control it was pointing at whenever the anchor
+  // sat low on screen (caught in the I-9 Sandbox review).
+  const cardRef = useRef<HTMLDivElement | null>(null)
+  const [cardH, setCardH] = useState(200)
+  useLayoutEffect(() => {
+    const h = cardRef.current?.getBoundingClientRect().height
+    if (h && Math.abs(h - cardH) > 2) setCardH(h)
+  })
+
+  // Below the anchor when it genuinely fits, otherwise above it. Never
+  // overlapping the anchor, and always inside the viewport. The EXIT depends on
+  // none of this (R1.3).
   const CARD_W = 340
+  const GAP = 12
   const card = (() => {
     if (!rect) return { left: Math.max(16, window.innerWidth / 2 - CARD_W / 2), top: 120 }
-    const below = rect.y + rect.h + 12
-    const top = below + 190 < window.innerHeight ? below : Math.max(16, rect.y - 190)
+    const below = rect.y + rect.h + GAP
+    const above = rect.y - GAP - cardH
+    const fitsBelow = below + cardH <= window.innerHeight - 16
+    const top = fitsBelow ? below : Math.max(16, above)
     const left = Math.min(Math.max(16, rect.x + rect.w / 2 - CARD_W / 2), window.innerWidth - CARD_W - 16)
     return { left, top }
   })()
@@ -362,6 +377,7 @@ function TourOverlay({
 
       {/* -------- Step card ------------------------------------------------ */}
       <div
+        ref={cardRef}
         role="dialog"
         aria-label={step.title}
         style={{
@@ -372,6 +388,11 @@ function TourOverlay({
         }}
       >
         <div style={{ fontWeight: 700, marginBottom: 6 }}>{step.title}</div>
+        {step.schematic && (
+          <div style={{ margin: '8px 0 10px' }}>
+            <SchematicAction action={step.schematic} />
+          </div>
+        )}
         <div style={{ color: '#cbd5e1' }}>{step.body}</div>
 
         {resolution && resolution.kind !== 'ready' && (

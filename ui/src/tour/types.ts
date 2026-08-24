@@ -1,5 +1,6 @@
 // Walkthrough step + chapter types.
 import type { AnchorSpec } from './anchors'
+import type { SchematicAction } from './SchematicAction'
 
 export type TourStep = {
   /** Anchor id from the registry. Must be registered — the engine treats an
@@ -7,6 +8,10 @@ export type TourStep = {
   anchor: string
   title: string
   body: string
+  /** Show what a WALLED-OFF action would do, without performing it (REQ-2).
+   *  The four actions on axis 1 take effect outside the app window, so a live
+   *  tour can only describe them; this draws them instead. */
+  schematic?: SchematicAction
 }
 
 export type TourChapter = {
