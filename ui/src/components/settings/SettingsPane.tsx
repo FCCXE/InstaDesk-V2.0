@@ -154,7 +154,7 @@ export default function SettingsPane() {
       <div className="mb-2 text-lg font-semibold text-fg">{t("settings.title")}</div>
 
       {/* Scrollable content */}
-      <div className="min-h-0 flex-1 overflow-y-auto pr-2">
+      <div data-tour="settings-list" className="min-h-0 flex-1 overflow-y-auto pr-2">
         <div className="flex flex-col gap-4">
           <Section title={t("settings.general")}>
             <Row>
@@ -164,6 +164,7 @@ export default function SettingsPane() {
             <Row>
               <Label>{t("settings.theme")}</Label>
               <select
+                data-tour="settings-theme"
                 value={theme}
                 onChange={(e) => setTheme(e.target.value as ThemeSetting)}
                 className="h-7 min-w-[160px] rounded-md border border-line bg-raised px-3 text-xs font-medium text-fg hover:bg-raised focus:outline-none focus:ring-2 focus:ring-ring"
@@ -177,6 +178,7 @@ export default function SettingsPane() {
             <Row>
               <Label>{t("settings.language")}</Label>
               <select
+                data-tour="settings-language"
                 value={i18n.language === "es" ? "es" : "en"}
                 onChange={(e) => setLang(e.target.value as Lang)}
                 className="h-7 min-w-[160px] rounded-md border border-line bg-raised px-3 text-xs font-medium text-fg hover:bg-line/60 focus:outline-none focus:ring-2 focus:ring-ring"
@@ -197,6 +199,7 @@ export default function SettingsPane() {
             <Row>
               <Label>{t("settings.defaultGridSize")}</Label>
               <select
+                data-tour="settings-default-grid"
                 value={selectedKey}
                 onChange={(e) => {
                   const [c, r] = e.target.value.split("x").map((n) => parseInt(n, 10));
@@ -217,6 +220,7 @@ export default function SettingsPane() {
             <Row>
               <Label>{t("settings.windowMargin")}</Label>
               <select
+                data-tour="settings-window-margin"
                 value={String(windowMargin)}
                 onChange={(e) => setWindowMargin(parseInt(e.target.value, 10) || 0)}
                 className="h-7 min-w-[160px] rounded-md border border-line bg-raised px-3 text-xs font-medium text-fg hover:bg-raised focus:outline-none focus:ring-2 focus:ring-ring"
@@ -243,6 +247,7 @@ export default function SettingsPane() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
+                    data-tour="settings-check-updates"
                     onClick={onCheckUpdates}
                     disabled={updState === "checking" || updState === "installing"}
                     className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 disabled:opacity-50 dark:text-sky-300"

@@ -596,6 +596,7 @@ export default function LayoutsPane() {
           <div className="flex items-center gap-2">
             <button
               type="button"
+              data-tour="layout-new-button"
               onClick={onNewLayout}
               disabled={savingNew || assignedCount === 0}
               className={[
@@ -626,6 +627,7 @@ export default function LayoutsPane() {
             />
             <button
               type="button"
+              data-tour="layout-import-button"
               onClick={triggerImport}
               className="h-9 flex-1 rounded-lg px-4 text-sm font-medium border border-line bg-raised text-fg hover:bg-raised"
               title={t("layouts.importTitle")}
@@ -664,7 +666,7 @@ export default function LayoutsPane() {
           on BOTH sides, which is what made the cards look inset vs the
           buttons — gone now that the scroll lives inside the plane. */}
       <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-line bg-surface p-2">
-        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
+        <div data-tour="layouts-list" className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
           <div className="flex flex-col gap-3">
           {layouts === null && (
             <div className="rounded-xl border border-line bg-surface p-4 text-sm text-muted">
@@ -787,6 +789,7 @@ function LayoutCard({
           <div className="mt-2">
             <button
               type="button"
+              data-tour="layout-show-content"
               onClick={onTogglePreview}
               className={[
                 "inline-flex h-7 items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors",
@@ -813,7 +816,7 @@ function LayoutCard({
               ~50% width, plenty of room for full labels. Visual order:
               top row = common actions (Apply, Edit), bottom row =
               utility actions (Export, Delete). */}
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          <div data-tour="layout-card-actions" className="mt-3 grid grid-cols-2 gap-2">
             <PrimaryBtn onClick={onApply} disabled={busy}>
               {busy ? t("layouts.applying") : t("layouts.apply")}
             </PrimaryBtn>

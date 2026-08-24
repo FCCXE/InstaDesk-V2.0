@@ -249,6 +249,105 @@
         "kind": "tab",
         "tab": "Help"
       }
+    },
+    {
+      "id": "layout-new-button",
+      "component": "components/layouts/LayoutsPane.tsx",
+      "describes": "+ New Layout - saves the current grid arrangement as a Layout",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Layouts"
+      }
+    },
+    {
+      "id": "layout-import-button",
+      "component": "components/layouts/LayoutsPane.tsx",
+      "describes": "Import - loads a Layout from a .json file",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Layouts"
+      }
+    },
+    {
+      "id": "layouts-list",
+      "component": "components/layouts/LayoutsPane.tsx",
+      "describes": "the scrolling list of saved Layout cards",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Layouts"
+      }
+    },
+    {
+      "id": "layout-card-actions",
+      "component": "components/layouts/LayoutsPane.tsx",
+      "describes": "a Layout card's Apply / Edit / Export / Delete buttons (resolves to the FIRST card - it is rendered per card)",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Layouts"
+      }
+    },
+    {
+      "id": "layout-show-content",
+      "component": "components/layouts/LayoutsPane.tsx",
+      "describes": "Show content - opens the schematic preview of what a Layout contains (resolves to the FIRST card)",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Layouts"
+      }
+    },
+    {
+      "id": "settings-list",
+      "component": "components/settings/SettingsPane.tsx",
+      "describes": "the scrolling Settings list",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Settings"
+      }
+    },
+    {
+      "id": "settings-theme",
+      "component": "components/settings/SettingsPane.tsx",
+      "describes": "Theme - Light / Dark / System",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Settings"
+      }
+    },
+    {
+      "id": "settings-language",
+      "component": "components/settings/SettingsPane.tsx",
+      "describes": "Language - English / Espanol",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Settings"
+      }
+    },
+    {
+      "id": "settings-default-grid",
+      "component": "components/settings/SettingsPane.tsx",
+      "describes": "Default grid size for monitors with no explicit override",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Settings"
+      }
+    },
+    {
+      "id": "settings-window-margin",
+      "component": "components/settings/SettingsPane.tsx",
+      "describes": "Window margin - bezel padding so tiled windows clear the monitor frame",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Settings"
+      }
+    },
+    {
+      "id": "settings-check-updates",
+      "component": "components/settings/SettingsPane.tsx",
+      "describes": "Check for updates - how a new signed version is fetched and installed",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Settings"
+      }
     }
   ]
 }
