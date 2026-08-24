@@ -10,6 +10,16 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 
 ## [Unreleased]
 
+### Added
+- **Guided Tour — learn InstaDesk from inside InstaDesk.** A new button in the top bar opens a short, guided walkthrough that points at the real controls and explains them as you go. Nine chapters, each a couple of minutes at most: the essentials, the grid, adding apps, Layouts, Quick Presets, URLs & Favorites, Snap and the bottom bar, monitors and settings, and what to check when something looks wrong. Pick whichever topic you came for — you don't have to sit through the rest.
+- **An Express Tour on start‑up.** A short welcome covers the essentials in about ninety seconds. It appears each time you open InstaDesk until you tick **Don't show this again**, and you can leave it at any point.
+- **"Show me" beside every Help topic.** Each section in the Help tab now offers to walk you through it, so you can be shown instead of reading.
+- **Diagrams for the things a tour shouldn't do to you.** Applying a Layout, Snap, Minimize all and Close all are drawn as small animations rather than performed, so you can see what each one does without it happening to your desktop.
+- The Guided Tour is fully available in **English and Spanish**.
+
+### Changed
+- The Guided Tour never moves your windows, never opens or closes anything, and never changes a saved Layout or Quick Preset. It puts the app back exactly as it found it when you leave — including which tab you were on and how far each panel was scrolled.
+
 ## [0.3.0] - 2026-07-29
 
 ### Added

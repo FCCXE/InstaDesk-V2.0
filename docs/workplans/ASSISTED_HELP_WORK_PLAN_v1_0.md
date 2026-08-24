@@ -136,7 +136,7 @@ next build. Weaker than a commit hook, and far safer.
 | I-11 | Remaining chapters (9 total, incl. URLs & Favorites) | no | build + Sandbox | ✅ |
 | I-12 | Entry points — Guided Tour button, menu, Help "Show me", Settings, first-run | no | build + Sandbox | ✅ |
 | I-13 | Full Spanish — prose moved INTO the gate's reach, then translated | no | build | ✅ |
-| I-14 | Telemetry events (5, incl. `tour_abandoned {atStep}`) | no | build + Sandbox | ◐ `tour_completed` unobserved |
+| I-14 | Telemetry events (5, incl. `tour_abandoned {atStep}`) | no | build + Sandbox | ✅ |
 | I-15 | Release v0.4.0 — Sandbox installer gate, CHANGELOG, bump, tag | **yes** | full | ☐ |
 
 ---
@@ -835,6 +835,35 @@ the Guided Tour button through to Finish.
 **Dev-only artifact recorded** so nobody misreads it later: the snapshot probe borrows the
 `monitorsSettings` chapter id, so a dev event log shows phantom one-step abandonments of that
 chapter. The probe does not exist in production.
+
+**✅ CLOSED 2026-08-24 — and the observation found a real defect that reading the code did not.**
+
+Walking a chapter to Finish emitted **BOTH** `tour_completed` **and** `tour_abandoned{atStep:6,
+ofSteps:6}`. Every finished tour would also have been logged as abandoned **at its final step**,
+making the last step of every chapter look like the biggest drop-off point when it is the success
+point. **Not inverted data — plausible data**, which is far harder to notice and would have been
+acted on.
+
+**Cause:** the completion decision lived *inside* the `setIndex` updater, where it set a ref and
+queued `end()`. `React.StrictMode` (`main.tsx:49`) invokes updaters **twice** precisely to surface
+that impurity, so `end()` ran twice — the first emitted `tour_completed` and cleared the flag, the
+second found it false and emitted `tour_abandoned`.
+
+**Fix:** the decision is made from refs *before* any state update, and the updater is now pure
+(`i => i + 1`). The other two updaters were audited and are pure. The double-invoke is
+development-only, but the impurity was not: React may replay an updater whenever it likes, and
+*"it probably will not happen in production"* is the reassuring reading.
+
+**Verified trail (operator):** `tour_abandoned{atStep:1}` (probe) → `tour_menu_opened` →
+`tour_started{steps:6}` → `tour_step ×6` → `tour_completed{steps:6}` **and nothing after it**. The
+probe's abandonment in the same trail is the **control**: it proves the fix did not simply suppress
+both events, which would have looked identical to a pass. All five events observed.
+
+⚠ **The lesson worth keeping:** I predicted this branch was risky and guessed the wrong mechanism
+entirely — I expected an inverted flag. Re-reading the code would not have found it; I wrote it,
+reviewed it, and believed it correct. It surfaced only because the events were made **observable**
+rather than assumed, and because a chapter was walked **to the end** — something the automated probe
+never does.
 
 ---
 

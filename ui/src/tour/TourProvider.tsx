@@ -222,20 +222,30 @@ export function TourProvider({ children }: { children: ReactNode }) {
   }, [captureTourSnapshot])
 
   const advance = useCallback(() => {
+    // The completion decision is made HERE, not inside the state updater.
+    //
+    // It used to live inside setIndex, where it set a ref and queued end().
+    // React.StrictMode invokes updaters twice on purpose to surface exactly that
+    // impurity, so end() ran twice: the first call emitted tour_completed and
+    // cleared the flag, the second found it false and emitted tour_abandoned.
+    // Every finished tour was therefore ALSO logged as abandoned at its final
+    // step — which would have made the last step look like the biggest drop-off
+    // point when it is the success point. Not inverted data; plausible data,
+    // which is worse.
+    //
+    // The double-invoke is development-only, but the impurity is not: React may
+    // replay an updater whenever it likes. An updater must be pure.
+    const c = chapterRef.current
+    if (!c) return
+    if (indexRef.current >= c.steps.length - 1) {
+      completedRef.current = true
+      end()
+      return
+    }
     setResolution(null)
     missingSince.current = null
-    setIndex((i) => {
-      const last = chapter ? chapter.steps.length - 1 : 0
-      if (i >= last) {
-        // Normal completion runs the SAME teardown as the exit button; the flag
-        // is what lets that one path report which of the two happened.
-        completedRef.current = true
-        queueMicrotask(end)
-        return i
-      }
-      return i + 1
-    })
-  }, [chapter, end])
+    setIndex((i) => i + 1)
+  }, [end])
 
   const back = useCallback(() => {
     setResolution(null)
