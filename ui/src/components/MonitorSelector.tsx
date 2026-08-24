@@ -220,7 +220,7 @@ export default function MonitorSelector() {
       {/* ---------------------------------------------------- */}
       {/*  QUICK PRESETS                                       */}
       {/* ---------------------------------------------------- */}
-      <div className="mb-6">
+      <div data-tour="quick-presets-section" className="mb-6">
         {/* Title row — Quick Presets label */}
         <div className="mb-2 flex items-center">
           <div className="text-[14px] font-semibold text-fg">{t('monitor.quickPresets')}</div>
@@ -238,6 +238,7 @@ export default function MonitorSelector() {
         <div className="mb-3 flex items-stretch gap-2">
           <button
             type="button"
+            data-tour="qp-manage-button"
             onClick={() => setQpManagerOpen(true)}
             className="flex min-h-8 flex-1 items-center justify-center gap-1.5 rounded-lg border border-sky-300 bg-sky-50 px-3 py-1 text-center text-[12px] font-semibold leading-tight text-sky-700 shadow-sm hover:bg-sky-100 hover:border-sky-400 dark:border-primary/40 dark:bg-primary/10 dark:text-sky-300 dark:hover:bg-primary/20 dark:hover:border-primary/60"
             title={t('monitor.manageQPsTitle')}
@@ -247,6 +248,7 @@ export default function MonitorSelector() {
           </button>
           <button
             type="button"
+            data-tour="qp-layouts-link"
             onClick={onOpenLayoutsTab}
             className="flex min-h-8 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-line bg-raised px-3 text-[12px] font-medium text-fg shadow-sm hover:bg-line/60 hover:border-line-strong"
             title={t('monitor.layoutsLinkTitle')}
@@ -260,6 +262,7 @@ export default function MonitorSelector() {
           <div className="relative flex-1 min-w-0">
             <button
               type="button"
+              data-tour="qp-dropdown"
               onClick={() => setOpen((v) => !v)}
               disabled={!loading && !hasAny}
               className="flex w-full items-center justify-between rounded-lg border border-line bg-raised px-3 py-2 text-sm shadow-sm hover:bg-line/60 disabled:cursor-not-allowed disabled:opacity-60"
@@ -340,6 +343,7 @@ export default function MonitorSelector() {
 
           <button
             type="button"
+            data-tour="qp-apply-button"
             onClick={onApply}
             disabled={!selected || isApplying}
             className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary shadow hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
@@ -366,6 +370,7 @@ export default function MonitorSelector() {
 
         <div className="mb-2">
           <select
+            data-tour="monitor-select"
             value={currentMonitorId}
             onChange={(e) => setCurrentMonitor(e.target.value)}
             className="w-full rounded-lg border border-line bg-raised px-3 py-2 text-sm shadow-sm"
@@ -420,6 +425,7 @@ export default function MonitorSelector() {
         {inTauri() && (
           <button
             type="button"
+            data-tour="identify-monitors-button"
             onClick={() => { void api.identifyMonitors() }}
             className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-line bg-raised px-3 py-1.5 text-[12px] font-medium text-fg shadow-sm hover:bg-line/60 hover:border-line-strong"
             title={t('monitor.identifyMonitorsTitle')}

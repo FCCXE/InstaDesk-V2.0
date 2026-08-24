@@ -19,7 +19,7 @@ export default function DisplayArray() {
   const VBH = 360
 
   return (
-    <div className="mt-3 rounded-xl border border-line bg-raised p-3 shadow-sm">
+    <div data-tour="display-array" className="mt-3 rounded-xl border border-line bg-raised p-3 shadow-sm">
       <div className="mb-2 text-[12px] font-semibold text-fg">{t('monitor.displayArray')}</div>
       <div className="w-full">
         <svg

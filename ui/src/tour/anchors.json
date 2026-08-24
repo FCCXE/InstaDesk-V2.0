@@ -92,6 +92,70 @@
       "reachableWhen": {
         "kind": "always"
       }
+    },
+    {
+      "id": "quick-presets-section",
+      "component": "components/MonitorSelector.tsx",
+      "describes": "the Quick Presets block at the top of the left pane",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "qp-manage-button",
+      "component": "components/MonitorSelector.tsx",
+      "describes": "Manage QPs - create, rename and delete Quick Preset bundles",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "qp-layouts-link",
+      "component": "components/MonitorSelector.tsx",
+      "describes": "the Layouts cross-link that opens the Layouts tab on the right",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "qp-dropdown",
+      "component": "components/MonitorSelector.tsx",
+      "describes": "the Quick Preset / Layout chooser dropdown",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "qp-apply-button",
+      "component": "components/MonitorSelector.tsx",
+      "describes": "Apply - runs the chosen Quick Preset or Layout",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "monitor-select",
+      "component": "components/MonitorSelector.tsx",
+      "describes": "the monitor picker - which display you are arranging",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "identify-monitors-button",
+      "component": "components/MonitorSelector.tsx",
+      "describes": "Identify monitors - flashes a big number onto each physical screen",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "display-array",
+      "component": "components/DisplayArray.tsx",
+      "describes": "the Display Array diagram showing how the monitors are laid out",
+      "reachableWhen": {
+        "kind": "always"
+      }
     }
   ]
 }
