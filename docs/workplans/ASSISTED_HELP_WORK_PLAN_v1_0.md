@@ -125,7 +125,7 @@ next build. Weaker than a commit hook, and far safer.
 | I-0 | Programme setup — rollback tag + records committed | no | git | ✅ `cc3c64d` |
 | I-1 | **i18n parity check**, written first, proven to bite | no | build | ✅ |
 | I-2 | **Tour safety check** (3 axes), written before any tour code | no | build | ✅ |
-| I-3 | **Geometry spike** — throwaway, de-risks the scaled construct | no | Sandbox | ☐ |
+| I-3 | **Geometry spike** — throwaway, de-risks the scaled construct | no | Sandbox | ✅ PASS |
 | I-4 | Anchor registry + anchor check (both directions), proven to bite | no | build | ☐ |
 | I-5 | Anchor sweep across 8 components (~40–48 attributes) | **yes** | build + Sandbox | ☐ |
 | I-6 | Tour engine + REQ-1 exit, incl. broken-step exit proof | **yes** | build + Sandbox | ☐ |
@@ -280,7 +280,65 @@ live resize · with the right pane scrolled mid-list · light and dark theme.
 and the approach is revised **before** I-5 spends effort on anchors.
 **Verification.** Operator sees it live in the Sandbox and confirms. Then an explicit recorded
 decision: keep the approach, or revise it — and the spike code is deleted either way.
-**Status.** ☐
+
+**Status. ✅ PASS 2026-08-24. R-1 is retired.**
+
+**DECISION: keep the approach.** Portal the overlay to `document.body`, position purely from
+`getBoundingClientRect()`, reposition on `resize` + **capture-phase** `scroll` + a `ResizeObserver`.
+**No scale arithmetic is needed anywhere in the real engine** — the rects already arrive as
+post-transform viewport pixels.
+
+**Evidence — final run (operator, live Sandbox):**
+
+| Measure | Result |
+|---|---|
+| Recomputes | **698** |
+| On-target | **696** |
+| **Genuine mis-tracks (`WRONG-EL`)** | **0** |
+| `null` at point | 0 |
+| `outside` viewport (transient) | 2 — both explained, see below |
+| Scale range exercised | **0.6406 → 1.0000, spread 0.3594** |
+
+**Earlier runs in the same increment:** inner-container scroll tracked a **262.7 px** vertical
+movement with `x`, `w` and `h` unchanged **to 0.1 px** (`y` 458.1 → 195.4); theme switch produced a
+**byte-identical** rect (`x=193.9 y=636.5 w=98.3 h=27.9` in both Dark and Light).
+
+**The two transients are explained, not waved through.** Captured samples:
+`OUTSIDE centre=(117,572) viewport=820x544` and `OUTSIDE centre=(254,576) viewport=1094x552`.
+In both, the centre's **y exceeded the viewport height** — the window got shorter mid-drag before
+layout reflowed. Not a tracking failure.
+
+⚠ **The instrument was defective first, and the defect was mine.** The first version counted a
+single `OFF-TARGET` figure that conflated **three** causes with different meanings: wrong element
+returned, `null` returned, and centre outside the viewport. It reported **1 failure in 744** that
+could not be explained. Decomposing the counter showed the class was `outside` — a benign drag
+transient. **This is the "an empty value asks HOW it became empty" defect built into the very
+instrument meant to guard against it**, and it would have either falsely condemned a sound approach
+or been waved through as noise. Neither is acceptable; the decomposition is what made the result
+usable.
+
+⚠ **Second instrument fault:** an earlier version drove the resize itself via `window.setSize()`,
+which failed with `self-test error: undefined` — my `catch` read `.message` off a Tauri permission
+rejection, which is a plain string, and **discarded the diagnosis**. Root cause:
+`capabilities/default.json` grants only `core:default`, which excludes `core:window:allow-set-size`.
+**The capability file was deliberately NOT widened** — adding a permission to the shipping app's
+security surface so a throwaway diagnostic could run is the wrong trade. The drag stayed manual and
+the *measurement* became automatic instead. Verified: `git diff src-tauri/capabilities/` empty.
+
+**➜ Requirement carried to I-6:** the engine must treat *"anchor centre outside the viewport during
+a resize"* as a **transient to retry**, not as a lost anchor. Without that it will log spurious
+failures exactly when the user resizes the window mid-tour.
+
+**➜ Confirmed by observation, not reasoning:** I-4 (registry) and I-7 (navigation) are **necessary,
+not tidy.** With the ring pointed at a Settings control while the Apps tab was open, the spike showed
+`NOT FOUND` — and could not distinguish *"that pane isn't open"* from *"the anchor was deleted"*.
+That is finding F-4 reproduced live.
+
+**Spike deleted.** `ui/src/components/__spike/` removed; `App.tsx`, `BottomControls.tsx` and
+`SettingsPane.tsx` restored to their committed state via `git checkout --`. Verified: repo-wide grep
+for `I-3 SPIKE|data-spike|GeometrySpike|__spike` returns **nothing**; `git status` clean; build green
+with **bundle 745.79 kB, identical to baseline**.
+**Status.** ✅
 
 ---
 
