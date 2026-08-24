@@ -130,7 +130,7 @@ next build. Weaker than a commit hook, and far safer.
 | I-5 | Anchor sweep across 8 components (~40–48 attributes) | **yes** | build + Sandbox | ✅ |
 | I-6 | Tour engine + REQ-1 exit, incl. broken-step exit proof | **yes** | build + Sandbox | ✅ |
 | I-7 | Lift `tab` / `sub` into `AppState` | **yes** | build + Sandbox | ✅ |
-| I-8 | Snapshot / restore + the "changed nothing" assertion | **yes** | build + Sandbox | ☐ |
+| I-8 | Snapshot / restore + the "changed nothing" assertion | **yes** | build + Sandbox | ✅ |
 | I-9 | Schematic animation component (REQ-2) | no | build + Sandbox | ☐ |
 | I-10 | Spine chapter — content, EN only | no | build + Sandbox | ☐ |
 | I-11 | Remaining chapters — content, EN only | no | build + Sandbox | ☐ |
@@ -609,8 +609,49 @@ teardown path (R1.7), so exit, Escape and normal completion all restore identica
 **Done when.** State before ≡ state after, for every chapter.
 **Verification.** An **automated** deep-equality assertion — capture, run the chapter, exit, compare —
 not an eyeball check.
-**Status.** ☐ — **D-12 RULED ADOPTED 2026-08-23.** This supersedes REQ-1's original R1.5 wording
-("nothing is reverted"); the amendment is recorded in the investigation §5A.
+**Status. ✅ DONE 2026-08-24.** Rollback point: `pre-assisted-help-snapshot` @ `37f0861`.
+D-12 ruled adopted 2026-08-23; this supersedes REQ-1's original R1.5 wording ("nothing is
+reverted") — the amendment is recorded in the investigation §5A.
+
+`AppState` gained `captureTourSnapshot()` / `restoreTourSnapshot()` over **seven** fields: selection,
+`assignmentsByMonitor`, `argsOverridesByMonitor`, `gridSizeByMonitor`, `currentMonitorId`, `mainTab`,
+`appsSubTab`. Captured on `start`, restored on the **single shared teardown** so exit, Escape and
+normal completion all restore identically (R1.7).
+
+**Scroll positions restored too.** Bringing an anchor into view scrolls its container, so "changed
+nothing" must hold for what the user can **see**, not only for what is stored. Positions are captured
+before the chapter and reapplied on teardown, skipping elements unmounted meanwhile.
+
+**Why the tour needs no forbidden mutator:** `restoreTourSnapshot` only ever writes back a value this
+same session captured, so it cannot destroy anything — unlike `clearAllGrids` and friends, which stay
+banned and gate-enforced. Verified: `tour safety` gate green throughout.
+
+**Automated assertion (operator, live Sandbox) — PASS:**
+
+```
+before : tab=Apps     sub=URLs selection=0
+during : tab=Settings sub=URLs selection=1
+CONTROL: state changed on both axes (tab + selection) — assertion is meaningful
+after  : tab=Apps     sub=URLs selection=0
+VERDICT: PASS — tour moved state and exit restored it exactly
+```
+
+No `DIFF` lines, so all seven fields compared identical.
+
+⚠ **The control is the point, and it was strengthened mid-increment.** The first version moved only
+the **tab** — one field of seven — and passed. That would have shipped the restore path for the other
+six **written but never executed**. Since `assignSelected` and cell selection are deliberately **not**
+on the forbidden lists (the spine chapter's whole purpose is *"put an app in these squares"*), I-10
+would have exercised that path for real, after I-8 had been signed off. The probe now also toggles a
+grid cell mid-chapter and the control **requires movement on both axes** before it will accept the
+comparison; a single-axis run now returns **`INVALID`**, not `PASS`.
+
+⚠ **Stated precisely — what is and is not proven.** Two of the seven fields were actually moved and
+restored (`mainTab`, `selection`). The other five use the **identical** deep-clone-and-set mechanism
+but were not individually exercised. That is good evidence for the mechanism, not proof for every
+field. **➜ Carried to I-10/I-11:** re-run this assertion against the real chapters, which will move
+`assignmentsByMonitor` for the first time.
+**Status.** ✅
 
 ---
 

@@ -21,7 +21,7 @@ import {
   type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { useAppState } from '../state/AppState'
+import { useAppState, type TourSnapshot } from '../state/AppState'
 import { anchorSelector, anchorSpec } from './anchors'
 import type { AnchorResolution, TourChapter } from './types'
 
@@ -68,11 +68,38 @@ function dialogIsOpen(): boolean {
   return !!document.querySelector('[aria-modal="true"]')
 }
 
+/* Scroll positions are state the walkthrough moves too: bringing an anchor into
+ * view scrolls its container. Captured and restored alongside the AppState
+ * snapshot so "changed nothing" holds for what the user can SEE, not merely for
+ * what is stored. */
+function captureScrollPositions(): Array<[Element, number, number]> {
+  const out: Array<[Element, number, number]> = []
+  for (const el of Array.from(document.querySelectorAll('*'))) {
+    if (el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth) {
+      out.push([el, el.scrollTop, el.scrollLeft])
+    }
+  }
+  return out
+}
+
+function restoreScrollPositions(saved: Array<[Element, number, number]>): void {
+  for (const [el, top, left] of saved) {
+    if (!el.isConnected) continue // the pane was unmounted; nothing to restore
+    el.scrollTop = top
+    el.scrollLeft = left
+  }
+}
+
 export function TourProvider({ children }: { children: ReactNode }) {
   // Navigation state, lifted in I-7. Reading it is what lets the engine tell
   // "the pane is closed" apart from "the anchor is gone"; writing it is what
   // lets a step open the pane it needs instead of asking the user to.
-  const { mainTab, setMainTab, appsSubTab, setAppsSubTab } = useAppState()
+  const { mainTab, setMainTab, appsSubTab, setAppsSubTab, captureTourSnapshot, restoreTourSnapshot } = useAppState()
+  // D-12: whatever the walkthrough moves, it puts back. Captured on start,
+  // restored on the single shared teardown path so exit, Escape and normal
+  // completion all restore identically (R1.7).
+  const snapshot = useRef<TourSnapshot | null>(null)
+  const scrolls = useRef<Array<[Element, number, number]>>([])
   const [chapter, setChapter] = useState<TourChapter | null>(null)
   const [index, setIndex] = useState(0)
   const [resolution, setResolution] = useState<AnchorResolution | null>(null)
@@ -87,18 +114,29 @@ export function TourProvider({ children }: { children: ReactNode }) {
    * on only one route.
    * ------------------------------------------------------------------ */
   const end = useCallback(() => {
+    // Restore BEFORE clearing, so a chapter that navigated away puts the user
+    // back where they were. This is the whole of D-12: "the help changes
+    // nothing" is asserted, not promised.
+    if (snapshot.current) {
+      restoreTourSnapshot(snapshot.current)
+      snapshot.current = null
+    }
+    restoreScrollPositions(scrolls.current)
+    scrolls.current = []
     setChapter(null)
     setIndex(0)
     setResolution(null)
     missingSince.current = null
-  }, [])
+  }, [restoreTourSnapshot])
 
   const start = useCallback((c: TourChapter) => {
+    snapshot.current = captureTourSnapshot()
+    scrolls.current = captureScrollPositions()
     setChapter(c)
     setIndex(0)
     setResolution(null)
     missingSince.current = null
-  }, [])
+  }, [captureTourSnapshot])
 
   const advance = useCallback(() => {
     setResolution(null)

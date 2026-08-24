@@ -315,6 +315,27 @@ type Modifiers = { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean }
 export type MainTab = 'Apps' | 'Layouts' | 'Settings' | 'Help'
 export type AppsSubTab = 'URLs' | 'Apps' | 'Favorites'
 
+/**
+ * Everything the walkthrough is capable of moving, captured so it can be put
+ * back exactly (D-12 / I-8).
+ *
+ * This is what turns "the interactive help changes nothing" from a promise
+ * into a CHECKABLE INVARIANT: capture, run a chapter, exit, compare.
+ *
+ * It is also why the tour needs no access to the axis-3 mutators. restore
+ * only ever writes back a value this same session captured, so it cannot
+ * destroy anything - unlike clearAllGrids and friends, which are forbidden.
+ */
+export type TourSnapshot = {
+  selection: CellKey[]
+  assignmentsByMonitor: Record<string, Assignments>
+  argsOverridesByMonitor: Record<string, Record<string, string>>
+  gridSizeByMonitor: GridSizeByMonitor
+  currentMonitorId: string
+  mainTab: MainTab
+  appsSubTab: AppsSubTab
+}
+
 type AppStateContext = {
   // selection as Set<CellKey> (used by WorkspaceGrid)
   selection: Set<CellKey>
@@ -386,6 +407,10 @@ type AppStateContext = {
   setMainTab: (t: MainTab) => void
   appsSubTab: AppsSubTab
   setAppsSubTab: (s: AppsSubTab) => void
+
+  // Walkthrough snapshot/restore (D-12). The ONLY write path the tour uses.
+  captureTourSnapshot: () => TourSnapshot
+  restoreTourSnapshot: (snap: TourSnapshot) => void
 
   // monitors + presets
   monitors: Monitor[]
@@ -840,6 +865,29 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     setUrlBuilder(prev => ({ ...prev, openMode: mode }))
 
   /* ---------- Context value ---------- */
+  /* ---------- Walkthrough snapshot / restore (D-12, I-8) ---------- */
+  // Deep-cloned via JSON so the captured value cannot alias live state and so
+  // two snapshots are directly comparable for the "changed nothing" assertion.
+  const captureTourSnapshot = (): TourSnapshot => ({
+    selection: [...selection],
+    assignmentsByMonitor: JSON.parse(JSON.stringify(assignmentsByMonitor)),
+    argsOverridesByMonitor: JSON.parse(JSON.stringify(argsOverridesByMonitor)),
+    gridSizeByMonitor: JSON.parse(JSON.stringify(gridSizeByMonitor)),
+    currentMonitorId,
+    mainTab,
+    appsSubTab,
+  })
+
+  const restoreTourSnapshot = (snap: TourSnapshot) => {
+    setSelection(new Set(snap.selection))
+    setAssignmentsByMonitor(JSON.parse(JSON.stringify(snap.assignmentsByMonitor)))
+    setArgsOverridesByMonitor(JSON.parse(JSON.stringify(snap.argsOverridesByMonitor)))
+    setGridSizeByMonitorState(JSON.parse(JSON.stringify(snap.gridSizeByMonitor)))
+    setCurrentMonitorId(snap.currentMonitorId)
+    setMainTab(snap.mainTab)
+    setAppsSubTab(snap.appsSubTab)
+  }
+
   const value = useMemo<AppStateContext>(() => ({
     // grid
     selection,
@@ -872,6 +920,8 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     setMainTab,
     appsSubTab,
     setAppsSubTab,
+    captureTourSnapshot,
+    restoreTourSnapshot,
 
     // monitors + presets
     monitors,
