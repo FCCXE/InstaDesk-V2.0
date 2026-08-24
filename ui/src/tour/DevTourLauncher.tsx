@@ -17,9 +17,10 @@
 // The placeholder copy is intentionally NOT in i18n. Real chapter text arrives
 // in I-10/I-11 as translated keys; putting throwaway strings through the locale
 // files would pollute the parity check with content we intend to delete.
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useConfirm } from '../components/common/ConfirmDialog'
 import { useAppState } from '../state/AppState'
+import { clearTourEvents, readTourEvents, subscribeTourEvents } from './devEventLog'
 import { useTour } from './TourProvider'
 import type { TourChapter } from './types'
 
@@ -54,6 +55,9 @@ export default function DevTourLauncher() {
   // to a small handle, and folds itself away automatically the moment a
   // chapter starts — the handle stays so the Esc-precedence test is still
   // reachable mid-tour.
+  // Live mirror of what the walkthrough emits. Telemetry is inert in dev, so
+  // without this the event ORDER could only be assumed, never observed.
+  const events = useSyncExternalStore(subscribeTourEvents, readTourEvents)
   const [collapsed, setCollapsed] = useState(false)
   const wasActive = useRef(tour.active)
   useEffect(() => {
@@ -170,6 +174,29 @@ export default function DevTourLauncher() {
 
   return (
     <div style={{ position: 'fixed', left: 12, bottom: 12, zIndex: 2147483000, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+      {events.length > 0 && (
+        <div style={{
+          background: 'rgba(15,23,42,0.96)', color: '#e2e8f0', border: '1px solid #38bdf8',
+          borderRadius: 8, padding: '8px 10px', font: '11px/1.5 ui-monospace, Consolas, monospace', maxWidth: 560,
+        }}>
+          <div style={{ color: '#7dd3fc', fontWeight: 700, marginBottom: 4 }}>
+            telemetry (dev mirror — nothing is sent without keys)
+            <button
+              type="button"
+              onClick={clearTourEvents}
+              style={{ marginLeft: 8, cursor: 'pointer', border: '1px solid #475569', background: '#1e293b', color: '#e2e8f0', borderRadius: 5, padding: '0 6px' }}
+            >
+              clear
+            </button>
+          </div>
+          {events.map((e, i) => (
+            <div key={i}>
+              <span style={{ color: '#86efac' }}>{e.event}</span>{' '}
+              <span style={{ color: '#94a3b8' }}>{JSON.stringify(e.props)}</span>
+            </div>
+          ))}
+        </div>
+      )}
       {lines.length > 0 && (
         <div style={{
           background: 'rgba(15,23,42,0.96)', color: '#e2e8f0', border: '1px solid #f97316',

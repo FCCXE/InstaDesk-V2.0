@@ -23,6 +23,8 @@ import {
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { safeGet, safeSet } from '../services/storage'
+import { track } from '../services/telemetry'
+import { noteTourEvent } from './devEventLog'
 import { useAppState, type TourSnapshot } from '../state/AppState'
 import { anchorSelector, anchorSpec } from './anchors'
 import SchematicAction from './SchematicAction'
@@ -73,6 +75,19 @@ export function useTour(): TourContextValue {
   const ctx = useContext(TourContext)
   if (!ctx) throw new Error('useTour must be used inside <TourProvider>')
   return ctx
+}
+
+/**
+ * Emit a walkthrough event.
+ *
+ * `track()` is already inert without build-time keys and returns early when the
+ * user has opted out, so nothing here needs its own guard. The dev mirror exists
+ * only because telemetry is SILENT in development: without it, "the events fire
+ * in the right order" could not be verified at all, only assumed.
+ */
+function emit(event: string, props: Record<string, unknown>): void {
+  track(event, props)
+  noteTourEvent(event, props)
 }
 
 /** Is the pane an anchor is registered against currently open? This is the
@@ -126,6 +141,13 @@ export function TourProvider({ children }: { children: ReactNode }) {
   // D-12: whatever the walkthrough moves, it puts back. Captured on start,
   // restored on the single shared teardown path so exit, Escape and normal
   // completion all restore identically (R1.7).
+  // The teardown is shared by exit, Escape and completion (R1.7), so it must
+  // read the CURRENT chapter/step without taking them as dependencies — and it
+  // must know which of the two it is, since 'finished' and 'walked out' are
+  // the difference between a working chapter and one that loses people.
+  const chapterRef = useRef<TourChapter | null>(null)
+  const indexRef = useRef(0)
+  const completedRef = useRef(false)
   const snapshot = useRef<TourSnapshot | null>(null)
   const scrolls = useRef<Array<[Element, number, number]>>([])
   const { t } = useTranslation()
@@ -150,6 +172,8 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const [resolution, setResolution] = useState<AnchorResolution | null>(null)
   const missingSince = useRef<number | null>(null)
 
+  chapterRef.current = chapter
+  indexRef.current = index
   const active = chapter !== null
   const step = chapter && index < chapter.steps.length ? chapter.steps[index] : null
 
@@ -159,6 +183,18 @@ export function TourProvider({ children }: { children: ReactNode }) {
    * on only one route.
    * ------------------------------------------------------------------ */
   const end = useCallback(() => {
+    const c = chapterRef.current
+    if (c) {
+      if (completedRef.current) {
+        emit('tour_completed', { chapter: c.id, steps: c.steps.length })
+      } else {
+        // atStep is the one number worth having: it is the only way to learn
+        // WHICH step loses people, which is the whole reason to measure before
+        // launch rather than after.
+        emit('tour_abandoned', { chapter: c.id, atStep: indexRef.current + 1, ofSteps: c.steps.length })
+      }
+    }
+    completedRef.current = false
     // Restore BEFORE clearing, so a chapter that navigated away puts the user
     // back where they were. This is the whole of D-12: "the help changes
     // nothing" is asserted, not promised.
@@ -175,6 +211,8 @@ export function TourProvider({ children }: { children: ReactNode }) {
   }, [restoreTourSnapshot])
 
   const start = useCallback((c: TourChapter) => {
+    completedRef.current = false
+    emit('tour_started', { chapter: c.id, steps: c.steps.length })
     snapshot.current = captureTourSnapshot()
     scrolls.current = captureScrollPositions()
     setChapter(c)
@@ -189,7 +227,9 @@ export function TourProvider({ children }: { children: ReactNode }) {
     setIndex((i) => {
       const last = chapter ? chapter.steps.length - 1 : 0
       if (i >= last) {
-        // Normal completion runs the SAME teardown as the exit button.
+        // Normal completion runs the SAME teardown as the exit button; the flag
+        // is what lets that one path report which of the two happened.
+        completedRef.current = true
         queueMicrotask(end)
         return i
       }
@@ -286,6 +326,14 @@ export function TourProvider({ children }: { children: ReactNode }) {
     }
   }, [active, step, mainTab, appsSubTab, setMainTab, setAppsSubTab])
 
+  /** One event per step reached. Noisy by design: an aggregate completion rate
+   *  says a chapter is failing, but only the per-step trail says WHERE. */
+  useEffect(() => {
+    if (!active || !chapter || !step) return
+    emit('tour_step', { chapter: chapter.id, index: index + 1, anchor: step.anchor })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, index])
+
   /** Bring a scrolled-away anchor into view. In-app, reversible, on no
    *  forbidden list, and I-8 restores scroll position on exit.
    *
@@ -317,7 +365,12 @@ export function TourProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [active, end])
 
-  const openMenu = useCallback(() => setMenuOpen(true), [])
+  const openMenu = useCallback(() => {
+    // Addition beyond the plan's four events: it answers a different question —
+    // whether the entry point is being FOUND — which completion rates cannot.
+    emit('tour_menu_opened', {})
+    setMenuOpen(true)
+  }, [])
   const value = useMemo<TourContextValue>(
     () => ({ active, start, end, openMenu }),
     [active, start, end, openMenu],

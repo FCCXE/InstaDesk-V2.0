@@ -134,9 +134,9 @@ next build. Weaker than a commit hook, and far safer.
 | I-9 | Schematic animation component (REQ-2) | no | build + Sandbox | ✅ |
 | I-10 | Spine chapter — content, EN only | no | build + Sandbox | ✅ |
 | I-11 | Remaining chapters (9 total, incl. URLs & Favorites) | no | build + Sandbox | ✅ |
-| I-12 | Entry points — Guided Tour button, menu, Help "Show me", Settings, first-run | no | build + Sandbox | ◐ awaiting Sandbox confirm |
-| I-13 | Full Spanish — prose moved INTO the gate's reach, then translated | no | build | ◐ awaiting Sandbox confirm |
-| I-14 | Telemetry events | no | build | ☐ |
+| I-12 | Entry points — Guided Tour button, menu, Help "Show me", Settings, first-run | no | build + Sandbox | ✅ |
+| I-13 | Full Spanish — prose moved INTO the gate's reach, then translated | no | build | ✅ |
+| I-14 | Telemetry events (5, incl. `tour_abandoned {atStep}`) | no | build + Sandbox | ◐ `tour_completed` unobserved |
 | I-15 | Release v0.4.0 — Sandbox installer gate, CHANGELOG, bump, tag | **yes** | full | ☐ |
 
 ---
@@ -805,7 +805,36 @@ gate green. That is the exact reassuring failure the I-1 check exists to catch.
 keys; honours the existing opt-out automatically.
 **Rationale.** `tour_abandoned {atStep}` is the only way we will ever learn **which step loses people**.
 **Done when.** Events fire in the right order and nothing is emitted when opted out.
-**Status.** ☐
+
+**Status. ◐ 2026-08-24 — built, partially verified.** Five events, one more than planned:
+`tour_started` · `tour_step {index, anchor}` · `tour_completed` · `tour_abandoned {atStep, ofSteps}` ·
+**`tour_menu_opened`** (addition — completion rates cannot tell you whether the entry point is being
+*found*).
+
+- **Opt-out needs no guard of its own**, verified rather than assumed: `track()` returns early when
+  paused and only emits when build-time keys exist (`telemetry.ts`). Inert in dev, inert for anyone
+  who opted out.
+- ⚠ **Telemetry is SILENT in development, so "the events fire in the right order" was unverifiable
+  by observation** — it could only have been assumed from reading the code. Every event therefore
+  flows through a **single `emit()` helper** that both sends it and mirrors it to a dev-only ring
+  buffer rendered in the DEV panel. One helper, so **the mirror cannot drift from what is sent**;
+  all writes sit behind `import.meta.env.DEV` and compile out of production.
+
+**Observed (operator, live Sandbox):**
+`tour_started {chapter, steps:1}` → `tour_step {index:1, anchor:'settings-theme'}` →
+`tour_abandoned {atStep:1, ofSteps:1}`. Correct order, correct props, **`atStep` works**, and the
+D-12 assertion still passes underneath — so adding telemetry did not disturb the shared teardown.
+
+⚠ **NOT YET OBSERVED, and it is the risky branch.** That trail came from the snapshot probe, which
+always exits early, so only the **abandonment** path ran. `tour_completed` and `tour_menu_opened`
+remain unseen. Completion and abandonment share **one** teardown, told apart by a single flag: set on
+the wrong branch, every finished tour would be reported as abandoned and the dataset would look
+entirely plausible while being **exactly inverted**. Closing this needs one full chapter walked from
+the Guided Tour button through to Finish.
+
+**Dev-only artifact recorded** so nobody misreads it later: the snapshot probe borrows the
+`monitorsSettings` chapter id, so a dev event log shows phantom one-step abandonments of that
+chapter. The probe does not exist in production.
 
 ---
 
