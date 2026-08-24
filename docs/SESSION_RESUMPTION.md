@@ -5,7 +5,7 @@
 > truth for *how we work*; live *version* facts are in `CHANGELOG.md` / `gh release list`
 > (if this doc and the repo disagree on a version, **the repo wins**).
 >
-> Last updated: **2026‑07‑29**, at the close of the **v0.3.0** release.
+> Last updated: **2026‑08‑24**, at the close of the **v0.4.0** release (the Guided Tour).
 
 ---
 
@@ -22,6 +22,30 @@
    **not** start feature work without a known‑good tag to roll back to (see §7).
 4. **Ask the operator to define the one feature/upgrade for this session**, then work it
    in small, verifiable steps (§5) and ship it through the full gate (§4 → §6).
+
+**⚑ THE RATIFIED METHOD (operator, 2026‑08‑23). This is not optional and not a summary.**
+Anything larger than a one‑line fix runs three phases, in order:
+
+> **Phase 0 — Deep investigation.** A written evidence document *before* any plan. Measure the
+> baseline (run the gates and record they were green **before** you start), enumerate the surfaces,
+> compute the constraints, name the unknowns. Evidence only, no design commitments.
+>
+> **Phase 1 — The work plan.** One document of record in `docs/workplans/`. Numbered increments,
+> each with a *Done when*, a rollback point, a dry run, a verification, and a status field.
+>
+> **Phase 2 — Implementation, one increment at a time**, each repeating the cycle in miniature:
+> **re‑investigate → rollback point → smallest verifiable step → gate → dry run → wire →
+> real working verification → update the plan in the same turn.**
+
+**Five rules that govern every increment:**
+1. **Consult the plan before acting; update it after — same turn.** Both duties or neither.
+2. **One place per fact.** The plan holds status. `CHANGELOG.md` holds what shipped. This handbook
+   gets a pointer, never a copy.
+3. **Nothing happens off‑plan.** A mid‑flight finding is *recorded at once and then left alone*
+   unless it is **shown** to make authorised work wrong.
+4. **A check is written BEFORE the code it guards, and is proven to BITE before it is trusted.**
+   A check nobody has seen fail is not evidence. Record the bite‑test transcript.
+5. **Verify, never assume.** Re‑derive facts from the source; never quote a remembered number.
 
 **Working posture:** partner mode — decisions, not menus. Lead with a recommendation
 (`Recommended: …`), close with a next step, and end **every** output with a short
@@ -100,6 +124,29 @@ or they get trapped by the scaled transform.
 cd "C:/FcXe Studios/Instadesk/instadesk-tauri/ui" && npm run build      # = tsc -b && vite build
 ```
 > `tsc --noEmit` is a **no‑op** here — `npm run build` is the real typecheck gate.
+
+**⚠ `npm run build` NOW CARRIES FOUR AUTOMATIC GATES (added v0.4.0). Do not bypass them.**
+`ui/package.json` defines `prebuild` → `checks`, and npm runs `pre<script>` automatically. They
+therefore fire at **three** points that already exist and are already mandatory: every local
+`npm run build`, every Sandbox build, **and every release‑robot build** (`npx tauri build` →
+`beforeBuildCommand` → `npm --prefix ui run build` → `prebuild`). **A release cannot exist if one
+fails.**
+
+| Gate | Refuses the build when |
+|---|---|
+| `check-i18n-parity.mjs` | EN/ES key sets differ, a key is duplicated, or a path is an object in one locale and a string in the other |
+| `check-tour-safety.mjs` | any file under `src/tour/**` references an action that mutates the desktop, destroys saved data, or is a destructive `AppState` mutator — or calls `invoke()` directly |
+| `check-tour-anchors.mjs` | the anchor registry and the `data-tour` attributes disagree **in either direction**, an anchor moved component, or a walkthrough step names an unregistered anchor |
+| `check-tour-content.mjs` | the walkthrough states something untrue (e.g. a grid size the app does not offer), or a chapter/step has no text key |
+
+Each was **proven to bite** before being trusted. `npm run build:check` and a bare `vite build`
+**bypass** `prebuild` — they are dev conveniences, not gates. Husky is installed but **inert**
+(default 10‑byte hook, `core.hooksPath` unset); wiring it would run an undefined `npm test` and
+break every commit. Do not "fix" it.
+
+**⛔ Never weaken a gate to stop it complaining.** If one fires on a false positive, make the check
+*more precise* and re‑bite it in both directions. Rewording code to appease a check trains the
+reflex to silence it, which is how a gate rots into decoration.
 
 **b) Rust gate (if `src-tauri` changed):**
 ```bash
@@ -195,7 +242,13 @@ updater follows `latest.json`); or re‑point Latest to the previous good releas
 ## §7 — Rollback points & safety invariants
 
 **Safe rollback point:** the **current release tag is the rollback point.** As of this
-handoff that is **`v0.3.0`** (app‑repo `main` HEAD). Before starting a risky modification,
+handoff that is **`v0.4.0`**.
+
+**Per‑increment `pre-*` tags.** `docs/RELEASING.md §7` defines `pre-<slug>` as disposable local
+safety markers cut before risky edits — distinct from the `vX.Y.Z` version record, kept **local**,
+prunable. There are 160+ in this repo; the v0.4.0 programme added five
+(`pre-assisted-help-v1`, `-anchors`, `-engine`, `-navstate`, `-snapshot`). **Cut one before every
+increment marked risky**, and reset to it rather than leaving a half‑wired increment as "done". Before starting a risky modification,
 confirm a clean tagged/committed state exists to return to; if mid‑flight work must be
 abandoned, `git reset`/checkout back to the last good tag.
 
@@ -214,24 +267,43 @@ abandoned, `git reset`/checkout back to the last good tag.
 
 ## §8 — Current state (verify before trusting)
 
-- **Live:** **v0.4.0** (2026‑08‑24) — shipped the **Guided Tour**: an in‑app guided walkthrough of
-  nine chapters, an Express Tour on start‑up, "Show me" beside every Help topic, code‑drawn
-  schematics for the four actions a walkthrough must not perform, in English and Spanish. Built under
-  a governed work plan — see `docs/workplans/ASSISTED_HELP_WORK_PLAN_v1_0.md` (complete) and its
-  evidence base `ASSISTED_HELP_INVESTIGATION_v1_0.md`.
-  ⚠ **`ui/package.json` now has a `prebuild` script wiring FOUR gates into every build** — i18n
-  parity, tour safety (3 axes), anchor registry (both directions + step references) and tour content.
-  They run locally, in the Sandbox **and in the release robot**. Do not bypass them.
-- **Previously:** v0.3.0 (2026‑07‑29) — shipped **Close all windows** (confirm‑gated bottom‑bar
-  button; agent `--close-all` graceful `WM_CLOSE` sweep; InstaDesk + admin windows skipped/reported)
-  and a **tidier bottom control bar** (buttons re‑centred, debug size readout removed).
-- Both repos clean on `main`; robot run succeeded; `latest.json` serves 0.3.0.
-- **Known backlog / not started:** Licensing Increment 4 (Lemon Squeezy, UK‑Ltd‑gated) —
-  see memory `project_instadesk_licensing_trial_layer`. Commercial handout draft exists at
-  `docs/marketing/InstaDesk-Commercial-Handout.md` (pricing placeholders pending).
-- **Next:** the operator will define the new feature/upgrade for this session.
+- **Live: v0.4.0** (2026‑08‑24) — shipped the **Guided Tour**: an in‑app guided walkthrough of nine
+  chapters, an **Express Tour** offered on every start‑up (with a *Don't show this again* opt‑out),
+  a **"Show me"** button beside every Help topic, code‑drawn schematic animations for the four
+  actions a walkthrough must never perform, in **English and Spanish**. Verified from the live
+  `latest.json`, not from the robot's tick.
+- Both repos clean on `main`; robot run `32785117123` succeeded (10m49s); 3 signed assets published.
+- **`Program.cs` was untouched for the whole v0.4.0 programme**, so the two‑repo sequencing trap did
+  not apply. It will apply again the moment the WinAgent changes.
+- **The four `prebuild` gates (§4) are now permanent infrastructure**, not scaffolding for that
+  feature. They guard the walkthrough today; treat them as part of the build.
+- **The v0.4.0 programme is closed.** Its record: `docs/workplans/ASSISTED_HELP_WORK_PLAN_v1_0.md`
+  (16/16 increments, each with its verification) and the evidence base
+  `ASSISTED_HELP_INVESTIGATION_v1_0.md`. Read them for *how* that work was governed — they are the
+  worked example of the §0 method, including the eleven defects it caught.
 
----
+### ⚑ NEXT FEATURE — defined by the operator, not yet investigated
+
+> **A toggle between Quick Presets.**
+
+That is the operator's stated next upgrade and the whole of what is known. **It has not been
+investigated, scoped, or designed, and nothing about it should be assumed** — the phrase admits
+several readings (cycle through Quick Presets with a hotkey? a switch in the left pane? a
+toggle *within* a Quick Preset?). **Start at Phase 0 (§0): read the code, then ask the operator
+to settle the reading before any plan is written.**
+
+Useful starting evidence, already known and re‑verifiable:
+- Quick Presets live in `data/quickpresets/QP_{SLOT}.json`; the Rust commands are
+  `quickpresets_list | _get | _save | _delete | _run`.
+- `quickpresets_run` **reaches the WinAgent** — it launches programs and moves windows. Anything
+  that fires it is a real, irreversible action on the user's desktop.
+- The left‑pane UI is `ui/src/components/MonitorSelector.tsx` (chooser + Apply); the manager modal is
+  `ui/src/components/quickpresets/QuickPresetsManager.tsx`.
+- There is an existing global‑hotkey mechanism (`services/hotkeys.ts`, `set_hotkey`, and a
+  `Ctrl+Alt+…` Quick Preset binding already listed in Settings → Shortcuts).
+- Anchors already registered for the walkthrough: `quick-presets-section`, `qp-manage-button`,
+  `qp-dropdown`, `qp-apply-button`. **Any new control needs a `data-tour` anchor + registry entry in
+  the same commit, or the anchor gate fails the build.**
 
 ## §9 — Command quick‑reference (WHERE = app repo root `C:\FcXe Studios\Instadesk\instadesk-tauri` unless noted)
 
@@ -263,3 +335,54 @@ CHANGELOG.md        # human history / what is live
 
 *InstaDesk is a product of FcXe Studios. This handbook governs the working method; the
 `CHANGELOG.md` and GitHub Releases govern what is actually live.*
+
+---
+
+## §10 — Traps that have actually bitten (read before debugging anything)
+
+**Tooling**
+- **This session's Bash tool is POSIX `sh`, not PowerShell.** A `@'…'@` here‑string wraps a commit
+  message in literal `@` lines. Use a heredoc or `git commit -F <file>`, then **read the stored
+  message back**.
+- **A Bash heredoc eats backslashes.** Writing a JS regex through one turned `` into a literal
+  **backspace control character (0x08)** — the read‑back *looked* correct because a control
+  character is invisible, and the resulting gate reported `OK` while matching **nothing, ever**.
+  Use the editor tool for anything containing escapes, then grep the escapes back out.
+- **PowerShell needs quoting AND the call operator** for paths with spaces:
+  `& "C:\FcXe Studios\...\setup.exe"`.
+- **`head` on a build pipe kills npm with EPIPE**, which reads as a failed build that never failed.
+  Re‑run without truncation before believing an exit code. *Suspect the instrument.*
+- **`git rev-parse <missing-tag>` echoes the argument back**, which reads as a false positive. Use
+  `git tag -l`.
+- **Launch the Sandbox with `run_in_background`, never a shell `&`** — a detached process dies when
+  the call returns, and you will send the operator to test in a window that no longer exists.
+- **Never start a release build while a dev Sandbox is alive.** Both write
+  `src-tauri/binaries/InstaDesk.WinAgent.exe`; the loser fails with `os error 32` and you can get a
+  binary that is the right size and quietly broken. Verify the bundled agent's PE header and its
+  `1.0.0+<commit>` stamp against the WinAgent repo HEAD before shipping an installer.
+
+**The Sandbox**
+- There are **two** Sandboxes and they are easy to confuse. The **dev** one (`sandbox.mjs --dev`)
+  runs from source, has the live code, has **no desktop icon**, and exists only while the dev server
+  runs. The **installed** one (desktop icon → `%LOCALAPPDATA%\InstaDesk Sandbox\`) is a frozen
+  package. **Only the version number distinguishes builds, and it does not change until you bump** —
+  the reliable markers are the window title `InstaDesk — SANDBOX` and the orange badge.
+- **The DEV panel does not exist in a packaged build** (`import.meta.env.DEV`). Anything that can
+  only be verified through it must be verified **before** you build the installer.
+- Data is isolated: `init_paths()` sets the data dir from `app_data_dir()` only when staged bundle
+  resources exist, so the installed app uses `AppData` while the dev Sandbox falls back to
+  `<repo>/data`. The Sandbox has never touched the operator's real Layouts.
+
+**Judgement**
+- **Classify by consequence, not by mechanism, and prove the categories sum.** A one‑hop call
+  analysis once marked *"Apply a Layout"* safe for a tutorial to fire; it launches programs and
+  rearranges every window. Only the transitive closure, checked against an independently derived
+  total, was correct.
+- **An empty or null value asks HOW it became empty.** `querySelector` returning null means *"not
+  mounted yet"* (wait) or *"deleted"* (defect) — opposite remedies. Collapsing them takes the
+  reassuring reading.
+- **Gates verify structure; nothing verifies that prose is TRUE.** Three green gates once shipped a
+  walkthrough describing grid sizes the app does not offer. A human reading the screen caught it.
+- **React state updaters must be pure.** A side effect inside `setIndex` ran twice under
+  `StrictMode` and emitted both `tour_completed` and `tour_abandoned` for the same tour.
+
