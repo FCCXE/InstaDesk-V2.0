@@ -137,7 +137,7 @@ next build. Weaker than a commit hook, and far safer.
 | I-12 | Entry points — Guided Tour button, menu, Help "Show me", Settings, first-run | no | build + Sandbox | ✅ |
 | I-13 | Full Spanish — prose moved INTO the gate's reach, then translated | no | build | ✅ |
 | I-14 | Telemetry events (5, incl. `tour_abandoned {atStep}`) | no | build + Sandbox | ✅ |
-| I-15 | Release v0.4.0 — Sandbox installer gate, CHANGELOG, bump, tag | **yes** | full | ☐ |
+| I-15 | Release v0.4.0 — Sandbox installer gate, CHANGELOG, bump, tag | **yes** | full | ◐ gate PASSED, awaiting tag authorisation |
 
 ---
 
@@ -877,7 +877,29 @@ CHANGELOG `[Unreleased]` written in user-facing language · **Sandbox installer 
 **No WinAgent push needed** — `Program.cs` is untouched, so the two-repo sequencing trap does not apply.
 **Verification.** `curl` the live `latest.json` shows `0.4.0`; `gh release view v0.4.0` shows
 `isPrerelease:false` and 3 assets.
-**Status.** ☐
+
+**Status. ◐ 2026-08-24 — pre-flight complete, §4c gate PASSED, awaiting authorisation to tag.**
+
+- **CHANGELOG `[0.4.0]`** written in customer-facing language (Guided Tour, Express Tour on start-up,
+  "Show me" per Help topic, schematics for the walled-off actions, EN+ES, and the "puts everything
+  back" guarantee).
+- **Bumped 0.3.0 → 0.4.0** — MINOR, a new user-facing feature. All four locations agree:
+  `tauri.conf.json`, `Cargo.toml`, `Cargo.lock` (`name = "app"`), CHANGELOG. All four gates re-run
+  green *after* the bump.
+- **§4c SANDBOX INSTALLER GATE — PASSED.** `InstaDesk Sandbox_0.4.0_x64-setup.exe` (71.6 MB) built,
+  installed by the operator, verdict: *"Everything is working as expected."* This is the gate the
+  project was caught skipping on 0.2.1; it is unconditional and it was run.
+- **Installer integrity verified, not assumed.** The release build overwrote
+  `binaries/InstaDesk.WinAgent.exe` while a dev session still held it (`os error 32`) — the classic
+  setup for a partially-written binary that is the right size and quietly broken. Checked: both the
+  installer and the bundled agent have valid PE headers, and the agent's version stamp
+  `1.0.0+dd80f844…` **matches the WinAgent repo HEAD exactly**, which a corrupted copy could not fake.
+- **No WinAgent push needed.** `Program.cs` untouched all programme; WinAgent HEAD `dd80f84` ==
+  `origin/main`, already published. The two-repo sequencing trap does not apply.
+- **v0.4.0 tag confirmed free**; app repo 0 ahead / 0 behind `origin/main`.
+
+**Remaining:** push the tag. Held for explicit operator authorisation — a clean `vX.Y.Z` tag is
+published as **Latest** and reaches every existing user.
 
 ---
 

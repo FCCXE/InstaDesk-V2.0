@@ -10,6 +10,8 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-24
+
 ### Added
 - **Guided Tour — learn InstaDesk from inside InstaDesk.** A new button in the top bar opens a short, guided walkthrough that points at the real controls and explains them as you go. Nine chapters, each a couple of minutes at most: the essentials, the grid, adding apps, Layouts, Quick Presets, URLs & Favorites, Snap and the bottom bar, monitors and settings, and what to check when something looks wrong. Pick whichever topic you came for — you don't have to sit through the rest.
 - **An Express Tour on start‑up.** A short welcome covers the essentials in about ninety seconds. It appears each time you open InstaDesk until you tick **Don't show this again**, and you can leave it at any point.
@@ -165,7 +167,8 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 ### Added
 - First InstaDesk release — establishes the signed auto-update baseline. Windows x64 installer.
 
-[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.4.0
 [0.3.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.3.0
 [0.2.1]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.2.1
 [0.2.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.2.0
