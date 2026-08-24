@@ -214,7 +214,15 @@ abandoned, `git reset`/checkout back to the last good tag.
 
 ## §8 — Current state (verify before trusting)
 
-- **Live:** **v0.3.0** (2026‑07‑29) — shipped **Close all windows** (confirm‑gated bottom‑bar
+- **Live:** **v0.4.0** (2026‑08‑24) — shipped the **Guided Tour**: an in‑app guided walkthrough of
+  nine chapters, an Express Tour on start‑up, "Show me" beside every Help topic, code‑drawn
+  schematics for the four actions a walkthrough must not perform, in English and Spanish. Built under
+  a governed work plan — see `docs/workplans/ASSISTED_HELP_WORK_PLAN_v1_0.md` (complete) and its
+  evidence base `ASSISTED_HELP_INVESTIGATION_v1_0.md`.
+  ⚠ **`ui/package.json` now has a `prebuild` script wiring FOUR gates into every build** — i18n
+  parity, tour safety (3 axes), anchor registry (both directions + step references) and tour content.
+  They run locally, in the Sandbox **and in the release robot**. Do not bypass them.
+- **Previously:** v0.3.0 (2026‑07‑29) — shipped **Close all windows** (confirm‑gated bottom‑bar
   button; agent `--close-all` graceful `WM_CLOSE` sweep; InstaDesk + admin windows skipped/reported)
   and a **tidier bottom control bar** (buttons re‑centred, debug size readout removed).
 - Both repos clean on `main`; robot run succeeded; `latest.json` serves 0.3.0.

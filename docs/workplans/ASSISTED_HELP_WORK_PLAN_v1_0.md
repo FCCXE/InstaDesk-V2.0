@@ -1,6 +1,6 @@
 # Assisted Interactive Help — Work Plan v1.0
 
-**Status:** ACTIVE · **Created:** 2026-08-23 · **Target release:** v0.4.0 (MINOR — new user-facing feature)
+**Status:** ✅ **COMPLETE — v0.4.0 shipped 2026-08-24** · **Created:** 2026-08-23 · **Target release:** v0.4.0 (MINOR — new user-facing feature)
 **Repo:** `C:\FcXe Studios\Instadesk\instadesk-tauri` · **Baseline:** `303fce2` on `main`
 **Evidence base:** [`ASSISTED_HELP_INVESTIGATION_v1_0.md`](./ASSISTED_HELP_INVESTIGATION_v1_0.md) **v1.2** — read it before acting on this plan.
 
@@ -137,7 +137,7 @@ next build. Weaker than a commit hook, and far safer.
 | I-12 | Entry points — Guided Tour button, menu, Help "Show me", Settings, first-run | no | build + Sandbox | ✅ |
 | I-13 | Full Spanish — prose moved INTO the gate's reach, then translated | no | build | ✅ |
 | I-14 | Telemetry events (5, incl. `tour_abandoned {atStep}`) | no | build + Sandbox | ✅ |
-| I-15 | Release v0.4.0 — Sandbox installer gate, CHANGELOG, bump, tag | **yes** | full | ◐ gate PASSED, awaiting tag authorisation |
+| I-15 | Release v0.4.0 — Sandbox installer gate, CHANGELOG, bump, tag | **yes** | full | ✅ **SHIPPED** |
 
 ---
 
@@ -898,8 +898,29 @@ CHANGELOG `[Unreleased]` written in user-facing language · **Sandbox installer 
   `origin/main`, already published. The two-repo sequencing trap does not apply.
 - **v0.4.0 tag confirmed free**; app repo 0 ahead / 0 behind `origin/main`.
 
-**Remaining:** push the tag. Held for explicit operator authorisation — a clean `vX.Y.Z` tag is
-published as **Latest** and reaches every existing user.
+**✅ SHIPPED 2026-08-24.** Tag `v0.4.0` at `b5120e1`, pushed on explicit operator authorisation.
+Robot run `32785117123` succeeded in **10m49s**.
+
+**Verified from the live endpoints, not from the robot's green tick** — a run reporting success and a
+release being correctly published are two different claims:
+
+| Check | Result |
+|---|---|
+| Live `latest.json` `version` | **0.4.0** |
+| `isPrerelease` / `isDraft` | `false` / `false` — published as **Latest** |
+| Assets | **3** — `InstaDesk_0.4.0_x64-setup.exe` (73.4 MB), `.sig` (420 B), `latest.json` (2,127 B) |
+| Published | 2026-08-24T22:41:37Z |
+
+**All four gates ran inside the release build**, not merely locally: `beforeBuildCommand` →
+`npm --prefix ui run build` → `prebuild` → checks. The release could not have existed if any had
+failed (F-9 delivering exactly what it promised).
+
+---
+
+# PROGRAMME COMPLETE — 16 of 16 increments.
+
+**Status:** the plan is closed. `CHANGELOG.md` and the GitHub release are now the record of what
+shipped; this document is the record of *how*, and of the eleven defects the method caught.
 
 ---
 
