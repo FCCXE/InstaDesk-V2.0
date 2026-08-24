@@ -128,7 +128,7 @@ next build. Weaker than a commit hook, and far safer.
 | I-3 | **Geometry spike** — throwaway, de-risks the scaled construct | no | Sandbox | ✅ PASS |
 | I-4 | Anchor registry + anchor check (both directions), proven to bite | no | build | ✅ |
 | I-5 | Anchor sweep across 8 components (~40–48 attributes) | **yes** | build + Sandbox | ✅ |
-| I-6 | Tour engine + REQ-1 exit, incl. broken-step exit proof | **yes** | build + Sandbox | ☐ |
+| I-6 | Tour engine + REQ-1 exit, incl. broken-step exit proof | **yes** | build + Sandbox | ✅ |
 | I-7 | Lift `tab` / `sub` into `AppState` | **yes** | build + Sandbox | ☐ |
 | I-8 | Snapshot / restore + the "changed nothing" assertion | **yes** | build + Sandbox | ☐ |
 | I-9 | Schematic animation component (REQ-2) | no | build + Sandbox | ☐ |
@@ -488,7 +488,51 @@ single teardown path shared with normal completion (R1.7).
 is visibly stuck. Confirm **the exit button and Escape both still work.** A happy-path exit test is
 explicitly **not** accepted as evidence for REQ-1. Also confirm: with a `ConfirmDialog` open over the
 tour, Escape closes the dialog and leaves the tour running.
-**Status.** ☐
+
+**Status. ✅ DONE 2026-08-24.** Rollback point: `pre-assisted-help-engine` @ `96b5c44`.
+Delivered: `ui/src/tour/types.ts`, `ui/src/tour/TourProvider.tsx`, `ui/src/tour/DevTourLauncher.tsx`
+(DEV-only scaffold), wired into `App.tsx` inside `AppStateProvider`.
+
+**Geometry is the I-3 approach, carried over rather than re-guessed:** portal to `document.body`,
+position purely from `getBoundingClientRect()`, reposition on resize + **capture-phase** scroll +
+`ResizeObserver`. No scale arithmetic anywhere. z-index **90/91** — above the app's modals (`z-[80]`),
+**below** `ConfirmDialog` (`z-[100]`).
+
+**Anchor resolution names five outcomes, none collapsed into a reassuring "not found":**
+`ready` · `unregistered` (defect, never waited on) · `needs-navigation` (pane closed) ·
+`transient` (centre off-viewport mid-resize — **the I-3 finding, carried in**) · `lost` (defect).
+
+**REQ-1 implemented as specified.** Exit rendered at **provider level, outside the step card**
+(R1.3); Escape exits except while a dialog is open, detected structurally via `aria-modal="true"`
+rather than by coupling the two components (R1.2); no confirm-on-exit (R1.4); exit, Escape and
+normal completion share **one** teardown path (R1.7).
+
+**Dry-run evidence (operator, live Sandbox, 5 states captured):**
+
+| Step | Observed |
+|---|---|
+| 1/4 Snap | ring exactly on the button; chrome `Dry run · 1/4` + `Exit ✕` |
+| 2/4 Grid picker | ring on target; card **flipped above** the anchor when there was no room below |
+| 3/4 Theme (Settings-scoped, Apps open) | **"Waiting for its pane to open (the Settings tab)"** — needs-navigation, NOT a false "missing" |
+| 4/4 deliberately broken anchor | **"names an unregistered anchor … that is a defect, not a delay"**, and **the Exit control is still present** |
+| Esc precedence | `ConfirmDialog` renders **above** the tour; tour card and Exit chrome visible beneath |
+
+Operator: *"Everything works as expected."*
+
+⚠ **Recorded precisely:** the five screenshots photograph the *states*. The Escape keypress behaviour
+and the Exit button click are the operator's **attestation**, not photographic evidence. That is the
+plan's stated verification method for this increment, so it stands — but it is recorded as attested
+rather than claimed as captured.
+
+**Bundle 759.17 kB** vs the 745.79 kB baseline (**+13.4 kB** for the engine). `DevTourLauncher`
+renders nothing in a production build but is still bundled; **I-12 replaces it** with the real entry
+points.
+
+**➜ Requirement carried to I-10:** the engine catches an `unregistered` anchor at **runtime**. A step
+naming a bogus anchor should also be caught at **build time** — once chapters exist, the anchor gate
+must additionally verify that every step's `anchor` is registered. Runtime detection is the safety
+net, not the gate.
+**Status.** ✅
 
 ---
 

@@ -12,6 +12,11 @@ import LockedBanner from './components/LockedBanner'
 import { AppStateProvider } from './state/AppState'
 import { applySavedHotkeys } from './services/hotkeys'
 
+// Walkthrough engine. The overlay portals to document.body, so it is unaffected
+// by the scaled construct below; see TourProvider for the geometry rationale.
+import { TourProvider } from './tour/TourProvider'
+import DevTourLauncher from './tour/DevTourLauncher'
+
 /**
  * Balanced fit (2026-06-11) — "maximize space, but only up to the construct's
  * adequate balance."
@@ -74,6 +79,7 @@ export default function App() {
   }, [])
   return (
     <AppStateProvider>
+      <TourProvider>
       <div className="h-dvh w-full overflow-hidden bg-bg flex items-center justify-center">
         {/* Construct: design-height-pinned, width-fluid, uniformly scaled +
             centered. Subtle ring frames it against any balanced-limit margins. */}
@@ -125,6 +131,8 @@ export default function App() {
           </div>
         </div>
       </div>
+      <DevTourLauncher />
+      </TourProvider>
     </AppStateProvider>
   )
 }
