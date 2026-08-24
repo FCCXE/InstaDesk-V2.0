@@ -9,9 +9,9 @@
 //   2. every data-tour attribute in src/ is registered.
 // One direction alone lets the two drift apart silently.
 import registry from './anchors.json'
+import type { AppsSubTab, MainTab } from '../state/AppState'
 
-export type MainTab = 'Apps' | 'Layouts' | 'Settings' | 'Help'
-export type AppsSubTab = 'URLs' | 'Apps' | 'Favorites'
+export type { MainTab, AppsSubTab }
 
 /**
  * Where an anchor can be reached. This is the field that makes a null lookup

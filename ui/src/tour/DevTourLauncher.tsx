@@ -29,7 +29,7 @@ const DRY_RUN: TourChapter = {
     {
       anchor: 'settings-theme',
       title: 'Theme (Settings tab)',
-      body: 'This anchor lives behind the Settings tab. With Apps open it must report needs-navigation, not pretend it is missing.',
+      body: 'This anchor lives behind the Settings tab. Since I-7 the tour OPENS that tab itself rather than asking you to — watch the tab switch as this step begins.',
     },
     {
       // DELIBERATELY BROKEN. This is the case REQ-1 exists for: the step cannot

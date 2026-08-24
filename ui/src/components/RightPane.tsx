@@ -52,12 +52,11 @@ import TruncateText from "./common/TruncateText";
 /*                                    Shell                                   */
 /* -------------------------------------------------------------------------- */
 
-type MainTab = "Apps" | "Layouts" | "Settings" | "Help";
-type AppsSubTab = "URLs" | "Apps" | "Favorites";
-
 export default function RightPane() {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<MainTab>("Apps");
+  // Navigation lives in AppState (I-7) so the walkthrough can both open a
+  // pane and read which pane is open.
+  const { mainTab: tab, setMainTab: setTab } = useAppState();
 
   // Quick Presets "Manage" link in the left pane dispatches this event.
   useEffect(() => {
@@ -124,7 +123,7 @@ function TopTab({
 
 function AppsPane() {
   const { t } = useTranslation();
-  const [sub, setSub] = useState<AppsSubTab>("Apps");
+  const { appsSubTab: sub, setAppsSubTab: setSub } = useAppState();
   return (
     <div className="flex h-full flex-col overflow-hidden px-3 pt-3">
       {/* Sub-tabs */}

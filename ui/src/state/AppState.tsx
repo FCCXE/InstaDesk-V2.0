@@ -297,6 +297,24 @@ const newGroup = (idSeed: number): UrlGroup => ({ id: `g${idSeed}`, title: '', u
    ========================================================================== */
 type Modifiers = { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean }
 
+/* ---------------------------------------------------------------------- *
+ * Right-pane navigation.
+ *
+ * Lifted out of RightPane's local useState (I-7). Two reasons, and the
+ * second is the one that matters:
+ *   - conditional rendering unmounts panes and destroys local state, which
+ *     is why editingLayoutId was lifted here already;
+ *   - the walkthrough must be able to OPEN a pane and to READ which pane is
+ *     open. A window-event bus can command the first but can never answer
+ *     the second, so an anchor behind a closed tab could not be told apart
+ *     from a deleted one (finding F-4).
+ *
+ * These types were previously declared twice - here in RightPane and again
+ * in tour/anchors.ts. One definition now, imported by both.
+ * ---------------------------------------------------------------------- */
+export type MainTab = 'Apps' | 'Layouts' | 'Settings' | 'Help'
+export type AppsSubTab = 'URLs' | 'Apps' | 'Favorites'
+
 type AppStateContext = {
   // selection as Set<CellKey> (used by WorkspaceGrid)
   selection: Set<CellKey>
@@ -362,6 +380,12 @@ type AppStateContext = {
   // kind+slot from this when saving back to that specific slot.
   editingLayoutId: string | null
   setEditingLayoutId: (id: string | null) => void
+
+  // Right-pane navigation (see the note above the MainTab type).
+  mainTab: MainTab
+  setMainTab: (t: MainTab) => void
+  appsSubTab: AppsSubTab
+  setAppsSubTab: (s: AppsSubTab) => void
 
   // monitors + presets
   monitors: Monitor[]
@@ -456,6 +480,8 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   const [clipboard, setClipboard] = useState<Assignments | null>(null)
   const [clipboardArgs, setClipboardArgs] = useState<Record<string, string> | null>(null)
   const [editingLayoutId, setEditingLayoutId] = useState<string | null>(null)
+  const [mainTab, setMainTab] = useState<MainTab>('Apps')
+  const [appsSubTab, setAppsSubTab] = useState<AppsSubTab>('Apps')
 
   // drag bookkeeping
   const isDraggingRef = useRef(false)
@@ -842,6 +868,10 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     setArgsForSelection,
     editingLayoutId,
     setEditingLayoutId,
+    mainTab,
+    setMainTab,
+    appsSubTab,
+    setAppsSubTab,
 
     // monitors + presets
     monitors,
@@ -883,7 +913,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   }), [
     selection, assignments, assignmentsByMonitor, assignedCountTotal,
     argsOverridesByMonitor, argsForSelection, hasMixedArgsInSelection,
-    editingLayoutId,
+    editingLayoutId, mainTab, appsSubTab,
     selectedApp, clipboard,
     monitors, currentMonitorId, presets, pendingPresetByMonitor,
     gridSizeByMonitor, currentGridCols, currentGridRows, defaultGridSize,

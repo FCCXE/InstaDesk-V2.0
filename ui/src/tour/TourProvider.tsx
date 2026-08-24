@@ -21,6 +21,7 @@ import {
   type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { useAppState } from '../state/AppState'
 import { anchorSelector, anchorSpec } from './anchors'
 import type { AnchorResolution, TourChapter } from './types'
 
@@ -46,6 +47,20 @@ export function useTour(): TourContextValue {
   return ctx
 }
 
+/** Is the pane an anchor is registered against currently open? This is the
+ *  question that makes a missing anchor DIAGNOSABLE rather than ambiguous:
+ *  pane closed → navigate; pane open and still absent → a real defect. */
+function paneIsOpen(
+  w: { kind: string; tab?: string; sub?: string },
+  mainTab: string,
+  appsSubTab: string,
+): boolean {
+  if (w.kind === 'always') return true
+  if (w.kind === 'tab') return mainTab === w.tab
+  if (w.kind === 'tab+sub') return mainTab === w.tab && appsSubTab === w.sub
+  return false
+}
+
 /** A ConfirmDialog is open. Detected structurally rather than by wiring the two
  *  together: ConfirmDialog renders aria-modal="true" at z-[100]. While one is
  *  open, Escape belongs to IT, not to the tour (REQ-1 R1.2). */
@@ -54,6 +69,10 @@ function dialogIsOpen(): boolean {
 }
 
 export function TourProvider({ children }: { children: ReactNode }) {
+  // Navigation state, lifted in I-7. Reading it is what lets the engine tell
+  // "the pane is closed" apart from "the anchor is gone"; writing it is what
+  // lets a step open the pane it needs instead of asking the user to.
+  const { mainTab, setMainTab, appsSubTab, setAppsSubTab } = useAppState()
   const [chapter, setChapter] = useState<TourChapter | null>(null)
   const [index, setIndex] = useState(0)
   const [resolution, setResolution] = useState<AnchorResolution | null>(null)
@@ -120,11 +139,14 @@ export function TourProvider({ children }: { children: ReactNode }) {
     if (!el) {
       if (missingSince.current === null) missingSince.current = performance.now()
       const waited = performance.now() - missingSince.current
-      // An anchor scoped to a tab may simply be behind a closed pane. Until
-      // I-7 lifts the tab state, the engine cannot confirm which pane is open,
-      // so it reports needs-navigation rather than claiming the anchor is gone.
-      // It never takes the reassuring reading and proceeds regardless.
-      if (spec.reachableWhen.kind !== 'always') return { kind: 'needs-navigation', spec }
+      // I-7: the current pane is now knowable, so this is adjudicated rather
+      // than assumed. If the anchor's pane is NOT open, its absence is expected
+      // and the remedy is navigation. If the pane IS open and it is still
+      // absent after the grace period, that is a genuine defect and is reported
+      // as such - never narrated over.
+      if (!paneIsOpen(spec.reachableWhen, mainTab, appsSubTab)) {
+        return { kind: 'needs-navigation', spec }
+      }
       if (waited < GRACE_MS) return { kind: 'transient', spec }
       return { kind: 'lost', spec }
     }
@@ -141,7 +163,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
       return { kind: 'transient', spec }
     }
     return { kind: 'ready', el, rect: { x: r.left, y: r.top, w: r.width, h: r.height } }
-  }, [step])
+  }, [step, mainTab, appsSubTab])
 
   useLayoutEffect(() => {
     if (!active) return
@@ -160,6 +182,23 @@ export function TourProvider({ children }: { children: ReactNode }) {
       window.clearInterval(poll)
     }
   }, [active, resolve])
+
+  /* ------------------------------------------------------------------ *
+   * Navigate to the step's pane. Both actions are in-app, reversible and
+   * on no forbidden list; I-8 snapshots them so exiting puts the user back
+   * where they were.
+   * ------------------------------------------------------------------ */
+  useEffect(() => {
+    if (!active || !step) return
+    const spec = anchorSpec(step.anchor)
+    if (!spec) return
+    const w = spec.reachableWhen
+    if (w.kind === 'tab' && mainTab !== w.tab) setMainTab(w.tab)
+    if (w.kind === 'tab+sub') {
+      if (mainTab !== w.tab) setMainTab(w.tab)
+      if (appsSubTab !== w.sub) setAppsSubTab(w.sub)
+    }
+  }, [active, step, mainTab, appsSubTab, setMainTab, setAppsSubTab])
 
   /** Bring a scrolled-away anchor into view. In-app, reversible, and on no
    *  forbidden list. I-8 snapshots scroll position so this is restored on exit. */

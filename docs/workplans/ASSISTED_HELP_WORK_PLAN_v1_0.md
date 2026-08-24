@@ -129,7 +129,7 @@ next build. Weaker than a commit hook, and far safer.
 | I-4 | Anchor registry + anchor check (both directions), proven to bite | no | build | ✅ |
 | I-5 | Anchor sweep across 8 components (~40–48 attributes) | **yes** | build + Sandbox | ✅ |
 | I-6 | Tour engine + REQ-1 exit, incl. broken-step exit proof | **yes** | build + Sandbox | ✅ |
-| I-7 | Lift `tab` / `sub` into `AppState` | **yes** | build + Sandbox | ☐ |
+| I-7 | Lift `tab` / `sub` into `AppState` | **yes** | build + Sandbox | ✅ |
 | I-8 | Snapshot / restore + the "changed nothing" assertion | **yes** | build + Sandbox | ☐ |
 | I-9 | Schematic animation component (REQ-2) | no | build + Sandbox | ☐ |
 | I-10 | Spine chapter — content, EN only | no | build + Sandbox | ☐ |
@@ -546,8 +546,55 @@ event bus can command a tab change but can never report where the UI currently i
 **Dry run.** Sandbox click-through of all four tabs and all three Apps sub-tabs.
 **Done when.** Build green; tab state survives pane toggles; **the existing
 `insta:open-layouts-tab` event still works** — this is the regression most likely to be missed.
-**Verification.** Click "Manage QPs" in the left pane and confirm the Layouts tab still opens.
-**Status.** ☐
+**Verification.** Click **"Layouts ↗"** in the left pane and confirm the Layouts tab still opens.
+⚠ **Corrected 2026-08-24:** this line previously named *"Manage QPs"*, which opens the Quick Preset
+manager modal and does **not** dispatch `insta:open-layouts-tab` (`MonitorSelector.tsx:252` is the
+button that does). Following the original instruction would have exercised nothing and could have
+been recorded as a pass — a verification aimed at the wrong control is worse than none.
+
+**Status. ✅ DONE 2026-08-24.** Rollback point: `pre-assisted-help-navstate` @ `5cf3f95`.
+
+`mainTab` / `appsSubTab` moved into `AppState`; `RightPane` and `AppsPane` consume them; the tour
+engine both **reads** and **drives** them.
+
+- **Reading is the half that mattered.** A window-event bus could always *command* a tab change but
+  can never answer *"which pane is open right now"* — so step resolution is now **adjudicated**
+  rather than assumed: pane closed → `needs-navigation`; pane open and the anchor still absent after
+  the grace period → **`lost`, reported as a defect**.
+- **Duplicate type definition removed.** `MainTab` / `AppsSubTab` were declared **twice** —
+  `RightPane.tsx` and `tour/anchors.ts`. One definition now, in `AppState`, imported by both.
+- **Orphaned comment fixed:** the insertion had left the `ConfirmDialog` doc comment above
+  `paneIsOpen` instead of `dialogIsOpen`. Caught on read-back. A comment describing the wrong
+  function is rot that costs later.
+- **Dry-run copy corrected:** step 3's text still described the pre-I-7 behaviour it no longer
+  exhibits. Text that contradicts what is on screen is how confusion sets in.
+- **Verified in the live Sandbox:** step 3 now **opens the Settings tab itself** and lands the ring on
+  the Theme control; step 4 still reports the broken anchor with the Exit present.
+- **REGRESSION — attested by the operator:** *"Layouts is working ok"*, with the Layouts tab open and
+  the pane fully rendered. This was the single most likely breakage and the reason the plan singles
+  it out.
+
+⚠ **Design consequence, recorded:** with auto-navigation, `needs-navigation` now flashes for a frame
+rather than being a state one can sit and observe. That is acceptable — the load-bearing distinction
+was never `needs-navigation` itself, it is **pane open + anchor absent ⇒ `lost`**, which remains
+observable and is what step 4 exercises.
+
+⚠ **OPERATOR-VISIBLE TRAP FOUND THIS INCREMENT — the Sandbox and the real app are indistinguishable
+by version.** Both display **v0.3.0**, because the version is not bumped until I-15. The **only**
+reliable discriminators are the window title (`InstaDesk — SANDBOX`) and the orange **SANDBOX**
+badge. The operator was at one point testing against their real installed app
+(`%LOCALAPPDATA%\InstaDesk\InstaDesk.exe`, v0.3.0, dated 2026-07-29) while the dev Sandbox was not
+running at all — verified: **zero `app.exe` processes, zero `node` processes**.
+
+⚠ **MY ERROR, recorded so it does not recur:** that Sandbox had died because I launched it with a
+shell `&` instead of the tracked background mechanism. A detached `&` process is killed when the
+shell call returns. **Always launch the Sandbox with `run_in_background`, never `&`.**
+
+✅ **Isolation re-verified while investigating the above.** `init_paths()` sets the data directory
+from `app_data_dir()` **only when staged bundle resources exist**, so the installed app uses its own
+`AppData` folder while the dev Sandbox falls back to `<repo>/data` (`backend.rs:270-277`, `441-455`).
+Different directories — the Sandbox has never read or written the operator's real Layouts.
+**Status.** ✅
 
 ---
 
