@@ -248,7 +248,7 @@ export default function BottomControls() {
     'text-muted'
 
   return (
-    <div className="mt-4 h-12 border-t border-line bg-surface flex items-center gap-2 px-3">
+    <div data-tour="bottom-bar" className="mt-4 h-12 border-t border-line bg-surface flex items-center gap-2 px-3">
       {/* Bottom-bar strip (2026-07-27): three zones — a fixed LEFT spacer, the
           flex-1 CENTER that holds the button group (justify-center), and a fixed
           RIGHT status zone. The group centers within the flex-1 middle; because
@@ -267,6 +267,7 @@ export default function BottomControls() {
             operator wanted it at the head of the row for muscle memory. */}
         <button
           type="button"
+          data-tour="snap-button"
           onClick={onSnap}
           disabled={snapping}
           className={[
@@ -286,6 +287,7 @@ export default function BottomControls() {
             maximize them (each on its own monitor). Elevated apps are skipped. */}
         <button
           type="button"
+          data-tour="minimize-all-button"
           onClick={onArrangeAll}
           disabled={arrangeBusy}
           className="px-3 py-1.5 rounded-lg border border-line bg-raised text-sm text-fg hover:bg-line/60 disabled:cursor-not-allowed disabled:opacity-60"
@@ -299,6 +301,7 @@ export default function BottomControls() {
         </button>
         <button
           type="button"
+          data-tour="clear-current-button"
           onClick={clearGrid}
           disabled={assignedCount === 0}
           className="px-3 py-1.5 rounded-lg border border-line bg-raised text-sm text-fg hover:bg-line/60 disabled:cursor-not-allowed disabled:opacity-60"
@@ -313,6 +316,7 @@ export default function BottomControls() {
             the app-wide styled-dialog sweep replaces all of these together.) */}
         <button
           type="button"
+          data-tour="clear-all-grids-button"
           onClick={async () => {
             const ok = await confirm({
               title: t('bottomBar.clearAllGridsConfirmTitle'),
@@ -337,6 +341,7 @@ export default function BottomControls() {
         <label className="flex items-center gap-1.5 text-sm text-fg">
           <span className="text-xs text-muted">{t('bottomBar.grid')}</span>
           <select
+            data-tour="grid-size-picker"
             value={`${currentGridCols}x${currentGridRows}`}
             onChange={(e) => {
               const [c, r] = e.target.value.split('x').map((n) => parseInt(n, 10))
@@ -361,6 +366,7 @@ export default function BottomControls() {
             save. Red styling signals the destruction, matching Clear All Grids. */}
         <button
           type="button"
+          data-tour="close-all-button"
           onClick={onCloseAll}
           disabled={closeBusy}
           className="px-3 py-1.5 rounded-lg border border-red-300 bg-red-50 text-sm font-medium text-red-700 hover:bg-red-100 hover:border-red-400 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20 dark:hover:border-red-400/60"
@@ -372,7 +378,7 @@ export default function BottomControls() {
       {/* Status — FIXED-width right zone (w-44), right-aligned; long transient
           snap messages truncate (full text on hover). Its fixed width is what
           holds the button group's center stable regardless of the message. */}
-      <div className="w-44 shrink-0 flex min-w-0 items-center justify-end">
+      <div data-tour="bottom-status" className="w-44 shrink-0 flex min-w-0 items-center justify-end">
         <span className={`truncate text-xs ${statusColor}`} title={statusText}>
           {statusText}
         </span>

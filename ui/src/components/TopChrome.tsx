@@ -67,6 +67,7 @@ export default function TopChrome() {
       <div className="flex items-center justify-center">
         <button
           type="button"
+          data-tour="dashboard-button"
           className="px-5 py-2 text-[0.95rem] font-semibold text-on-primary
                      bg-primary hover:bg-primary-hover
                      rounded-lg shadow-md transition-colors
@@ -77,7 +78,7 @@ export default function TopChrome() {
       </div>
 
       {/* Right: server status dot + version + FCLX logo */}
-      <div className="flex items-center justify-end gap-2 text-xs text-muted">
+      <div data-tour="version-status" className="flex items-center justify-end gap-2 text-xs text-muted">
         <span
           className={`inline-block h-2.5 w-2.5 rounded-full ${dot.color}`}
           title={dot.label}

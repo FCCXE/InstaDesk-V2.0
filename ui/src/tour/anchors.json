@@ -10,8 +10,88 @@
     "  rectangle while every gate stays green. That is finding F-4, and it was reproduced live during",
     "  the I-3 spike. This field is what makes the two distinguishable at runtime.",
     "",
-    "Entries are added in I-5, one component at a time, together with the attribute itself -",
-    "never one without the other, because the check enforces both directions."
+    "Add an entry and its data-tour attribute TOGETHER - the gate fails on either one alone."
   ],
-  "anchors": []
+  "anchors": [
+    {
+      "id": "version-status",
+      "component": "components/TopChrome.tsx",
+      "describes": "the version number and the live/static agent status dot, top right",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "dashboard-button",
+      "component": "components/TopChrome.tsx",
+      "describes": "the Dashboard button in the centre of the top bar",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "bottom-bar",
+      "component": "components/BottomControls.tsx",
+      "describes": "the whole bottom control strip",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "snap-button",
+      "component": "components/BottomControls.tsx",
+      "describes": "Snap - grabs the window you last used and snaps it into a region you pick",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "minimize-all-button",
+      "component": "components/BottomControls.tsx",
+      "describes": "Minimize all / Restore all - the reliable 'show desktop' toggle",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "clear-current-button",
+      "component": "components/BottomControls.tsx",
+      "describes": "Clear Present Grid - empties the current monitor's grid only",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "clear-all-grids-button",
+      "component": "components/BottomControls.tsx",
+      "describes": "Clear All Grids - wipes every monitor's grid (confirm-gated)",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "grid-size-picker",
+      "component": "components/BottomControls.tsx",
+      "describes": "the per-monitor grid density picker, e.g. 6x6",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "close-all-button",
+      "component": "components/BottomControls.tsx",
+      "describes": "Close all windows - graceful close of every window (confirm-gated)",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "bottom-status",
+      "component": "components/BottomControls.tsx",
+      "describes": "the status readout at the right of the bottom bar",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    }
+  ]
 }
