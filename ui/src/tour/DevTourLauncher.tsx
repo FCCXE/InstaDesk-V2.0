@@ -1,4 +1,14 @@
-// DEV-ONLY scaffold for the I-6/I-7/I-8 dry runs.
+// DEV-ONLY scaffold. Renders nothing in a production build.
+//
+// The broken-step dry run was RETIRED at I-13, and not merely because the new
+// step type carries no prose. It is now IMPOSSIBLE to ship a step naming an
+// unregistered anchor: scripts/check-tour-anchors.mjs fails the build on one.
+// A build-time impossibility is strictly stronger than a runtime demonstration,
+// so keeping a dev chapter alive — and giving dev-only copy real translation
+// keys to satisfy the gates — would have bought nothing.
+//
+// What remains has no production equivalent: the D-12 "changes nothing"
+// assertion, and the REQ-1 R1.2 Escape-precedence probe.
 //
 // Renders nothing in a production build (`import.meta.env.DEV` is false), so it
 // can never reach a user. Replaced by the real entry points in I-12: the Help
@@ -7,82 +17,23 @@
 // The placeholder copy is intentionally NOT in i18n. Real chapter text arrives
 // in I-10/I-11 as translated keys; putting throwaway strings through the locale
 // files would pollute the parity check with content we intend to delete.
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useConfirm } from '../components/common/ConfirmDialog'
 import { useAppState } from '../state/AppState'
-import { SPINE } from './chapters'
 import { useTour } from './TourProvider'
 import type { TourChapter } from './types'
-
-const DRY_RUN: TourChapter = {
-  id: 'dev-dry-run',
-  title: 'Dry run',
-  steps: [
-    {
-      anchor: 'snap-button',
-      title: 'This is Snap',
-      body: 'Snap grabs the window you last used and drops it into a region you pick. Always-reachable anchor.',
-    },
-    {
-      anchor: 'grid-size-picker',
-      title: 'Grid density',
-      body: 'Sets how many cells this monitor is divided into. Also an always-reachable anchor.',
-    },
-    {
-      anchor: 'settings-theme',
-      title: 'Theme (Settings tab)',
-      body: 'This anchor lives behind the Settings tab. Since I-7 the tour OPENS that tab itself rather than asking you to — watch the tab switch as this step begins.',
-    },
-    {
-      // DELIBERATELY BROKEN. The case REQ-1 exists for: the step cannot resolve,
-      // so there is no spotlight and no anchor to hang a card on. The exit must
-      // still be there, because a broken tour is exactly when someone wants out.
-      anchor: 'this-anchor-does-not-exist',
-      title: 'Deliberately broken step',
-      body: 'This step names an anchor that is not registered. The tour should say so plainly — and the Exit button and Esc must both still work.',
-    },
-  ],
-}
-
-/** All four walled-off actions, each on its real control, so the schematic can
- *  be judged at the card's actual width rather than in isolation. */
-const SCHEMATICS: TourChapter = {
-  id: 'dev-schematics',
-  title: 'Schematics',
-  steps: [
-    {
-      anchor: 'qp-apply-button',
-      title: 'Apply a Layout',
-      body: 'Every app in the Layout opens and lands in its saved square, across all your monitors. The tour shows it rather than doing it.',
-      schematic: 'apply',
-    },
-    {
-      anchor: 'snap-button',
-      title: 'Snap',
-      body: 'The window you last used jumps into the region you pick.',
-      schematic: 'snap',
-    },
-    {
-      anchor: 'minimize-all-button',
-      title: 'Minimize all',
-      body: 'Every window drops out of the way; press again and each returns to the exact frame it was in.',
-      schematic: 'minimize-all',
-    },
-    {
-      anchor: 'close-all-button',
-      title: 'Close all windows',
-      body: 'Every window is asked to close gracefully — anything with unsaved work still prompts you first.',
-      schematic: 'close-all',
-    },
-  ],
-}
 
 /** One step, deliberately behind the Settings tab, so merely STARTING it forces
  *  the engine to navigate. That is what makes the D-12 assertion non-vacuous. */
 const SNAPSHOT_PROBE: TourChapter = {
-  id: 'dev-snapshot-probe',
-  title: 'Snapshot probe',
-  steps: [{ anchor: 'settings-theme', title: 'probe', body: 'probe' }],
+  // Reuses the real monitorsSettings chapter's id so its text resolves from the
+  // locale files like any other chapter — a dev-only id would render raw key
+  // paths and, worse, would need dev copy translated into both locales to
+  // satisfy the content gate. Only the FIRST step is taken, and the probe exits
+  // immediately, so which chapter it borrows is immaterial; what matters is that
+  // the step sits behind the Settings tab and therefore forces navigation.
+  id: 'monitorsSettings',
+  steps: [{ anchor: 'settings-theme' }],
 }
 
 const devBtn = {
@@ -99,6 +50,16 @@ export default function DevTourLauncher() {
   const confirm = useConfirm()
   const [lines, setLines] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
+  // The scaffold must not compete with the thing being judged. It folds away
+  // to a small handle, and folds itself away automatically the moment a
+  // chapter starts — the handle stays so the Esc-precedence test is still
+  // reachable mid-tour.
+  const [collapsed, setCollapsed] = useState(false)
+  const wasActive = useRef(tour.active)
+  useEffect(() => {
+    if (tour.active && !wasActive.current) setCollapsed(true)
+    wasActive.current = tour.active
+  }, [tour.active])
 
   // Async phases must read the LATEST state, not the values closed over at the
   // moment the test started — otherwise "after" would be a stale copy of
@@ -124,8 +85,10 @@ export default function DevTourLauncher() {
       appRef.current.setMainTab('Apps')
       appRef.current.setAppsSubTab('URLs')
       await wait(250)
+      const nAssigned = (m: Record<string, Record<string, string | null>>): number =>
+        Object.values(m).reduce((n, cells) => n + Object.values(cells).filter(Boolean).length, 0)
       const before = appRef.current.captureTourSnapshot()
-      push(`before : tab=${before.mainTab} selection=${before.selection.length} assigned=(counted below)`)
+      push(`before : tab=${before.mainTab} selection=${before.selection.length} assigned=${nAssigned(before.assignmentsByMonitor)}`)
 
       // 2. start a chapter whose only step is behind the Settings tab
       tourRef.current.start(SNAPSHOT_PROBE)
@@ -147,8 +110,6 @@ export default function DevTourLauncher() {
       appRef.current.assignSelected()
       await wait(300)
       const during = appRef.current.captureTourSnapshot()
-      const nAssigned = (m: Record<string, Record<string, string | null>>): number =>
-        Object.values(m).reduce((n, cells) => n + Object.values(cells).filter(Boolean).length, 0)
       push(`during : tab=${during.mainTab} selection=${during.selection.length} assigned=${nAssigned(during.assignmentsByMonitor)}`)
 
       // 3. CONTROL — the tour must actually have moved something, on BOTH axes
@@ -188,6 +149,25 @@ export default function DevTourLauncher() {
 
   if (!import.meta.env.DEV) return null
 
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        onClick={() => setCollapsed(false)}
+        title="Show the DEV scaffold"
+        aria-label="Show the DEV scaffold"
+        style={{
+          position: 'fixed', left: 8, bottom: 8, zIndex: 2147483000,
+          width: 22, height: 22, borderRadius: 11, cursor: 'pointer', opacity: 0.45,
+          border: '1px solid #f97316', background: '#c2410c', color: '#fff',
+          font: '700 11px/1 ui-monospace, Consolas, monospace', padding: 0,
+        }}
+      >
+        ▸
+      </button>
+    )
+  }
+
   return (
     <div style={{ position: 'fixed', left: 12, bottom: 12, zIndex: 2147483000, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
       {lines.length > 0 && (
@@ -200,22 +180,15 @@ export default function DevTourLauncher() {
           ))}
         </div>
       )}
-      <div style={{ display: 'flex', gap: 8 }}>
-        {!tour.active && (
-          <button type="button" onClick={() => tour.start(DRY_RUN)} style={devBtn}>
-            ▶ DEV: run tour dry-run
-          </button>
-        )}
-        {!tour.active && (
-          <button type="button" onClick={() => tour.start(SCHEMATICS)} style={devBtn}>
-            ▶ DEV: preview the 4 schematics
-          </button>
-        )}
-        {!tour.active && (
-          <button type="button" onClick={() => tour.start(SPINE)} style={{ ...devBtn, background: '#15803d', borderColor: '#22c55e' }}>
-            ▶ RUN THE SPINE (first 90 seconds)
-          </button>
-        )}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button
+          type="button"
+          onClick={() => setCollapsed(true)}
+          title="Hide the DEV scaffold"
+          style={{ ...devBtn, padding: '6px 9px' }}
+        >
+          ✕ hide
+        </button>
         <button type="button" onClick={runSnapshotAssertion} disabled={busy} style={devBtn}>
           {busy ? 'running…' : '▶ DEV: assert tour changes nothing'}
         </button>

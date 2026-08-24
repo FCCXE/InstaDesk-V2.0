@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { api, type HealthResponse } from '../services/api'
 import { APP_VERSION, IS_SANDBOX } from '../services/version'
 import { useTheme } from '../state/ThemeProvider'
+import { useTour } from '../tour/TourProvider'
 
 type ServerStatus =
   | { kind: 'checking' }
@@ -13,6 +14,7 @@ export default function TopChrome() {
   const [status, setStatus] = useState<ServerStatus>({ kind: 'checking' })
   const { t } = useTranslation()
   const { resolved } = useTheme()
+  const { openMenu } = useTour()
   // Swap to the white-text logo variants in dark mode (the default logos
   // have dark-navy wordmarks that vanish on a dark background).
   const instadeskLogo = resolved === 'dark' ? '/brand/instadesk-dark.png' : '/brand/instadesk.png'
@@ -77,8 +79,22 @@ export default function TopChrome() {
         </button>
       </div>
 
-      {/* Right: server status dot + version + FCLX logo */}
-      <div data-tour="version-status" className="flex items-center justify-end gap-2 text-xs text-muted">
+      {/* Right: Guided Tour + server status dot + version + FCLX logo */}
+      <div className="flex items-center justify-end gap-3">
+        {/* The Guided Tour is a fundamental control, so it gets the accent
+            treatment Snap uses rather than ghost styling — a help entry point
+            nobody notices is worth nothing. */}
+        <button
+          type="button"
+          data-tour="guided-tour-button"
+          onClick={openMenu}
+          title={t('tour.guidedTourTitle')}
+          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-violet-300 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 shadow-sm transition-colors hover:border-violet-400 hover:bg-violet-100 dark:border-cyan-400/40 dark:bg-cyan-400/10 dark:text-cyan-300 dark:shadow-[0_0_12px_rgba(34,211,238,0.25)] dark:hover:border-cyan-300 dark:hover:bg-cyan-400/20"
+        >
+          <span aria-hidden>🧭</span>
+          {t('tour.guidedTour')}
+        </button>
+        <div data-tour="version-status" className="flex items-center gap-2 text-xs text-muted">
         <span
           className={`inline-block h-2.5 w-2.5 rounded-full ${dot.color}`}
           title={dot.label}
@@ -92,6 +108,7 @@ export default function TopChrome() {
           className="max-h-7 object-contain select-none"
           draggable={false}
         />
+        </div>
       </div>
     </header>
   )

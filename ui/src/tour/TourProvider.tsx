@@ -21,10 +21,14 @@ import {
   type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
+import { safeGet, safeSet } from '../services/storage'
 import { useAppState, type TourSnapshot } from '../state/AppState'
 import { anchorSelector, anchorSpec } from './anchors'
 import SchematicAction from './SchematicAction'
-import type { AnchorResolution, TourChapter } from './types'
+import TourMenu from './TourMenu'
+import { SPINE } from './chapters'
+import { chapterTitleKey, stepBodyKey, stepTitleKey, type AnchorResolution, type TourChapter } from './types'
 
 /** Above the app's modals (z-[80]) and BELOW ConfirmDialog (z-[100]) — a
  *  confirmation must never be obscured by a tutorial. */
@@ -38,7 +42,30 @@ type TourContextValue = {
   active: boolean
   start: (chapter: TourChapter) => void
   end: () => void
+  /** Open the chapter chooser — the "Guided Tour" button's action. */
+  openMenu: () => void
 }
+
+/**
+ * Whether the user has switched the welcome offer OFF.
+ *
+ * Operator ruling 2026-08-24: the offer appears on EVERY start-up, not once
+ * ever, with an explicit opt-out the user controls. That is the better default —
+ * "shown once" quietly assumes the first launch is the one where someone wants
+ * to learn, which is rarely true; people try an app, come back a week later, and
+ * only then want the tour.
+ *
+ * Deliberately a NEW key rather than reusing `guidedTourSeen`. That key means
+ * "has been shown", and reinterpreting a stored value as "has been switched off"
+ * would silently suppress the offer for anyone who had already dismissed it —
+ * a stale value read with a new meaning.
+ *
+ * `instadesk:` separator, the majority convention in this app (8 keys to 2) —
+ * D-9. Read through safeGet so a storage failure degrades to SHOWING the offer
+ * rather than hiding it: an unwanted prompt is recoverable, a help feature
+ * nobody can find is not.
+ */
+const HIDE_OFFER_KEY = 'instadesk:guidedTourHideOffer'
 
 const TourContext = createContext<TourContextValue | null>(null)
 
@@ -101,6 +128,23 @@ export function TourProvider({ children }: { children: ReactNode }) {
   // completion all restore identically (R1.7).
   const snapshot = useRef<TourSnapshot | null>(null)
   const scrolls = useRef<Array<[Element, number, number]>>([])
+  const { t } = useTranslation()
+  const [menuOpen, setMenuOpen] = useState(false)
+  // Offered once, ever. Follows main.tsx's lastSeenVersion shape: record the
+  // flag on first sight so the offer cannot reappear on the next start-up.
+  const [offerFirstRun, setOfferFirstRun] = useState(false)
+  const [hideForever, setHideForever] = useState(false)
+  useEffect(() => {
+    if (!safeGet<boolean>(HIDE_OFFER_KEY, false)) setOfferFirstRun(true)
+  }, [])
+  /** Closing the offer only persists anything if the user asked it to. */
+  const dismissFirstRun = useCallback(
+    (persist: boolean) => {
+      if (persist) safeSet(HIDE_OFFER_KEY, true)
+      setOfferFirstRun(false)
+    },
+    [],
+  )
   const [chapter, setChapter] = useState<TourChapter | null>(null)
   const [index, setIndex] = useState(0)
   const [resolution, setResolution] = useState<AnchorResolution | null>(null)
@@ -199,7 +243,10 @@ export function TourProvider({ children }: { children: ReactNode }) {
     // anchor — treating it as loss would log spurious failures exactly when the
     // user resizes mid-tour.
     if (cx < 0 || cy < 0 || cx > window.innerWidth || cy > window.innerHeight) {
-      return { kind: 'transient', spec }
+      // Carry the element: an anchor scrolled out of view needs an ACTION, not
+      // patience, and the effect below performs it. Without this the step waits
+      // forever for a condition that cannot change on its own.
+      return { kind: 'transient', spec, el }
     }
     return { kind: 'ready', el, rect: { x: r.left, y: r.top, w: r.width, h: r.height } }
   }, [step, mainTab, appsSubTab])
@@ -239,15 +286,20 @@ export function TourProvider({ children }: { children: ReactNode }) {
     }
   }, [active, step, mainTab, appsSubTab, setMainTab, setAppsSubTab])
 
-  /** Bring a scrolled-away anchor into view. In-app, reversible, and on no
-   *  forbidden list. I-8 snapshots scroll position so this is restored on exit. */
+  /** Bring a scrolled-away anchor into view. In-app, reversible, on no
+   *  forbidden list, and I-8 restores scroll position on exit.
+   *
+   *  This runs for the TRANSIENT case as well as the ready one. An anchor that
+   *  is off-viewport because a pane is scrolled will never resolve on its own,
+   *  so scrolling it is the remedy, not a nicety. */
   useEffect(() => {
     if (resolution?.kind === 'ready') {
       resolution.el.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    } else if (resolution?.kind === 'transient' && resolution.el) {
+      resolution.el.scrollIntoView({ block: 'center', inline: 'nearest' })
     }
-    // Only when the step changes, not on every reposition.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, active])
+  }, [index, active, resolution?.kind])
 
   /* ------------------------------------------------------------------ *
    * Escape. Always exits (REQ-1 R1.2) — EXCEPT while a ConfirmDialog is
@@ -265,11 +317,58 @@ export function TourProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [active, end])
 
-  const value = useMemo<TourContextValue>(() => ({ active, start, end }), [active, start, end])
+  const openMenu = useCallback(() => setMenuOpen(true), [])
+  const value = useMemo<TourContextValue>(
+    () => ({ active, start, end, openMenu }),
+    [active, start, end, openMenu],
+  )
 
   return (
     <TourContext.Provider value={value}>
       {children}
+      {menuOpen && (
+        <TourMenu
+          onClose={() => setMenuOpen(false)}
+          onPick={(c) => { setMenuOpen(false); start(c) }}
+        />
+      )}
+      {offerFirstRun && !active && !menuOpen && (
+        /* Centred over the app rather than tucked into a corner. A corner toast
+           reads as dismissible chrome — easy to ignore, easy to miss entirely.
+           Centred on the grid it reads as an invitation that deserves an answer.
+           Shown every start-up until the user opts out below. */
+        <div className="fixed inset-0 z-[92] grid place-items-center bg-black/35 p-4" role="presentation">
+        <div className="w-[400px] max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-surface p-5 shadow-xl">
+          <div className="text-base font-semibold text-fg">{t('tour.firstRunTitle')}</div>
+          <p className="mt-1.5 text-sm leading-relaxed text-muted">{t('tour.firstRunBody')}</p>
+          <label className="mt-4 flex cursor-pointer select-none items-center gap-2 text-xs text-muted">
+            <input
+              type="checkbox"
+              checked={hideForever}
+              onChange={(e) => setHideForever(e.target.checked)}
+              className="size-3.5 accent-[var(--color-primary,#0284c7)]"
+            />
+            {t('tour.dontShowAgain')}
+          </label>
+          <div className="mt-3 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => dismissFirstRun(hideForever)}
+              className="rounded-lg border border-line bg-raised px-4 py-2 text-sm font-medium text-fg hover:bg-line/60"
+            >
+              {t('tour.firstRunDismiss')}
+            </button>
+            <button
+              type="button"
+              onClick={() => { dismissFirstRun(hideForever); start(SPINE) }}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:bg-primary-hover"
+            >
+              {t('tour.firstRunAccept')}
+            </button>
+          </div>
+        </div>
+        </div>
+      )}
       {active && createPortal(<TourOverlay
         chapter={chapter!}
         index={index}
@@ -294,6 +393,7 @@ function TourOverlay({
   onBack: () => void
   onExit: () => void
 }) {
+  const { t } = useTranslation()
   const step = chapter.steps[index]
   const rect = resolution?.kind === 'ready' ? resolution.rect : null
 
@@ -359,19 +459,22 @@ function TourOverlay({
           padding: '6px 8px 6px 12px', font: '13px/1.3 system-ui, sans-serif',
         }}
       >
-        <span>{chapter.title} · {index + 1}/{chapter.steps.length}</span>
+        {/* Leads with the feature name so that whichever door someone came
+            through — the accent button, a Help-tab "Show me", Settings or the
+            first-run offer — the thing that opens NAMES ITSELF as one feature. */}
+        <span>{t('tour.guidedTour')} — {t(chapterTitleKey(chapter.id))} · {index + 1}/{chapter.steps.length}</span>
         <button
           type="button"
           onClick={onExit}
-          aria-label="Exit the walkthrough"
-          title="Exit the walkthrough (Esc)"
+          aria-label={t('tour.exit')}
+          title={`${t('tour.exit')} (Esc)`}
           style={{
             padding: '4px 10px', borderRadius: 7, cursor: 'pointer',
             border: '1px solid rgba(148,163,184,0.5)', background: '#1e293b', color: '#e2e8f0',
             font: '600 13px/1.3 system-ui, sans-serif',
           }}
         >
-          Exit ✕
+          {t('tour.exit')} ✕
         </button>
       </div>
 
@@ -379,7 +482,7 @@ function TourOverlay({
       <div
         ref={cardRef}
         role="dialog"
-        aria-label={step.title}
+        aria-label={t(stepTitleKey(chapter.id, step.anchor))}
         style={{
           position: 'fixed', left: card.left, top: card.top, width: CARD_W, zIndex: Z_CHROME,
           background: '#0f172a', color: '#e2e8f0', borderRadius: 12,
@@ -387,27 +490,27 @@ function TourOverlay({
           padding: 14, font: '13px/1.5 system-ui, sans-serif',
         }}
       >
-        <div style={{ fontWeight: 700, marginBottom: 6 }}>{step.title}</div>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>{t(stepTitleKey(chapter.id, step.anchor))}</div>
         {step.schematic && (
           <div style={{ margin: '8px 0 10px' }}>
             <SchematicAction action={step.schematic} />
           </div>
         )}
-        <div style={{ color: '#cbd5e1' }}>{step.body}</div>
+        <div style={{ color: '#cbd5e1' }}>{t(stepBodyKey(chapter.id, step.anchor))}</div>
 
         {resolution && resolution.kind !== 'ready' && (
           <div style={{ marginTop: 10, padding: 8, borderRadius: 8, background: 'rgba(251,191,36,0.12)', color: '#fbbf24', fontSize: 12 }}>
-            {resolution.kind === 'unregistered' && <>This step names an unregistered anchor <b>{resolution.anchor}</b> — that is a defect, not a delay.</>}
-            {resolution.kind === 'needs-navigation' && <>Waiting for its pane to open ({describeWhen(resolution.spec.reachableWhen)}).</>}
-            {resolution.kind === 'transient' && <>Locating…</>}
-            {resolution.kind === 'lost' && <>Anchor <b>{resolution.spec.id}</b> could not be found where it is registered. Reporting rather than pointing at nothing.</>}
+            {resolution.kind === 'unregistered' && t('tour.unregistered', { anchor: resolution.anchor })}
+            {resolution.kind === 'needs-navigation' && t('tour.waitingForPane', { where: describeWhen(resolution.spec.reachableWhen, t) })}
+            {resolution.kind === 'transient' && t('tour.locating')}
+            {resolution.kind === 'lost' && t('tour.lost', { anchor: resolution.spec.id })}
           </div>
         )}
 
         <div style={{ marginTop: 12, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button type="button" onClick={onBack} disabled={index === 0} style={btnStyle(index === 0)}>Back</button>
+          <button type="button" onClick={onBack} disabled={index === 0} style={btnStyle(index === 0)}>{t('tour.back')}</button>
           <button type="button" onClick={onNext} style={btnStyle(false)}>
-            {index === chapter.steps.length - 1 ? 'Finish' : 'Next'}
+            {index === chapter.steps.length - 1 ? t('tour.finish') : t('tour.next')}
           </button>
         </div>
       </div>
@@ -415,10 +518,13 @@ function TourOverlay({
   )
 }
 
-function describeWhen(w: { kind: string; tab?: string; sub?: string }): string {
-  if (w.kind === 'tab') return `the ${w.tab} tab`
-  if (w.kind === 'tab+sub') return `${w.tab} → ${w.sub}`
-  return 'always available'
+function describeWhen(
+  w: { kind: string; tab?: string; sub?: string },
+  t: (k: string, o?: Record<string, unknown>) => string,
+): string {
+  if (w.kind === 'tab') return t('tour.whereTab', { tab: w.tab })
+  if (w.kind === 'tab+sub') return t('tour.whereTabSub', { tab: w.tab, sub: w.sub })
+  return ''
 }
 
 function btnStyle(disabled: boolean) {

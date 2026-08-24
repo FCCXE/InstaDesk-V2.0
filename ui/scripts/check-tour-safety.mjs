@@ -97,7 +97,18 @@ for (const file of files) {
   const lines = readFileSync(file, 'utf8').split('\n')
   lines.forEach((line, i) => {
     for (const [name, why] of Object.entries(FORBIDDEN)) {
-      if (new RegExp(`\\b${name}\\b`).test(line)) {
+      // `launch` is the only forbidden name that is also an ordinary English
+      // word, and it tripped twice on comments about application start-up. The
+      // answer is precision, not tolerance: for THAT name only, require call or
+      // member form (`api.launch`, `launch(`). Rewording prose to appease a
+      // check is how a gate quietly erodes — the check should be RIGHT, not
+      // merely quiet. Every other name stays a blunt identifier match; none of
+      // them occurs in English prose.
+      const pattern =
+        name === 'launch'
+          ? new RegExp(`\\.${name}\\b|\\b${name}\\s*\\(`)
+          : new RegExp(`\\b${name}\\b`)
+      if (pattern.test(line)) {
         problems.push(`src/${rel}:${i + 1}  ${name} — ${why}`)
       }
     }

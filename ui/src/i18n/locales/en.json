@@ -343,6 +343,10 @@
       "troubleshooting": {
         "title": "Tips & troubleshooting",
         "body": "• Some apps (certain CCTV / video tools) place their own windows and won't tile — close and relaunch them, or leave them out of the layout.\n• Single-instance apps (e.g. Outlook, Teams) open just one window; assigning them to several cells won't create copies.\n• Windows shortcuts (.lnk) can't be launched directly — point to the real .exe instead.\n• If an app won't launch, check its path in the Apps tab and use Browse… to fix it."
+      },
+      "urlsFavorites": {
+        "title": "URLs & Favorites",
+        "body": "A URL group is a browser window described by its tabs — not a bookmark list. Build one in Apps → URLs: pick the browser, add a tab group, list the addresses, then Save. It becomes an entry you can assign to a region exactly like a program.\n\nOpen behaviour decides the shape: one window for everything, one window per group, or a separate window per address when each needs its own region.\n\nFavorites are simply pinned apps — the four or five you place in almost every Layout, kept one click away instead of a search."
       }
     }
   },
@@ -527,5 +531,257 @@
     "noAssignedCells": "This Layout has no assigned cells.",
     "notConnected": "not currently connected",
     "gridLabel": "{{cols}}×{{rows}} grid"
+  },
+  "tour": {
+    "guidedTour": "Guided Tour",
+    "guidedTourTitle": "Guided Tour — learn InstaDesk in a few short chapters",
+    "menuHeading": "What would you like to see?",
+    "menuSubtitle": "Each one is short, and you can leave at any point.",
+    "steps": "{{count}} steps",
+    "showMe": "Show me",
+    "exit": "Exit",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish",
+    "replayLabel": "Guided Tour",
+    "replayButton": "Open",
+    "firstRunTitle": "New to InstaDesk?",
+    "firstRunBody": "The Express Tour covers the essentials in about 90 seconds, and you can leave at any point. The Guided Tour button in the top bar has the full set of topics whenever you want them.",
+    "firstRunAccept": "Take the Express Tour",
+    "firstRunDismiss": "Not now",
+    "waitingForPane": "Waiting for its pane to open ({{where}}).",
+    "locating": "Locating…",
+    "unregistered": "This step points at \"{{anchor}}\", which is not registered — that is a defect, not a delay.",
+    "lost": "\"{{anchor}}\" could not be found where it is registered. Reporting it rather than pointing at nothing.",
+    "whereTab": "the {{tab}} tab",
+    "whereTabSub": "{{tab}} → {{sub}}",
+    "dontShowAgain": "Don't show this again",
+    "chapters": {
+      "quickStart": {
+        "title": "Express Tour",
+        "steps": {
+          "monitor-select": {
+            "title": "Start by choosing a screen",
+            "body": "InstaDesk arranges one monitor at a time. Pick the screen you want to lay out here — everything below applies to whichever one is selected."
+          },
+          "grid-size-picker": {
+            "title": "Decide how finely to divide it",
+            "body": "This splits the chosen screen into a grid. 4×4 gives you sixteen sizeable regions; 10×10 lets you place things very precisely. You can change it per monitor, at any time."
+          },
+          "workspace-grid": {
+            "title": "Pick the region an app should fill",
+            "body": "This is your chosen screen, drawn as that grid. Drag across cells to select a region — one cell for a narrow panel, a block of them for a wide window."
+          },
+          "assign-buttons": {
+            "title": "Put an app in the region",
+            "body": "With a region selected, choose an app from the list and press Assign to Selection. That is the whole idea: this app, that space, on this screen."
+          },
+          "layout-new-button": {
+            "title": "Save the arrangement as a Layout",
+            "body": "Once the grid holds the apps you want, save it. A Layout remembers every app and the exact region it belongs in, across all your monitors."
+          },
+          "qp-apply-button": {
+            "title": "And this is what it buys you",
+            "body": "Press Apply and every app in the Layout opens and lands in its saved region, across every screen, in one click. That is the point of all of the above."
+          }
+        }
+      },
+      "grid": {
+        "title": "The grid",
+        "steps": {
+          "grid-size-picker": {
+            "title": "How finely the screen is divided",
+            "body": "Each monitor has its own grid size — 4×4, 6×6, 8×8 or 10×10. A wide monitor suits a finer grid; 4×4 is easier to work with on a small screen. Changing it clears that monitor’s current cells — your saved Layouts are untouched."
+          },
+          "workspace-grid": {
+            "title": "Selecting a region",
+            "body": "Click a cell, or drag across several, to select the region a window should fill. Ctrl-click adds a separate region to the selection."
+          },
+          "grid-status": {
+            "title": "What is selected right now",
+            "body": "This line always tells you how many cells are selected and how many already hold an app."
+          },
+          "clear-current-button": {
+            "title": "Starting this screen over",
+            "body": "Clear Present Grid empties the monitor you are looking at. The others are left alone."
+          },
+          "clear-all-grids-button": {
+            "title": "Starting everything over",
+            "body": "Clear All Grids wipes every monitor at once, so it asks you to confirm first. Again: saved Layouts and Quick Presets are not affected."
+          }
+        }
+      },
+      "apps": {
+        "title": "Adding apps",
+        "steps": {
+          "tab-apps": {
+            "title": "Where apps come from",
+            "body": "The Apps tab is where you pick what goes into the region you have selected."
+          },
+          "apps-subtabs": {
+            "title": "Three kinds of thing",
+            "body": "Apps is your installed programs. Favorites is the shortlist you use constantly. URLs builds a set of browser tabs that open together as one window."
+          },
+          "assign-buttons": {
+            "title": "Assigning and unassigning",
+            "body": "Select a region, pick an app, then Assign to Selection. Unassign Selection empties the region again without touching anything else."
+          }
+        }
+      },
+      "layouts": {
+        "title": "Layouts",
+        "steps": {
+          "tab-layouts": {
+            "title": "Saved arrangements",
+            "body": "A Layout is a whole desk in one file — every app, its region, on every monitor."
+          },
+          "layout-new-button": {
+            "title": "Saving what you built",
+            "body": "New Layout captures the current grids exactly as they stand. It stays greyed out until at least one app has been assigned, so there is something to save."
+          },
+          "layouts-list": {
+            "title": "Your saved Layouts",
+            "body": "Every Layout you have saved appears here, newest work at the top."
+          },
+          "layout-show-content": {
+            "title": "Seeing inside one",
+            "body": "Show content draws the Layout as a diagram — the same picture the walkthrough uses — so you can check what is in it before applying it."
+          },
+          "layout-card-actions": {
+            "title": "Apply, Edit, Export, Delete",
+            "body": "Apply opens everything and places it. Edit loads it back into the grid so you can change it. Export writes it to a file you can keep or move to another machine."
+          },
+          "layout-import-button": {
+            "title": "Bringing one in",
+            "body": "Import reads a Layout file back — the other half of Export, for moving between machines."
+          }
+        }
+      },
+      "quickPresets": {
+        "title": "Quick Presets",
+        "steps": {
+          "quick-presets-section": {
+            "title": "Several Layouts, one click",
+            "body": "A Quick Preset bundles Layouts together. Where a Layout sets up one screen, a Quick Preset can set up your whole desk for a particular kind of work."
+          },
+          "qp-manage-button": {
+            "title": "Building one",
+            "body": "Manage QPs is where you create a bundle, name it, and choose which Layouts belong in it."
+          },
+          "qp-dropdown": {
+            "title": "Choosing what to run",
+            "body": "This lists your Quick Presets and your individual Layouts together — pick either."
+          },
+          "qp-apply-button": {
+            "title": "Running it",
+            "body": "Apply launches everything in the bundle and places each window on the screen it belongs to."
+          }
+        }
+      },
+      "urlsFavorites": {
+        "title": "URLs and Favorites",
+        "steps": {
+          "apps-subtabs": {
+            "title": "Two more ways to fill a region",
+            "body": "Besides installed programs, a region can hold a set of browser tabs (URLs) or an app you pinned for quick reach (Favorites). Both end up in the same place: assigned to a region."
+          },
+          "urls-builder": {
+            "title": "A URL group is a browser window",
+            "body": "Pick the browser, then build the window you want. This is not a bookmark list — it is a description of one window and the tabs that should open inside it."
+          },
+          "urls-add-tab-group": {
+            "title": "One group, one window",
+            "body": "Each tab group becomes its own browser window, with every URL in it opening as a tab. Add a second group when you want two separate windows — say, research on one screen and dashboards on another."
+          },
+          "urls-open-behavior": {
+            "title": "How they open",
+            "body": "One window puts every tab together. One per group gives each group its own window. One per URL opens every address in a window of its own — useful when each needs a region."
+          },
+          "urls-save": {
+            "title": "Save, then assign it like an app",
+            "body": "Saving turns the set into an entry you can pick from the Apps list and assign to a region, exactly like a program. That is the point: a browser window becomes something a Layout can place."
+          },
+          "favorites-add": {
+            "title": "Favorites are a shortlist",
+            "body": "Add favorite pins an app so it is one click away instead of a search. It changes nothing about how the app behaves — only how quickly you can reach it here."
+          },
+          "favorites-list": {
+            "title": "Your pinned apps",
+            "body": "Favorites appear here and in the Apps list. Worth pinning the four or five you place in almost every Layout."
+          }
+        }
+      },
+      "snap": {
+        "title": "Snap and the bottom bar",
+        "steps": {
+          "snap-button": {
+            "title": "Snap — for one window, right now",
+            "body": "Snap is the quick one. Press it, drag a rectangle over the screen, and the window you last used jumps into that space. No Layout, no saving — just this window, there."
+          },
+          "minimize-all-button": {
+            "title": "Clearing the desk, temporarily",
+            "body": "Minimize all drops every window out of the way. Press it again and each one returns to the exact region it was in — not merely un-minimised, but back where it belongs."
+          },
+          "close-all-button": {
+            "title": "Clearing the desk, properly",
+            "body": "Close all windows asks every window to close gracefully, so anything with unsaved work still prompts you first. InstaDesk itself stays open. It always confirms before running."
+          },
+          "bottom-status": {
+            "title": "What just happened",
+            "body": "Results appear here — how many windows moved, and anything that was skipped."
+          }
+        }
+      },
+      "monitorsSettings": {
+        "title": "Monitors and settings",
+        "steps": {
+          "monitor-select": {
+            "title": "Which screen you are arranging",
+            "body": "Everything in the centre grid applies to the monitor chosen here."
+          },
+          "display-array": {
+            "title": "How Windows sees your screens",
+            "body": "This is the physical arrangement — which monitor sits where. It mirrors what Windows reports, so if a screen is in the wrong place here, it is in the wrong place there too."
+          },
+          "identify-monitors-button": {
+            "title": "Which one is Monitor 2?",
+            "body": "Identify monitors flashes a large number onto every physical screen, so you can match the numbers above to the displays actually on your desk."
+          },
+          "settings-default-grid": {
+            "title": "The grid size new monitors get",
+            "body": "Monitors you have not set individually use this default."
+          },
+          "settings-window-margin": {
+            "title": "Leaving room at the edges",
+            "body": "Window margin insets tiled windows slightly, which helps if your monitor bezels or a taskbar would otherwise clip a window edge."
+          },
+          "settings-theme": {
+            "title": "Light or dark",
+            "body": "Theme follows Windows by default; set it explicitly here if you would rather it did not."
+          },
+          "settings-check-updates": {
+            "title": "How new versions arrive",
+            "body": "InstaDesk checks for signed updates and tells you when one is available — you decide when to install it. You can also check here whenever you like. Updates are signed, so the app will refuse anything that has been tampered with."
+          }
+        }
+      },
+      "troubleshooting": {
+        "title": "When something looks wrong",
+        "steps": {
+          "version-status": {
+            "title": "Is the engine running?",
+            "body": "The dot is green and the label reads “live” when the background component that actually moves your windows is running. If it is amber or red, layouts will not apply — that is the first thing to check."
+          },
+          "bottom-status": {
+            "title": "Windows that refuse to move",
+            "body": "A few programs reposition themselves after being placed, and some run as administrator and cannot be touched at all. When that happens it is reported here rather than failing silently."
+          },
+          "help-open-manual": {
+            "title": "The full manual",
+            "body": "The complete manual opens as a PDF in your language, for anything this walkthrough does not cover."
+          }
+        }
+      }
+    }
   }
 }

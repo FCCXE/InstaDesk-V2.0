@@ -348,6 +348,74 @@
         "kind": "tab",
         "tab": "Settings"
       }
+    },
+    {
+      "id": "urls-builder",
+      "component": "components/RightPane.tsx",
+      "describes": "the URL Builder - Add Browser / Add Tab Group",
+      "reachableWhen": {
+        "kind": "tab+sub",
+        "tab": "Apps",
+        "sub": "URLs"
+      }
+    },
+    {
+      "id": "urls-add-tab-group",
+      "component": "components/RightPane.tsx",
+      "describes": "Add Tab Group - one group becomes one browser window",
+      "reachableWhen": {
+        "kind": "tab+sub",
+        "tab": "Apps",
+        "sub": "URLs"
+      }
+    },
+    {
+      "id": "urls-open-behavior",
+      "component": "components/RightPane.tsx",
+      "describes": "Open behaviour - one window, one per group, or one per URL",
+      "reachableWhen": {
+        "kind": "tab+sub",
+        "tab": "Apps",
+        "sub": "URLs"
+      }
+    },
+    {
+      "id": "urls-save",
+      "component": "components/RightPane.tsx",
+      "describes": "Save - turns the URL set into an assignable entry",
+      "reachableWhen": {
+        "kind": "tab+sub",
+        "tab": "Apps",
+        "sub": "URLs"
+      }
+    },
+    {
+      "id": "favorites-add",
+      "component": "components/RightPane.tsx",
+      "describes": "Add favorite - pin an app you use constantly",
+      "reachableWhen": {
+        "kind": "tab+sub",
+        "tab": "Apps",
+        "sub": "Favorites"
+      }
+    },
+    {
+      "id": "favorites-list",
+      "component": "components/RightPane.tsx",
+      "describes": "the Favorites shortlist",
+      "reachableWhen": {
+        "kind": "tab+sub",
+        "tab": "Apps",
+        "sub": "Favorites"
+      }
+    },
+    {
+      "id": "guided-tour-button",
+      "component": "components/TopChrome.tsx",
+      "describes": "the Guided Tour button — the primary way into the walkthrough",
+      "reachableWhen": {
+        "kind": "always"
+      }
     }
   ]
 }

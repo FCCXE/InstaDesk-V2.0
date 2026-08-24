@@ -133,9 +133,9 @@ next build. Weaker than a commit hook, and far safer.
 | I-8 | Snapshot / restore + the "changed nothing" assertion | **yes** | build + Sandbox | ✅ |
 | I-9 | Schematic animation component (REQ-2) | no | build + Sandbox | ✅ |
 | I-10 | Spine chapter — content, EN only | no | build + Sandbox | ✅ |
-| I-11 | Remaining chapters — content, EN only | no | build + Sandbox | ☐ |
-| I-12 | Entry points — Help "Show me", Settings replay, first-run offer | no | build + Sandbox | ☐ |
-| I-13 | ES parity sweep (all new keys) | no | build | ☐ |
+| I-11 | Remaining chapters (9 total, incl. URLs & Favorites) | no | build + Sandbox | ✅ |
+| I-12 | Entry points — Guided Tour button, menu, Help "Show me", Settings, first-run | no | build + Sandbox | ◐ awaiting Sandbox confirm |
+| I-13 | Full Spanish — prose moved INTO the gate's reach, then translated | no | build | ◐ awaiting Sandbox confirm |
 | I-14 | Telemetry events | no | build | ☐ |
 | I-15 | Release v0.4.0 — Sandbox installer gate, CHANGELOG, bump, tag | **yes** | full | ☐ |
 
@@ -839,6 +839,13 @@ CHANGELOG `[Unreleased]` written in user-facing language · **Sandbox installer 
 | Date | Change | Reason |
 |---|---|---|
 | 2026-08-23 | Plan created at v1.0 from investigation v1.2 | Phase 1 of the agreed method |
+| 2026-08-24 | **Ninth chapter added: URLs & Favorites**, plus a ninth Help section for it | Operator: the Apps chapter names the sub-tabs in one line, which orients but does not teach. A URL group is a *browser window described by its tabs*, not a bookmark list — the least self-evident idea in the app |
+| 2026-08-24 | **Naming ruled: the feature is "Guided Tour"**, accent-styled with an icon in the top chrome; inline Help buttons say "Show me"; the overlay chrome reads `Guided Tour — <chapter> · n/N` | Operator: "Show me" was too quiet for a control they consider fundamental. Leading the chrome with the feature name is what makes the inline shortcuts read as doors into ONE named feature |
+| 2026-08-24 | **A top-level entry point was added**, which I-12 did not originally include | Operator request. A help feature nobody finds is worth nothing |
+| 2026-08-24 | **First-run offer shows on EVERY start-up with a "Don't show this again" opt-out**, replacing "shown once ever" | Operator. "Shown once" assumes the first session is when someone wants to learn; usually it is not. New storage key, not the old one reinterpreted — reading a stored value under a new meaning would have silently suppressed the offer for anyone who had already dismissed it |
+| 2026-08-24 | **The spine chapter renamed "Express Tour"** and the Settings row repointed at the menu | Operator caught "Guided Tour" naming two different things: the whole feature and one chapter. Offering "the Guided Tour" and delivering one chapter is a broken promise. Settings had the same fault |
+| 2026-08-24 | **I-11/I-12/I-13 committed together** | I-13 restructured I-11's output (prose moved out of `chapters.ts` into the locale files). Splitting them would have committed an intermediate state that never passed the gates |
+| 2026-08-24 | **A FOURTH gate added: `check-tour-content.mjs`** | The three existing gates verify structure — anchors exist, keys match, forbidden calls absent. **None verified the prose was TRUE.** The first draft told users about grid sizes the app does not offer (2×2, 3×2; the real set is 4×4/6×6/8×8/10×10) with every gate green |
 | 2026-08-23 | D-12 ruled ADOPTED → I-8 unblocked (⊘ → ☐); REQ-1 **R1.5 amended** — the walkthrough now restores the working state instead of leaving it as-is | Operator ruling. Makes *"the help changes nothing"* mechanically checkable rather than promised |
 | 2026-08-23 | D-8 ruled — the first-run offer is shown | Operator ruling |
 

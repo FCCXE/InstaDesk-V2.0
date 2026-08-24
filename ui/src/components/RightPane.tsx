@@ -41,6 +41,8 @@ import {
 
 /* Modals */
 import AddFavoriteModal from "./common/AddFavoriteModal";
+import { useTour } from "../tour/TourProvider";
+import { chapterById } from "../tour/chapters";
 import BrowseAppModal from "./common/BrowseAppModal";
 import BrowserPickerModal from "./common/BrowserPickerModal";
 import { useConfirm } from "./common/ConfirmDialog";
@@ -862,14 +864,14 @@ function UrlsBuilderPane() {
         {/* Add Browser / Add Tab Group — one full-width button per line,
             stacked vertically, centered (avoids cramming two long labels
             into one narrow row). */}
-        <div className="mb-3 flex flex-col gap-2">
+        <div data-tour="urls-builder" className="mb-3 flex flex-col gap-2">
           <GhostBtn
             className="w-full text-center"
             onClick={() => setShowBrowserPicker(true)}
           >
             {t("urls.addBrowser")}
           </GhostBtn>
-          <GhostBtn className="w-full text-center" onClick={() => addTabGroup()}>{t("urls.addTabGroup")}</GhostBtn>
+          <span data-tour="urls-add-tab-group"><GhostBtn className="w-full text-center" onClick={() => addTabGroup()}>{t("urls.addTabGroup")}</GhostBtn></span>
         </div>
 
         {urlBuilder.tabGroups.map((g) => (
@@ -895,7 +897,7 @@ function UrlsBuilderPane() {
         ))}
 
         <div className="mt-3">
-          <div className="mb-2 text-sm font-medium text-fg">{t("urls.openBehavior")}</div>
+          <div data-tour="urls-open-behavior" className="mb-2 text-sm font-medium text-fg">{t("urls.openBehavior")}</div>
           <div className="flex flex-wrap items-center gap-2">
             <Radio
               name="open"
@@ -925,7 +927,7 @@ function UrlsBuilderPane() {
             matches the Add Browser / Add Tab Group buttons above and is
             language-proof. Save keeps the blue PrimaryBtn styling. */}
         <div className="mt-3 flex flex-col gap-2">
-          <PrimaryBtn className="h-8 w-full" onClick={onSave}>{t("urls.save")}</PrimaryBtn>
+          <span data-tour="urls-save"><PrimaryBtn className="h-8 w-full" onClick={onSave}>{t("urls.save")}</PrimaryBtn></span>
           <GhostBtn className="h-8 w-full text-center" onClick={onPreview}>{t("urls.preview")}</GhostBtn>
           <GhostBtn className="h-8 w-full text-center" onClick={onReset}>{t("urls.reset")}</GhostBtn>
         </div>
@@ -982,11 +984,12 @@ function FavoritesPane() {
           <div className="text-base font-semibold text-fg">{t("favorites.title")}</div>
           <div className="flex items-center gap-2">
             <GhostBtn onClick={() => setEditMode((v) => !v)}>{editMode ? t("apps.done") : t("apps.edit")}</GhostBtn>
-            <GhostBtn onClick={() => setShowAdd(true)}>{t("favorites.addFavorite")}</GhostBtn>
+            <span data-tour="favorites-add"><GhostBtn onClick={() => setShowAdd(true)}>{t("favorites.addFavorite")}</GhostBtn></span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-2">
+        <div data-tour="favorites-list" className="grid grid-cols-1 gap-2">
+          {/* eslint-disable-next-line */}
           {favorites.map((f) => (
             <div key={f.id} className="flex items-center justify-between rounded-xl border border-line bg-raised px-3 py-2">
               <div className="flex min-w-0 items-center gap-2">
@@ -1033,6 +1036,7 @@ const HELP_SECTIONS = [
   "apps",
   "layouts",
   "quickPresets",
+  "urlsFavorites",
   "snap",
   "monitorsSettings",
   "troubleshooting",
@@ -1040,6 +1044,7 @@ const HELP_SECTIONS = [
 
 function HelpPane() {
   const { t, i18n } = useTranslation();
+  const { start: startTour } = useTour();
   const [openId, setOpenId] = useState<string | null>("quickStart");
   const [manualErr, setManualErr] = useState<string | null>(null);
   // In-app feedback → telemetry (shown only when telemetry keys are configured;
@@ -1093,9 +1098,25 @@ function HelpPane() {
                     </span>
                   </button>
                   {isOpen && (
-                    <p className="whitespace-pre-line border-t border-line px-3 py-2.5 text-xs leading-relaxed text-muted">
-                      {t(`help.sections.${id}.body`)}
-                    </p>
+                    <div className="border-t border-line px-3 py-2.5">
+                      <p className="whitespace-pre-line text-xs leading-relaxed text-muted">
+                        {t(`help.sections.${id}.body`)}
+                      </p>
+                      {/* Secondary way in. The primary entry is the accent
+                          Guided Tour button in the top chrome; this is the
+                          shortcut for someone already reading about the topic.
+                          Chapter ids match section ids (D-4), so no mapping
+                          table exists to drift. */}
+                      {chapterById(id) && (
+                        <button
+                          type="button"
+                          onClick={() => { const c = chapterById(id); if (c) startTour(c); }}
+                          className="mt-2.5 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 dark:text-sky-300"
+                        >
+                          {t("tour.showMe")}
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               );

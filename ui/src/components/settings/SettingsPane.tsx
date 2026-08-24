@@ -7,6 +7,7 @@ import { api, inTauri, type LicenseStatus } from "../../services/api";
 import { telemetryConfigured, isOptedOut, setOptedOut } from "../../services/telemetry";
 import { checkForUpdate, installUpdate, type Update } from "../../services/updater";
 import { loadBinding, saveBinding, formatBinding, type HotkeyAction, type HotkeyParts } from "../../services/hotkeys";
+import { useTour } from "../../tour/TourProvider";
 
 /**
  * SettingsPane
@@ -20,6 +21,7 @@ import { loadBinding, saveBinding, formatBinding, type HotkeyAction, type Hotkey
 export default function SettingsPane() {
   const { defaultGridSize, setDefaultGridSize, windowMargin, setWindowMargin } = useAppState();
   const { theme, setTheme } = useTheme();
+  const { openMenu } = useTour();
   const { t, i18n } = useTranslation();
 
   // Currently-selected preset key, for the <select>'s value prop.
@@ -174,6 +176,16 @@ export default function SettingsPane() {
                 <option value="dark">{t("settings.themeDark")}</option>
                 <option value="system">{t("settings.themeSystem")}</option>
               </select>
+            </Row>
+            <Row>
+              <Label>{t("tour.replayLabel")}</Label>
+              <button
+                type="button"
+                onClick={openMenu}
+                className="h-7 rounded-md border border-primary/40 bg-primary/10 px-3 text-xs font-medium text-primary hover:bg-primary/20 dark:text-sky-300"
+              >
+                {t("tour.replayButton")}
+              </button>
             </Row>
             <Row>
               <Label>{t("settings.language")}</Label>

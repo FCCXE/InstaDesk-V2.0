@@ -343,6 +343,10 @@
       "troubleshooting": {
         "title": "Consejos y resolución de problemas",
         "body": "• Algunas apps (ciertas herramientas de CCTV / vídeo) colocan sus propias ventanas y no se ajustan — ciérralas y vuelve a abrirlas, o déjalas fuera del diseño.\n• Las apps de instancia única (p. ej. Outlook, Teams) abren una sola ventana; asignarlas a varias celdas no crea copias.\n• Los accesos directos de Windows (.lnk) no se pueden abrir directamente — apunta al .exe real.\n• Si una app no abre, revisa su ruta en la pestaña Apps y usa Examinar… para corregirla."
+      },
+      "urlsFavorites": {
+        "title": "URLs y Favoritos",
+        "body": "Un grupo de URLs es una ventana del navegador descrita por sus pestañas — no una lista de marcadores. Crea uno en Apps → URLs: elige el navegador, añade un grupo de pestañas, escribe las direcciones y guarda. Se convierte en una entrada que puedes asignar a una región igual que un programa.\n\nEl comportamiento de apertura decide la forma: una sola ventana para todo, una ventana por grupo, o una ventana por dirección cuando cada una necesita su propia región.\n\nLos Favoritos son sencillamente apps ancladas — las cuatro o cinco que colocas en casi todos los Layouts, a un clic en vez de a una búsqueda."
       }
     }
   },
@@ -527,5 +531,257 @@
     "noAssignedCells": "Este diseño no tiene celdas asignadas.",
     "notConnected": "no conectado actualmente",
     "gridLabel": "cuadrícula {{cols}}×{{rows}}"
+  },
+  "tour": {
+    "guidedTour": "Visita guiada",
+    "guidedTourTitle": "Visita guiada — aprende InstaDesk en unos capítulos cortos",
+    "menuHeading": "¿Qué te gustaría ver?",
+    "menuSubtitle": "Cada una es corta y puedes salir cuando quieras.",
+    "steps": "{{count}} pasos",
+    "showMe": "Muéstrame",
+    "exit": "Salir",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "finish": "Finalizar",
+    "replayLabel": "Visita guiada",
+    "replayButton": "Abrir",
+    "firstRunTitle": "¿Primera vez en InstaDesk?",
+    "firstRunBody": "La visita exprés cubre lo esencial en unos 90 segundos y puedes salir cuando quieras. El botón Visita guiada de la barra superior tiene todos los temas cuando los necesites.",
+    "firstRunAccept": "Hacer la visita exprés",
+    "firstRunDismiss": "Ahora no",
+    "waitingForPane": "Esperando a que se abra su panel ({{where}}).",
+    "locating": "Localizando…",
+    "unregistered": "Este paso apunta a «{{anchor}}», que no está registrado — eso es un defecto, no una demora.",
+    "lost": "No se encontró «{{anchor}}» donde está registrado. Se informa en lugar de señalar un espacio vacío.",
+    "whereTab": "la pestaña {{tab}}",
+    "whereTabSub": "{{tab}} → {{sub}}",
+    "dontShowAgain": "No volver a mostrar",
+    "chapters": {
+      "quickStart": {
+        "title": "Visita exprés",
+        "steps": {
+          "monitor-select": {
+            "title": "Empieza eligiendo una pantalla",
+            "body": "InstaDesk organiza un monitor a la vez. Elige aquí la pantalla que quieres distribuir — todo lo de abajo se aplica a la que esté seleccionada."
+          },
+          "grid-size-picker": {
+            "title": "Decide con qué detalle dividirla",
+            "body": "Esto divide la pantalla elegida en una cuadrícula. 4×4 te da dieciséis regiones amplias; 10×10 te permite colocar las cosas con mucha precisión. Puedes cambiarlo por monitor, cuando quieras."
+          },
+          "workspace-grid": {
+            "title": "Elige la región que ocupará una app",
+            "body": "Esta es tu pantalla elegida, dibujada como esa cuadrícula. Arrastra sobre las celdas para seleccionar una región — una celda para un panel estrecho, un bloque de ellas para una ventana ancha."
+          },
+          "assign-buttons": {
+            "title": "Coloca una app en la región",
+            "body": "Con una región seleccionada, elige una app de la lista y pulsa Asignar a la selección. Esa es toda la idea: esta app, ese espacio, en esta pantalla."
+          },
+          "layout-new-button": {
+            "title": "Guarda la distribución como Layout",
+            "body": "Cuando la cuadrícula tenga las apps que quieres, guárdala. Un Layout recuerda cada app y la región exacta que le corresponde, en todos tus monitores."
+          },
+          "qp-apply-button": {
+            "title": "Y esto es lo que consigues",
+            "body": "Pulsa Aplicar y cada app del Layout se abre y aterriza en su región guardada, en todas las pantallas, con un clic. Ese es el objetivo de todo lo anterior."
+          }
+        }
+      },
+      "grid": {
+        "title": "La cuadrícula",
+        "steps": {
+          "grid-size-picker": {
+            "title": "Con qué detalle se divide la pantalla",
+            "body": "Cada monitor tiene su propio tamaño de cuadrícula — 4×4, 6×6, 8×8 o 10×10. Un monitor ancho admite una cuadrícula más fina; 4×4 es más cómodo en una pantalla pequeña. Cambiarlo borra las celdas actuales de ese monitor — tus Layouts guardados no se tocan."
+          },
+          "workspace-grid": {
+            "title": "Seleccionar una región",
+            "body": "Haz clic en una celda, o arrastra sobre varias, para seleccionar la región que ocupará una ventana. Ctrl+clic añade una región aparte a la selección."
+          },
+          "grid-status": {
+            "title": "Qué está seleccionado ahora mismo",
+            "body": "Esta línea siempre te dice cuántas celdas están seleccionadas y cuántas ya contienen una app."
+          },
+          "clear-current-button": {
+            "title": "Empezar de nuevo en esta pantalla",
+            "body": "Borrar cuadrícula actual vacía el monitor que estás viendo. Los demás no se tocan."
+          },
+          "clear-all-grids-button": {
+            "title": "Empezar de nuevo en todo",
+            "body": "Borrar todas las cuadrículas vacía todos los monitores a la vez, por eso te pide confirmación. De nuevo: los Layouts y los Preajustes rápidos guardados no se ven afectados."
+          }
+        }
+      },
+      "apps": {
+        "title": "Añadir apps",
+        "steps": {
+          "tab-apps": {
+            "title": "De dónde salen las apps",
+            "body": "La pestaña Apps es donde eliges qué va en la región que has seleccionado."
+          },
+          "apps-subtabs": {
+            "title": "Tres tipos de elemento",
+            "body": "Apps son tus programas instalados. Favoritos es la lista corta que usas constantemente. URLs construye un conjunto de pestañas del navegador que se abren juntas como una sola ventana."
+          },
+          "assign-buttons": {
+            "title": "Asignar y quitar",
+            "body": "Selecciona una región, elige una app y pulsa Asignar a la selección. Quitar selección vacía la región de nuevo sin tocar nada más."
+          }
+        }
+      },
+      "layouts": {
+        "title": "Layouts",
+        "steps": {
+          "tab-layouts": {
+            "title": "Distribuciones guardadas",
+            "body": "Un Layout es todo un escritorio en un archivo — cada app, su región, en cada monitor."
+          },
+          "layout-new-button": {
+            "title": "Guardar lo que has construido",
+            "body": "Nuevo Layout captura las cuadrículas actuales tal y como están. Permanece atenuado hasta que hayas asignado al menos una app, para que haya algo que guardar."
+          },
+          "layouts-list": {
+            "title": "Tus Layouts guardados",
+            "body": "Cada Layout que has guardado aparece aquí, lo más reciente arriba."
+          },
+          "layout-show-content": {
+            "title": "Ver lo que contiene",
+            "body": "Ver contenido dibuja el Layout como un diagrama — la misma imagen que usa la visita guiada — para que compruebes qué hay dentro antes de aplicarlo."
+          },
+          "layout-card-actions": {
+            "title": "Aplicar, Editar, Exportar, Eliminar",
+            "body": "Aplicar abre todo y lo coloca. Editar lo carga de nuevo en la cuadrícula para que lo cambies. Exportar lo escribe en un archivo que puedes guardar o llevar a otro equipo."
+          },
+          "layout-import-button": {
+            "title": "Traer uno de fuera",
+            "body": "Importar vuelve a leer un archivo de Layout — la otra mitad de Exportar, para moverte entre equipos."
+          }
+        }
+      },
+      "quickPresets": {
+        "title": "Preajustes rápidos",
+        "steps": {
+          "quick-presets-section": {
+            "title": "Varios Layouts, un clic",
+            "body": "Un Preajuste rápido agrupa varios Layouts. Donde un Layout prepara una pantalla, un Preajuste rápido puede preparar todo tu escritorio para un tipo de trabajo concreto."
+          },
+          "qp-manage-button": {
+            "title": "Crear uno",
+            "body": "Gestionar preajustes es donde creas un grupo, le pones nombre y eliges qué Layouts lo componen."
+          },
+          "qp-dropdown": {
+            "title": "Elegir qué ejecutar",
+            "body": "Aquí se listan juntos tus Preajustes rápidos y tus Layouts individuales — elige cualquiera."
+          },
+          "qp-apply-button": {
+            "title": "Ejecutarlo",
+            "body": "Aplicar abre todo lo del grupo y coloca cada ventana en la pantalla que le corresponde."
+          }
+        }
+      },
+      "urlsFavorites": {
+        "title": "URLs y Favoritos",
+        "steps": {
+          "apps-subtabs": {
+            "title": "Dos formas más de llenar una región",
+            "body": "Además de programas instalados, una región puede contener un conjunto de pestañas del navegador (URLs) o una app que hayas anclado para tenerla a mano (Favoritos). Ambas acaban en el mismo sitio: asignadas a una región."
+          },
+          "urls-builder": {
+            "title": "Un grupo de URLs es una ventana del navegador",
+            "body": "Elige el navegador y construye la ventana que quieres. Esto no es una lista de marcadores — es la descripción de una ventana y de las pestañas que deben abrirse dentro."
+          },
+          "urls-add-tab-group": {
+            "title": "Un grupo, una ventana",
+            "body": "Cada grupo de pestañas se convierte en su propia ventana del navegador, y cada URL que contiene se abre como pestaña. Añade un segundo grupo cuando quieras dos ventanas separadas — por ejemplo, documentación en una pantalla y paneles en otra."
+          },
+          "urls-open-behavior": {
+            "title": "Cómo se abren",
+            "body": "Una sola ventana pone todas las pestañas juntas. Una por grupo da a cada grupo su propia ventana. Una por URL abre cada dirección en su propia ventana — útil cuando cada una necesita una región."
+          },
+          "urls-save": {
+            "title": "Guarda y asígnalo como una app",
+            "body": "Guardar convierte el conjunto en una entrada que puedes elegir en la lista de Apps y asignar a una región, igual que un programa. Ese es el objetivo: una ventana del navegador pasa a ser algo que un Layout puede colocar."
+          },
+          "favorites-add": {
+            "title": "Los Favoritos son una lista corta",
+            "body": "Añadir favorito ancla una app para tenerla a un clic en lugar de a una búsqueda. No cambia nada de cómo se comporta la app — solo lo rápido que llegas a ella aquí."
+          },
+          "favorites-list": {
+            "title": "Tus apps ancladas",
+            "body": "Los Favoritos aparecen aquí y en la lista de Apps. Merece la pena anclar las cuatro o cinco que colocas en casi todos los Layouts."
+          }
+        }
+      },
+      "snap": {
+        "title": "Ajustar y la barra inferior",
+        "steps": {
+          "snap-button": {
+            "title": "Ajustar — para una ventana, ahora mismo",
+            "body": "Ajustar es la opción rápida. Púlsalo, arrastra un rectángulo sobre la pantalla y la última ventana que usaste salta a ese espacio. Sin Layout, sin guardar — solo esta ventana, ahí."
+          },
+          "minimize-all-button": {
+            "title": "Despejar el escritorio, temporalmente",
+            "body": "Minimizar todo aparta todas las ventanas. Púlsalo otra vez y cada una vuelve a la región exacta en la que estaba — no solo restaurada, sino de vuelta en su sitio."
+          },
+          "close-all-button": {
+            "title": "Despejar el escritorio, de verdad",
+            "body": "Cerrar todas las ventanas pide a cada ventana que se cierre de forma ordenada, así que cualquier cosa con trabajo sin guardar te preguntará antes. InstaDesk se mantiene abierto. Siempre pide confirmación antes de ejecutarse."
+          },
+          "bottom-status": {
+            "title": "Qué acaba de pasar",
+            "body": "Los resultados aparecen aquí — cuántas ventanas se movieron y qué se omitió."
+          }
+        }
+      },
+      "monitorsSettings": {
+        "title": "Monitores y configuración",
+        "steps": {
+          "monitor-select": {
+            "title": "Qué pantalla estás organizando",
+            "body": "Todo lo de la cuadrícula central se aplica al monitor elegido aquí."
+          },
+          "display-array": {
+            "title": "Cómo ve Windows tus pantallas",
+            "body": "Esta es la disposición física — qué monitor está dónde. Refleja lo que informa Windows, así que si una pantalla está mal colocada aquí, también lo está allí."
+          },
+          "identify-monitors-button": {
+            "title": "¿Cuál es el Monitor 2?",
+            "body": "Identificar monitores muestra un número grande en cada pantalla física, para que puedas relacionar los números de arriba con las pantallas que tienes realmente en el escritorio."
+          },
+          "settings-default-grid": {
+            "title": "El tamaño de cuadrícula por defecto",
+            "body": "Los monitores que no hayas configurado individualmente usan este valor por defecto."
+          },
+          "settings-window-margin": {
+            "title": "Dejar espacio en los bordes",
+            "body": "El margen de ventana retrae ligeramente las ventanas colocadas, lo que ayuda si el marco del monitor o la barra de tareas recortarían el borde de una ventana."
+          },
+          "settings-theme": {
+            "title": "Claro u oscuro",
+            "body": "El tema sigue a Windows por defecto; configúralo aquí explícitamente si prefieres que no lo haga."
+          },
+          "settings-check-updates": {
+            "title": "Cómo llegan las versiones nuevas",
+            "body": "InstaDesk busca actualizaciones firmadas y te avisa cuando hay una disponible — tú decides cuándo instalarla. También puedes comprobarlo aquí cuando quieras. Las actualizaciones van firmadas, así que la app rechazará cualquier cosa que haya sido manipulada."
+          }
+        }
+      },
+      "troubleshooting": {
+        "title": "Cuando algo va mal",
+        "steps": {
+          "version-status": {
+            "title": "¿Está funcionando el motor?",
+            "body": "El punto está verde y la etiqueta dice «live» cuando el componente en segundo plano que realmente mueve tus ventanas está funcionando. Si está ámbar o rojo, los Layouts no se aplicarán — eso es lo primero que hay que comprobar."
+          },
+          "bottom-status": {
+            "title": "Ventanas que se niegan a moverse",
+            "body": "Algunos programas se recolocan solos después de situarlos, y otros se ejecutan como administrador y no se pueden tocar. Cuando eso ocurre se informa aquí en lugar de fallar en silencio."
+          },
+          "help-open-manual": {
+            "title": "El manual completo",
+            "body": "El manual completo se abre como PDF en tu idioma, para todo lo que esta visita guiada no cubra."
+          }
+        }
+      }
+    }
   }
 }
