@@ -156,6 +156,99 @@
       "reachableWhen": {
         "kind": "always"
       }
+    },
+    {
+      "id": "workspace-grid",
+      "component": "components/WorkspaceGrid.tsx",
+      "describes": "the centre grid - drag across cells to select a region",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "grid-status",
+      "component": "components/WorkspaceGrid.tsx",
+      "describes": "the line under the grid saying what is selected or assigned",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "main-tabs",
+      "component": "components/RightPane.tsx",
+      "describes": "the right pane's four tabs: Apps, Layouts, Settings, Help",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "tab-apps",
+      "component": "components/RightPane.tsx",
+      "describes": "the Apps tab",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "tab-layouts",
+      "component": "components/RightPane.tsx",
+      "describes": "the Layouts tab",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "tab-settings",
+      "component": "components/RightPane.tsx",
+      "describes": "the Settings tab",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "tab-help",
+      "component": "components/RightPane.tsx",
+      "describes": "the Help tab",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "apps-subtabs",
+      "component": "components/RightPane.tsx",
+      "describes": "the URLs / Apps / Favorites sub-tabs",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Apps"
+      }
+    },
+    {
+      "id": "assign-buttons",
+      "component": "components/RightPane.tsx",
+      "describes": "Assign to Selection and Unassign Selection",
+      "reachableWhen": {
+        "kind": "tab+sub",
+        "tab": "Apps",
+        "sub": "Apps"
+      }
+    },
+    {
+      "id": "help-sections",
+      "component": "components/RightPane.tsx",
+      "describes": "the collapsible Help quick-reference sections",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Help"
+      }
+    },
+    {
+      "id": "help-open-manual",
+      "component": "components/RightPane.tsx",
+      "describes": "Open manual - opens the language-matched PDF",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Help"
+      }
     }
   ]
 }

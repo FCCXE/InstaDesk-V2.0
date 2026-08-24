@@ -156,7 +156,7 @@ export default function WorkspaceGrid() {
   }, [monAspect])
 
   return (
-    <section className="h-full w-full bg-surface rounded-xl border border-line shadow-sm p-3 flex flex-col">
+    <section data-tour="workspace-grid" className="h-full w-full bg-surface rounded-xl border border-line shadow-sm p-3 flex flex-col">
       <div ref={containerRef} className="flex-1 min-h-0 flex items-center justify-center">
         {/* Grid box: fills the container with cell aspect clamped between square
             and the monitor's true aspect (computed above). */}
@@ -228,7 +228,7 @@ export default function WorkspaceGrid() {
         </div>
       </div>
 
-      <div className="mt-3 text-[11px] text-muted">{status}</div>
+      <div data-tour="grid-status" className="mt-3 text-[11px] text-muted">{status}</div>
     </section>
   )
 }

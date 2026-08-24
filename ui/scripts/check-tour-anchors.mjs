@@ -94,18 +94,36 @@ function walk(dir, out = []) {
   return out
 }
 
-const ATTR = /data-tour\s*=\s*["'{]?\s*["']?([a-zA-Z0-9_-]+)["']?/g
+// Only STRING-LITERAL anchors are verifiable. `data-tour={someVar}` cannot be
+// checked at build time, so the literal must appear at the call site instead:
+// a shared component (e.g. RightPane's TopTab) takes a `tourId="…"` prop and
+// forwards it. Both literal forms are recognised here.
+const ATTR = /(?:data-tour|tourId)\s*=\s*"([a-z0-9-]+)"/g
+
+// Dynamic forwarding is a hole in the gate, so it is allow-listed rather than
+// tolerated. A file that forwards `data-tour={…}` must be named here; anywhere
+// else it is a way to smuggle in an unregistered, unverifiable anchor.
+const DYNAMIC = /data-tour\s*=\s*\{/g
+const DYNAMIC_FORWARDERS = new Set(['components/RightPane.tsx'])
 
 const files = walk(SRC)
 const found = new Map() // id -> [{file, line}]
 for (const file of files) {
+  const r = rel(file)
   const lines = readFileSync(file, 'utf8').split('\n')
   lines.forEach((line, i) => {
     for (const m of line.matchAll(ATTR)) {
       const id = m[1]
       if (!found.has(id)) found.set(id, [])
-      found.get(id).push({ file: rel(file), line: i + 1 })
+      found.get(id).push({ file: r, line: i + 1 })
     }
+    if (DYNAMIC.test(line) && !DYNAMIC_FORWARDERS.has(r)) {
+      problems.push(
+        `dynamic anchor at src/${r}:${i + 1} — data-tour={…} cannot be verified at build time. ` +
+          `Pass a literal tourId="…" from the call site, or allow-list this file as a forwarder.`,
+      )
+    }
+    DYNAMIC.lastIndex = 0
   })
 }
 

@@ -69,11 +69,11 @@ export default function RightPane() {
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
       {/* Top Tabs */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
-        <TopTab label={t("tabs.apps")} active={tab === "Apps"} onClick={() => setTab("Apps")} />
-        <TopTab label={t("tabs.layouts")} active={tab === "Layouts"} onClick={() => setTab("Layouts")} />
-        <TopTab label={t("tabs.settings")} active={tab === "Settings"} onClick={() => setTab("Settings")} />
-        <TopTab label={t("tabs.help")} active={tab === "Help"} onClick={() => setTab("Help")} />
+      <div data-tour="main-tabs" className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
+        <TopTab tourId="tab-apps" label={t("tabs.apps")} active={tab === "Apps"} onClick={() => setTab("Apps")} />
+        <TopTab tourId="tab-layouts" label={t("tabs.layouts")} active={tab === "Layouts"} onClick={() => setTab("Layouts")} />
+        <TopTab tourId="tab-settings" label={t("tabs.settings")} active={tab === "Settings"} onClick={() => setTab("Settings")} />
+        <TopTab tourId="tab-help" label={t("tabs.help")} active={tab === "Help"} onClick={() => setTab("Help")} />
       </div>
 
       {/* Body */}
@@ -93,14 +93,18 @@ function TopTab({
   label,
   active,
   onClick,
+  tourId,
 }: {
   label: string;
   active?: boolean;
   onClick?: () => void;
+  /** Walkthrough anchor. Literal at the call site so the gate can verify it. */
+  tourId?: string;
 }) {
   return (
     <button
       type="button"
+      data-tour={tourId}
       onClick={onClick}
       className={[
         "h-8 flex-1 rounded-lg px-3 text-sm text-center ring-inset",
@@ -124,7 +128,7 @@ function AppsPane() {
   return (
     <div className="flex h-full flex-col overflow-hidden px-3 pt-3">
       {/* Sub-tabs */}
-      <div className="mb-2 flex flex-wrap items-center gap-2">
+      <div data-tour="apps-subtabs" className="mb-2 flex flex-wrap items-center gap-2">
         <SubTab label={t("tabs.urls")} active={sub === "URLs"} onClick={() => setSub("URLs")} />
         <SubTab label={t("tabs.apps")} active={sub === "Apps"} onClick={() => setSub("Apps")} />
         <SubTab label={t("tabs.favorites")} active={sub === "Favorites"} onClick={() => setSub("Favorites")} />
@@ -486,7 +490,7 @@ function AppsAppsPane() {
           {t("apps.selectionGrid", { n: selCount > 0 ? selCount : t("apps.none") })}
         </div>
 
-        <div className="mt-2 flex flex-col gap-2">
+        <div data-tour="assign-buttons" className="mt-2 flex flex-col gap-2">
           <PrimaryBtn onClick={onAssign} disabled={!canAssign} className="h-9 w-full">
             {t("apps.assignToSelection")}
           </PrimaryBtn>
@@ -1073,7 +1077,7 @@ function HelpPane() {
           <div className="mt-1 text-xs text-muted">{t("help.subtitle")}</div>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
-          <div className="flex flex-col gap-2">
+          <div data-tour="help-sections" className="flex flex-col gap-2">
             {HELP_SECTIONS.map((id) => {
               const isOpen = openId === id;
               return (
@@ -1105,6 +1109,7 @@ function HelpPane() {
                 <div className="text-xs text-muted">{t("help.manualNote")}</div>
                 <button
                   type="button"
+                  data-tour="help-open-manual"
                   onClick={openManual}
                   className="mt-2 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 dark:text-sky-300"
                 >
