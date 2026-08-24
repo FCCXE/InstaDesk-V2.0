@@ -126,7 +126,7 @@ next build. Weaker than a commit hook, and far safer.
 | I-1 | **i18n parity check**, written first, proven to bite | no | build | ✅ |
 | I-2 | **Tour safety check** (3 axes), written before any tour code | no | build | ✅ |
 | I-3 | **Geometry spike** — throwaway, de-risks the scaled construct | no | Sandbox | ✅ PASS |
-| I-4 | Anchor registry + anchor check (both directions), proven to bite | no | build | ☐ |
+| I-4 | Anchor registry + anchor check (both directions), proven to bite | no | build | ✅ |
 | I-5 | Anchor sweep across 8 components (~40–48 attributes) | **yes** | build + Sandbox | ☐ |
 | I-6 | Tour engine + REQ-1 exit, incl. broken-step exit proof | **yes** | build + Sandbox | ☐ |
 | I-7 | Lift `tab` / `sub` into `AppState` | **yes** | build + Sandbox | ☐ |
@@ -357,7 +357,48 @@ Wire as `prebuild`.
 Add an unregistered `data-tour` → **expect FAIL**. Restore → PASS.
 **Done when.** Both directions bitten and recorded; check wired into the build.
 **Verification.** Both failing transcripts plus the passing run.
-**Status.** ☐
+
+**Status. ✅ DONE 2026-08-24.** Delivered: `ui/src/tour/anchors.json` (the registry),
+`ui/src/tour/anchors.ts` (typed access + `anchorSelector`), `ui/scripts/check-tour-anchors.mjs`,
+added to `checks`.
+
+- **Re-investigation:** `data-tour` confirmed **unused** anywhere in `ui/src`; the attribute
+  inventory re-derived as exactly **2** (`data-theme`, `id="insta-dialog-title"`), matching C-1.
+- **Registry starts EMPTY, deliberately.** I-5 adds each anchor and its registry entry **together**,
+  because the gate enforces both directions — one without the other fails the build. A pre-populated
+  "planned" list would have been a set of entries the gate could not enforce yet, i.e. a note that
+  can be ignored.
+- **`reachableWhen` is mandatory, and that is the whole point.** It declares the UI state in which an
+  anchor is expected to be in the DOM, which is what makes a `null` lookup **diagnosable**: *pane not
+  open* (navigate and retry) versus *anchor deleted* (defect, fail loudly). This is the F-4
+  ambiguity, reproduced live during I-3.
+- **Data lives in JSON, not TS**, so the runtime and the gate read the **same file** and neither
+  hand-parses TypeScript. Required adding `"resolveJsonModule": true` to `ui/tsconfig.app.json` —
+  a deliberate one-line config change, recorded here, commented at the site.
+- **Bite tests — 6 of 6 caught** (registry backed up under SHA-256, temporary fixture component,
+  both restored in `finally`):
+  1. **Direction A** — registered but absent from source → named the id and the component
+  2. **Direction B** — `data-tour` in source, unregistered → named id, file and line
+  3. **MOVED** — anchor present but in a *different* component than the registry claims → caught,
+     with the message *"reachableWhen is now unverified"*. An existence-only check would have stayed
+     green here while the registry quietly became a lie.
+  4. `reachableWhen` missing → caught
+  5. `reachableWhen.tab` not a real tab → caught
+  6. duplicate id → caught
+- **CONTROL:** a correct matched pair → **PASS** (`1 registered, 1 in source, both directions agree`).
+  The gate is not simply rejecting everything.
+- **Cleanup verified:** `__bite` fixture removed, `anchors.json` restored **byte-identical**, and the
+  post-cleanup run returns to `0 registered, 0 in source`.
+- ⚠ **Tooling trap recorded:** the first attempt wrote this script via a Bash heredoc, which
+  **stripped every backslash**, silently corrupting every regex escape (`\\.tsx?$` → `\.tsx?$`,
+  a syntax error). Written with the editor tool instead, then verified by grepping the escapes back
+  out of the file. *This session's heredoc is not backslash-safe — use the editor tool for anything
+  containing escapes.*
+- **➜ I-2's prediction confirmed:** creating `src/tour/` flipped the safety gate from
+  `0 walkthrough files found — NOTHING WAS CHECKED` to **`OK — 1 walkthrough file(s) scanned`**.
+  The I-2 gate is now demonstrably inspecting real content rather than passing over nothing.
+- Build green; **bundle 745.79 kB, unchanged** (nothing imports the registry yet, so it tree-shakes).
+**Status.** ✅
 
 ---
 

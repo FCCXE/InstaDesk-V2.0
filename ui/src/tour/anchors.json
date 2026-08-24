@@ -1,0 +1,17 @@
+{
+  "$comment": [
+    "Walkthrough anchor registry. THE source of truth for which data-tour anchors exist.",
+    "Guarded in BOTH directions by ui/scripts/check-tour-anchors.mjs, which runs inside every build.",
+    "",
+    "Why 'reachableWhen' exists, and why it is not optional:",
+    "  document.querySelector('[data-tour=x]') returns null for two causes with OPPOSITE remedies -",
+    "  the element has not mounted yet (navigate/wait), or the anchor was renamed or deleted (defect).",
+    "  A tour engine that cannot tell them apart takes the reassuring reading and narrates an empty",
+    "  rectangle while every gate stays green. That is finding F-4, and it was reproduced live during",
+    "  the I-3 spike. This field is what makes the two distinguishable at runtime.",
+    "",
+    "Entries are added in I-5, one component at a time, together with the attribute itself -",
+    "never one without the other, because the check enforces both directions."
+  ],
+  "anchors": []
+}

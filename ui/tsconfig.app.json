@@ -14,6 +14,9 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+    /* The walkthrough anchor registry is JSON so that the runtime and the
+       build-time check read the SAME file without either hand-parsing TS. */
+    "resolveJsonModule": true,
 
     /* Linting */
     "strict": true,
