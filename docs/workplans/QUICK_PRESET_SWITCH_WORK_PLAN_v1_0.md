@@ -268,7 +268,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-1 | **Safe Sandbox fixtures** — remove `Code.exe` from every test Layout | **yes** | manual + Sandbox | ✅ |
 | I-1b | **Version-stamp local Sandbox builds** so the operator can tell them apart | no | build + install | ✅ |
 | I-2 | **Extend tour-safety check** with the new verbs, before they exist | no | build | ✅ |
-| I-3 | **HWND spike** (throwaway) — is the handle usable, and how does it die? | no | Sandbox `--dev` | ☐ |
+| I-3 | **HWND spike** (throwaway) — is the handle usable, and how does it die? | no | Sandbox `--dev` | ✅ |
 | I-4 | WinAgent: emit `hwnd` in the launch result | **yes** | agent + Rust + Sandbox | ☐ |
 | I-5 | Rust: parse the agent result + **revalidation tests written first** | **yes** | cargo | ☐ |
 | I-6 | WinAgent: `--close-tracked` verify-then-report verb | **yes** | agent + Sandbox | ☐ |
@@ -589,7 +589,99 @@ reverted — `git status` in the WinAgent repo clean.
 **Verification.** The transcript, plus a clean `git status` proving nothing from the spike leaked
 into I-4.
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-25.** Throwaway; nothing from it ships. Instrumentation reverted and
+the reverted state proven, not assumed.
+
+**Re-investigation:** `Program.cs` still resolves the handle by snapshot-diff and still excludes
+`preLaunchWindows`; the success JSON still emits `processId` and no handle.
+
+**Method:** `Program.cs` was temporarily instrumented (uncommitted) to emit `spikeHwnd`,
+`spikeFoundVia`, and the exe / owning-PID / title read back **from that handle**, plus a
+`--spike-probe <hwnd>` verb that probes a handle exactly as a revalidation step would have to.
+Agent rebuilt via `build-agent.mjs` before use. Edge and File Explorer only — **no `Code.exe`**,
+and no Notepad (I-1).
+
+### The six questions
+
+**Q1 — is the resolved handle the right window? YES.**
+Both a browser and a non-browser resolved to a handle whose exe and title read back as expected:
+`msedge.exe` / "New tab - Profile 1 - Microsoft Edge", and `explorer.exe` for the Explorer window.
+
+**Q2 — does it survive the launcher-exits-and-hands-off case? YES — and the PID story is worse
+than F-8 recorded.** The reported PID differed from the window's real owner in **every single
+launch**:
+
+| launch | `processId` reported today | PID that actually owns the window |
+|---|---|---|
+| Edge #1 | 3468 | **7524** |
+| Edge #2 | 11368 | **7524** |
+| Explorer | 31748 | 43644 |
+
+And the decisive row is the pair: **both Edge windows are owned by the same PID 7524** — the
+pre-existing browser process, which also owns the user's own Edge windows. So the PID is not
+merely *wrong*; even the **correct** PID is **not a window identity**. Closing by PID would take
+both preset windows and the user's own browsing with them. **No PID may appear in the ownership
+record, not even as a fallback or a tie-breaker.**
+
+**Q3 — what does a handle look like after its window closes? It dies cleanly.**
+After a graceful `WM_CLOSE` to one handle: `isWindow=false`, `visible=false`, `pid=0`, exe and
+title empty. Detecting "gone" is therefore reliable **through the handle**, which is exactly what
+I-1's finding demanded (an absence in a window-list snapshot is not proof of absence; a dead
+handle is).
+**And the sibling was untouched** — the other Edge window, owned by the *same process*, stayed
+`isWindow=true` and visible. That is the direct proof that per-handle teardown does not cascade to
+windows the user opened themselves.
+
+**Q4 — does an exe check catch a handle that is not ours? Yes — but recycling was not observed.**
+An `explorer.exe` handle checked against a recorded `msedge.exe` expectation was **rejected**.
+⚠ **Handle recycling could not be forced on demand**, so this is evidence that the *mechanism*
+discriminates, **not** evidence that recycling was reproduced. Do not read it as the stronger
+claim. Revalidation therefore stays defence-in-depth exactly as invariant I-3 requires:
+`IsWindow` **and** exe match **and** the session marker — no single one of them is sufficient.
+
+**Q5 — multiWindowApp: how many handles? One per window — via a SECOND call site.**
+`apply_multiwindow` loops `windows[]` and makes **one agent call per window** (`--title`), so N
+windows yield N handles. But two things matter for I-5:
+1. it keeps only `{ title, placed: bool }` and **discards the agent's output entirely**;
+2. it does not go through `run_launch` at all — it uses **`run_agent_raw`**, a separate helper.
+
+**So I-5 must thread the handle through BOTH call sites.** Wiring only `run_launch` would leave
+every multi-window app's windows unowned — and therefore silently never torn down, with no error
+anywhere. That is the "verifications narrow to what they NAME" shape again.
+
+**Q6 — two launches of the same browser: distinct windows.**
+Handles `4525636` and `2494974`, both `snapshot-diff-largest-stable`, both alive simultaneously.
+The second launch gets **its own** window and does **not** relocate the first.
+**This corrects the I-1 amendment**, which recorded the opposite as a possibility after only one
+Edge window survived that run. The relocation hypothesis is **refuted**; something else closed
+that window. The I-3 question this generated is answered and closed.
+
+### Two findings about the INSTRUMENTS, both caught by controls
+
+**S-1 — a byte search of the agent binary is blind, and its zeros mean nothing.**
+Searching the built agent for `spike-probe` / `spikeHwnd` / `RunSpikeProbe` returned **0, 0, 0** —
+which looks like proof the spike is gone. The control in the same query returned **0 for
+`capture-layout` too**, a string that is certainly present. .NET packs managed strings into an
+embedded (compressed) assembly, so the search sees none of them. **Every "the binary does not
+contain X" claim about this agent is unfounded.** The spike's removal is proven **behaviourally**
+instead: before the rebuild the agent answered `--spike-probe` with spike JSON; after it, the verb
+is unrecognised and falls through (`"Either --program or --url must be provided."`).
+
+**S-2 — the agent's `1.0.0+<commit>` stamp does NOT prove the source was clean.**
+The rebuilt agent stamps `1.0.0+dd80f844…`, matching WinAgent HEAD exactly. But the **instrumented**
+build carried the *same* stamp, because the stamp reflects **HEAD, not the working tree** — the
+spike was never committed. Handbook §10 advises verifying that stamp before shipping an installer;
+it is **necessary but not sufficient**, and a dirty tree is invisible to it. **I-14 must also check
+`git status` on the WinAgent repo, not the stamp alone.** Flag for the handbook at programme close.
+
+### Cleanup, verified
+
+- Both spike windows closed gracefully by exact handle; `IsWindow` false for each afterwards.
+- `Program.cs` reverted (`git checkout --`); **0** spike references remain in source; WinAgent repo
+  shows only its two known untracked SVGs and `instadesk-tauri/`.
+- Bundled agent **rebuilt from the reverted source** and confirmed by behaviour to have lost the
+  spike verb; stamp matches HEAD and `Program.cs` reports clean against HEAD.
+
 
 ---
 
@@ -848,6 +940,10 @@ resolved in the increment named.
 | 2026-08-25 | **I-1b done.** Two builds → two stamps; build #2 installed over #1 and the installed exe moved `0.4.0` → `0.4.0-sb.1787656373798`. ⚠ The leak-check written for this increment was itself defective first time: it matched the word `createUpdaterArtifacts` inside an explanatory **comment** and reported a leak. Fixed by making the check strip comments and follow code — not by rewording the comment, which is the reflex §3 forbids — and a control then proved the stripper had not simply blanked the file. |
 | 2026-08-25 | **I-2 widened beyond its stated Steps, deliberately.** The plan only asked to add the new verbs to the denylist. But a denylist forbids only what someone remembered to list, and this programme adds commands — so the gate now also closes the api surface **structurally**: tour code may not reach `api` at all. Measured before writing it (tour code touches zero `api.*` members), so it forbids nothing in use. The bite test that matters is `api.monitors()` — harmless, on no denylist, and now caught. |
 | 2026-08-25 | **Handbook §10 heredoc trap hit.** The regexes were first written through a Bash heredoc, which mangled the backslashes. Rewritten with the editor tool, then the escapes verified at byte level (0 control bytes) **and** exercised at runtime — reading a regex back is not evidence, since a mangled one looks correct. |
+| 2026-08-25 | **I-3 REFUTES the relocation hypothesis this plan recorded on 2026-08-24.** Two Edge launches produced two **distinct** live handles; the second does not relocate the first. The I-1 observation that prompted it had another cause. Question 6 is answered and closed. |
+| 2026-08-25 | **F-8 hardens further: PID is not a window identity at all.** Both Edge windows are owned by the SAME PID (7524) — the pre-existing browser process, which also owns the user’s own windows. Even the *correct* PID cannot distinguish them. No PID in the ownership record, not as a fallback, not as a tie-breaker. |
+| 2026-08-25 | **New requirement for I-5: TWO agent call sites, not one.** `apply_multiwindow` does not use `run_launch`; it calls `run_agent_raw` per window and discards the output, keeping only `{title, placed}`. Threading the handle through `run_launch` alone would leave every multi-window app unowned and silently never torn down. |
+| 2026-08-25 | **Two instrument findings (S-1, S-2), both caught by controls.** A byte search of the .NET agent binary is blind — the control string `capture-layout` also returned 0 — so no "binary does not contain X" claim about the agent is admissible; use behavioural tests. And the agent’s `1.0.0+<commit>` stamp reflects **HEAD, not the working tree**: the instrumented build carried the identical stamp. Handbook §10’s pre-ship stamp check is necessary but NOT sufficient — **I-14 must also check `git status` on the WinAgent repo.** Flag for the handbook at programme close. |
 | 2026-08-24 | **Parked finding (§0.3, not fixed here):** `ui/src/services/version.ts:8-10` claims `IS_SANDBOX` disables auto-update via `services/updater.ts`. It does not — `IS_SANDBOX` appears only in its own definition and `TopChrome.tsx:55`. The isolation is really the endpoint override in `tauri.sandbox.conf.json`. A comment asserting a safety property the code does not implement. |
 
 ---
