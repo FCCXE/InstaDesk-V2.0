@@ -267,7 +267,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-0 | Programme setup — rollback tag + records committed | no | git | ✅ `08bdc05` |
 | I-1 | **Safe Sandbox fixtures** — remove `Code.exe` from every test Layout | **yes** | manual + Sandbox | ✅ |
 | I-1b | **Version-stamp local Sandbox builds** so the operator can tell them apart | no | build + install | ✅ |
-| I-2 | **Extend tour-safety check** with the new verbs, before they exist | no | build | ☐ |
+| I-2 | **Extend tour-safety check** with the new verbs, before they exist | no | build | ✅ |
 | I-3 | **HWND spike** (throwaway) — is the handle usable, and how does it die? | no | Sandbox `--dev` | ☐ |
 | I-4 | WinAgent: emit `hwnd` in the launch result | **yes** | agent + Rust + Sandbox | ☐ |
 | I-5 | Rust: parse the agent result + **revalidation tests written first** | **yes** | cargo | ☐ |
@@ -517,7 +517,45 @@ prove it with `git status`.
 **Verification.** The three transcripts, the restored `git status`, and the `prebuild` line from a
 real build.
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-25.**
+
+- **Re-investigation:** the forbidden list was **re-read and re-counted from source**, not taken
+  from the build's reported "18". It is 6 + 6 + 6 = **18** across the three axes, and the labelled
+  counts in the file's own comments sum correctly.
+- **Added while still imaginary:** `quickPresetsSwitch` (the api.ts method) and
+  `quickpresets_switch` (the Rust command name, in case it is reached as a string literal).
+  Total now **20**.
+- **⚠ Scope addition, deliberate — the denylist had a hole this programme would have widened.**
+  A denylist forbids only what somebody remembered to add. Ship a command under an unlisted name
+  and the gate waves it through **while staying green** — the recorded *"verifications narrow to
+  what they NAME"* failure. So the api surface is now closed **structurally**: tour code may not
+  reach `api` at all, by member access or by import. This is exact rather than a guess, because it
+  was measured first — tour code imports api **nowhere** and references **zero** `api.*` members,
+  so it forbids nothing in use while covering every command that does not exist yet.
+- **Regexes verified by behaviour, not by reading:** driven against eight cases, including the
+  negatives that matter — `therapist.method()` and prose containing the word "api" do **not** fire.
+- **Bite tests — 4 of 4 as required:**
+  1. the new verb via `api.quickPresetsSwitch` → FAIL, **3** violations (import, denylist,
+     structural), each naming file and line.
+  2. **`api.monitors()` — a harmless command on NO denylist → FAIL.** This is the test that proves
+     the hole is closed; under the old gate it would have passed silently.
+  3. `quickpresets_switch` as a bare string literal → FAIL.
+  4. **negative control** — a file whose prose contains "api", "therapist" and "rapid api design"
+     → **PASS**, and that run reported **9** files scanned, proving the file was examined and
+     cleared rather than skipped.
+- **Proven to stop the real build, not merely to run inside it.** With a violation planted,
+  `npm run build` exited **1** and `tsc`/`vite` **never executed** (0 occurrences in the log).
+  Restored → green again, `built in 4.56s`, all four gates reporting.
+- **Tree restored:** bite file removed; `git status` showed only
+  `ui/scripts/check-tour-safety.mjs` modified.
+
+⚠ **Tooling trap hit and recorded.** The first attempt wrote these regexes through a **Bash
+heredoc**, which mangled the backslashes — the trap in handbook §10 that once turned `\b` into an
+invisible `0x08` and left a gate matching nothing while reporting OK. Here it failed loudly instead,
+but the remedy is the documented one: the regexes were written with the **editor tool**, then the
+escapes were checked back out at **byte level** (0 control bytes) *and* exercised at runtime.
+Reading a regex back is not sufficient evidence — a mangled one can look correct.
+
 
 ---
 
@@ -808,6 +846,8 @@ resolved in the increment named.
 | 2026-08-24 | **I-1 rollback mechanism changed before acting** — a `pre-*` git tag would have protected nothing, since every file I-1 touches is gitignored or lives in `%APPDATA%`. Replaced with a SHA-256-verified file backup. §4 now warns to check the risk surface is actually in git before cutting a tag. |
 | 2026-08-24 | **New constraint for I-6, found in I-1's dry run: an absence in a capture is not proof of absence.** `--capture-layout` reported no Explorer window on monitor 1 immediately after a successful launch; a later enumeration found two such windows had existed. The teardown must therefore establish "gone" by probing the handle (`IsWindow` + exe match), **never** by a window being missing from a window-list snapshot — the reassuring reading of a missing window is "closed", and it would be wrong. |
 | 2026-08-25 | **I-1b done.** Two builds → two stamps; build #2 installed over #1 and the installed exe moved `0.4.0` → `0.4.0-sb.1787656373798`. ⚠ The leak-check written for this increment was itself defective first time: it matched the word `createUpdaterArtifacts` inside an explanatory **comment** and reported a leak. Fixed by making the check strip comments and follow code — not by rewording the comment, which is the reflex §3 forbids — and a control then proved the stripper had not simply blanked the file. |
+| 2026-08-25 | **I-2 widened beyond its stated Steps, deliberately.** The plan only asked to add the new verbs to the denylist. But a denylist forbids only what someone remembered to list, and this programme adds commands — so the gate now also closes the api surface **structurally**: tour code may not reach `api` at all. Measured before writing it (tour code touches zero `api.*` members), so it forbids nothing in use. The bite test that matters is `api.monitors()` — harmless, on no denylist, and now caught. |
+| 2026-08-25 | **Handbook §10 heredoc trap hit.** The regexes were first written through a Bash heredoc, which mangled the backslashes. Rewritten with the editor tool, then the escapes verified at byte level (0 control bytes) **and** exercised at runtime — reading a regex back is not evidence, since a mangled one looks correct. |
 | 2026-08-24 | **Parked finding (§0.3, not fixed here):** `ui/src/services/version.ts:8-10` claims `IS_SANDBOX` disables auto-update via `services/updater.ts`. It does not — `IS_SANDBOX` appears only in its own definition and `TopChrome.tsx:55`. The isolation is really the endpoint override in `tauri.sandbox.conf.json`. A comment asserting a safety property the code does not implement. |
 
 ---

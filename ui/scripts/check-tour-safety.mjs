@@ -50,6 +50,12 @@ const FORBIDDEN = {
   snapPopup: 'axis 1 — spawns the native overlay and moves a window',
   arrangeAllWindows: 'axis 1 — minimises/restores every window',
   closeAllWindows: 'axis 1 — closes every window (destructive)',
+  // Added by the Quick Preset Switch programme BEFORE these verbs exist, so the gate
+  // is proven against them rather than retrofitted once there is something to catch.
+  // Switching tears down the live preset's windows: strictly more destructive than
+  // an Apply, which only adds.
+  quickPresetsSwitch: 'axis 1 — swaps presets: CLOSES the live preset’s windows, then applies another',
+  quickpresets_switch: 'axis 1 — the Rust command name, in case it is reached as a string literal',
 
   // --- Axis 2: destroys or overwrites saved data (6) ---
   presetsDelete: 'axis 2 — permanently deletes a saved Layout (fs::remove_file)',
@@ -73,6 +79,20 @@ const FORBIDDEN = {
 /** Direct Tauri calls bypass api.ts entirely, so the identifier list would not
  *  see them. The walkthrough has no legitimate reason to invoke() directly. */
 const BYPASS = /\binvoke\s*[<(]/
+
+/** A denylist only forbids what somebody remembered to add to it. That is the
+ *  recorded "verifications narrow to what they NAME" failure mode: ship a command
+ *  under a name nobody listed, and the gate waves it through while staying green.
+ *  The Quick Preset Switch programme adds new commands, so that gap is now real.
+ *
+ *  The api surface is therefore closed STRUCTURALLY rather than name by name: the
+ *  walkthrough may not reach `api` at all. Measured 2026-08-25 — tour code imports
+ *  api nowhere and references zero `api.*` members — so this forbids nothing that is
+ *  in use, while covering every command that does not exist yet. If a future
+ *  walkthrough genuinely needs a read-only call, this fails loudly and a human rules
+ *  on it; what it cannot do is pass silently. */
+const API_MEMBER = /\bapi\s*\.\s*[A-Za-z_]/
+const API_IMPORT = /from\s+['"][^'"]*services\/api['"]/
 
 function walk(dir, out = []) {
   let entries
@@ -115,6 +135,12 @@ for (const file of files) {
     if (BYPASS.test(line)) {
       problems.push(`src/${rel}:${i + 1}  invoke() — the walkthrough must not call Tauri directly (bypasses this gate)`)
     }
+    if (API_MEMBER.test(line)) {
+      problems.push(`src/${rel}:${i + 1}  api.* — the walkthrough must not reach the command surface at all (closes the denylist gap)`)
+    }
+    if (API_IMPORT.test(line)) {
+      problems.push(`src/${rel}:${i + 1}  imports services/api — the walkthrough must not reach the command surface at all`)
+    }
   })
 }
 
@@ -131,5 +157,5 @@ if (files.length === 0) {
   // increment that introduces the tour must see this line change.
   console.log('tour safety: 0 walkthrough files found (src/tour/ does not exist yet) — NOTHING WAS CHECKED')
 } else {
-  console.log(`tour safety: OK — ${files.length} walkthrough file(s) scanned, ${Object.keys(FORBIDDEN).length} forbidden identifiers + direct invoke()`)
+  console.log(`tour safety: OK — ${files.length} walkthrough file(s) scanned, ${Object.keys(FORBIDDEN).length} forbidden identifiers + direct invoke() + no api.* reach`)
 }
