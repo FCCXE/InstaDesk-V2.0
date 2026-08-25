@@ -255,7 +255,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 
 | # | Increment | Risky? | Gate | Status |
 |---|---|---|---|---|
-| I-0 | Programme setup — rollback tag + records committed | no | git | ☐ |
+| I-0 | Programme setup — rollback tag + records committed | no | git | ✅ `08bdc05` |
 | I-1 | **Safe Sandbox fixtures** — remove `Code.exe` from every test Layout | **yes** | manual + Sandbox | ☐ |
 | I-1b | **Version-stamp local Sandbox builds** so the operator can tell them apart | no | build + install | ☐ |
 | I-2 | **Extend tour-safety check** with the new verbs, before they exist | no | build | ☐ |
@@ -298,7 +298,42 @@ positive); `git diff --cached --stat` reviewed and confirmed to be exactly 2 fil
 commit lands; commit message read back from `git log -1` after committing (this session's Bash is
 POSIX `sh`; use a heredoc or `-F <file>`, never a PowerShell here-string).
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-24.** Commit **`08bdc05`**. Verification record:
+
+- **Re-investigation:** both repos re-fetched and confirmed `main == origin/main`, **0 ahead / 0
+  behind** — app `b6f1286`, WinAgent `dd80f84`. App repo carried only the two known untracked
+  entries plus the two new documents; WinAgent repo carried only its two SVGs and
+  `instadesk-tauri/`. **The WinAgent repo was not touched** — nothing in I-0 belongs to it.
+- **Tag `pre-qp-switch-v1`** cut at `b6f1286`. **Verified with `git tag -l`**, not `git rev-parse`
+  — the latter echoes a missing tag's name back and reads as a false positive. Confirmed to point
+  at the same commit as HEAD-at-the-time, and confirmed **local only: 0 remote copies**
+  (`git ls-remote --tags`), per `RELEASING.md §7`.
+- **Handbook §8 repointed** — its *"not yet investigated, scoped, or designed"* text was false the
+  moment Phase 0 closed and would have sent the next session to redo the investigation. Replaced
+  with a pointer to both documents plus the three things a resuming session must know
+  (Program.cs / two-repo rule live; closes windows so no `Code.exe` fixtures; nothing uploaded).
+  The stale starting-evidence list was removed rather than corrected — it lived in the wrong place
+  (§0.2) and had already been caught understating the QP anchors as four when there are five.
+- **Edited via Python temp-file + `os.replace`**, with assertions on the anchor text before the
+  write and a read-back after it (`'not yet investigated' not in back`, `§9` still present exactly
+  once). Not via a Bash heredoc — the recorded trap is that a heredoc eats backslashes and the
+  damage is invisible on read-back.
+- ⚠ **Instrument fault caught, and it was the instrument.** The script's success message printed
+  as mojibake (`OK � block replaced`). That was the **console** codepage (cp1252), not the file:
+  a byte-level check confirmed the file is clean UTF-8, **no BOM**, 30 `§` marks intact, and none
+  of the three mojibake signatures present. Suspect the instrument before the program — but
+  **check**, rather than assuming either way.
+- ⚠ **One real defect caught by reading the result back:** the new heading used `⛑` (U+26D1)
+  instead of the handbook's `⚑` (U+2691). Cosmetic, but it was found by *looking at the rendered
+  block*, not by any assertion — the assertions all passed. Normalised in a second pass with a
+  uniqueness assertion.
+- **Staged with explicit paths**; `git diff --cached --stat` reviewed **before** the commit landed:
+  exactly **3 files, 1145 insertions, 22 deletions**. `docs/marketing/` and
+  `ui/public/brand/FLCX Studios.png` confirmed still untracked and **not** swept in.
+- **Commit message read back from `git log -1 --format=%B`** rather than trusting the commit's
+  exit code — em-dashes intact, no literal `@` wrapping, co-author trailer present.
+- **Pushed and re-verified after an explicit `git fetch`:** `HEAD == origin/main == 08bdc05`,
+  0 ahead / 0 behind. Working tree back to exactly the two known untracked entries.
 
 ---
 
