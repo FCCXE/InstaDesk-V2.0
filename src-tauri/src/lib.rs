@@ -209,6 +209,7 @@ pub fn run() {
       backend::launch,
       backend::presets_run,
       backend::quickpresets_run,
+      backend::quickpresets_switch,
       backend::snap_popup,
       backend::list_browsers,
       backend::pick_exe,

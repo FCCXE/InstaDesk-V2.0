@@ -272,7 +272,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-4 | WinAgent: emit `hwnd` in the launch result | **yes** | agent + Rust + Sandbox | ✅ `6e8f698` |
 | I-5 | Rust: parse the agent result + **revalidation tests written first** | **yes** | cargo | ✅ `e9103b0` |
 | I-6 | WinAgent: `--close-tracked` verify-then-report verb | **yes** | agent + Sandbox | ✅ `bd7c09e`* |
-| I-7 | Rust: ownership record + the switch command | **yes** | cargo + Sandbox | ☐ |
+| I-7 | Rust: ownership record + the switch command | **yes** | cargo + Sandbox | ✅ `957da0e` |
 | I-8 | `api.ts` + `AppState`: switch state and the new call | no | build | ☐ |
 | I-9 | UI: the Switch mode control + anchor + EN strings | no | build + Sandbox | ☐ |
 | — | **▶ OPERATOR CHECKPOINT 1** — `--publish`, then desktop icon → Check for updates | — | installed Sandbox | ☐ |
@@ -946,7 +946,79 @@ a reboot.
 **Verification.** Dev-Sandbox transcript with the hand-opened control window named explicitly,
 plus the cross-session discard proof.
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-25.** Tag `pre-qp-switch-cmd` in the app repo at `e4d3075` (0 remote
+copies). Agent side: WinAgent **`957da0e`**, pushed first.
+
+- **Re-investigation ran, not trusted:** I-5's suite re-run (18 green) and I-6's verb exercised live
+  on a fresh window before anything was built on top of it.
+- **`quickpresets_switch(kind, slot, margin)`** — takes down what is live, applies the requested
+  preset, records it. `kind` accepts `"quickpreset"` or a Layout kind, settling **D-5**. Re-applying
+  the live preset is a refresh, settling **D-4**. Inherits `locked_guard()`.
+- **The teardown cannot reach beyond the record.** It sends the agent a handle list and nothing
+  else; there is no enumeration anywhere in the path (invariant I-2).
+
+### Live end-to-end proof
+
+Driven by `#[ignore]`d tests that open and close real windows —
+`cargo test --lib -- --ignored --nocapture live_switch`. A test-only tokio runtime was added as a
+**dev-dependency**; it is not linked into the shipped binary.
+
+```
+control window (never recorded): hwnd 1512322
+switched to S -> 2 window(s) recorded live
+teardown of S: {"closed":2,"skippedElevated":0,"stale":0,"stillOpen":0}
+cross-check disagreements: []
+T live with 1 window(s); control 1512322 was never recorded
+```
+
+The control window is the load-bearing part: opened **first**, deliberately never written into the
+record, and still alive afterwards. Had the teardown reached past the ownership record it would
+have died.
+
+**D-3, both halves, proven live** (second `#[ignore]`d test):
+
+- the session id is **stable across reads** (`1787587487` twice) — a drifting id would void a good
+  record every time the app restarted;
+- a record stamped with a **foreign** session id — what a reboot leaves on disk — produced
+  `ran: false`, *"the record was from a previous Windows session, so it was discarded untouched"*,
+  and the real live window named in that record **survived**, proven by closing it successfully
+  afterwards. The test uses a genuine window precisely so the gate is tested against something that
+  could actually be destroyed.
+
+### Cross-check: two implementations that must agree
+
+`--close-tracked` now returns the raw probe (`probedIsWindow`, `probedExe`) beside each outcome, so
+Rust recomputes the verdict via `revalidate_owned_window` and compares. Zero disagreements in the
+live run. This also stops I-5's tested function from being test-only — a check nobody has seen run.
+
+### Tests: 26 green + 2 live, with a mutation
+
+`collect_placed_windows` walks the response recursively rather than following a hand-written path,
+because the two apply paths nest their results differently. **Mutation** — a collector following
+`results`/`layouts` and forgetting `windows`, exactly the plausible mistake — failed
+`collects_placed_windows_from_both_response_shapes` and nothing else. Restored from a file backup,
+never git (I-5's rule); 26 green again.
+
+### ⚠ Trap found the hard way: `cargo test` runs a MONTH-STALE agent
+
+The first live run failed on "control window should have been placed" and looked like a defect in
+the switch. It was not. `init_paths()` never runs under `cargo test`, so `agent_path()` fell through
+to the dev-tree agent at `winagent/.../publish/sidecar/`, stamped **`1.0.0+b250b31`** — from
+2026‑07‑27, before v0.3.0. That build emits no `hwnd` at all, so nothing could be recorded.
+
+This is the *other face* of the recorded dev-Sandbox trap: the memory spoke says `--dev` uses the
+**bundled** agent and not the sidecar. True there — but under `cargo test` the sidecar **is** what
+gets used, and it is stale. **Any Rust test touching the agent must pin `AGENT_PATH`**, which this
+test now does, asserting the bundled exe exists first. Without the pin a test could also *pass*
+against month-old behaviour, which is the worse failure.
+
+### Third sighting of the capture-omission phenomenon
+
+`--capture-layout` reported **2** Explorer windows while a direct enumeration found **6**, including
+the operator's own. Three sightings now. It reinforces the same rule: probe handles, never trust a
+window list — and it is why cleanup here was done by enumeration and exact title match rather than
+from a capture.
+
 
 ---
 
@@ -1109,6 +1181,10 @@ resolved in the increment named.
 | 2026-08-25 | **New standing rule from an incident in I-5: never restore uncommitted work with git.** Restoring after a mutation with `git checkout -- <file>` reset the file to HEAD and destroyed the whole increment — implementation and all ten tests — because none of it was committed. The suite quietly returned to 8 passing, which reads as success unless the count is checked. **When mutation-testing uncommitted work, copy the file first and restore from that copy.** Version control knows nothing about work it has not been given. |
 | 2026-08-25 | **I-6 ships with ONE verification open, and the dashboard says so.** The elevated branch’s classification and naming are proven; `IsWindowElevated`’s real detection is not, because no elevated window existed and obtaining one needs a UAC prompt. Carried to the operator checkpoint (iVMS-4200). Marked `✅*` rather than a plain tick. |
 | 2026-08-25 | **The I-1 capture-omission phenomenon recurred, and nearly produced a false alarm.** A post-test capture showed no Notepad, which would have read as "a window with unsaved work vanished during a teardown increment". Direct enumeration found it wholly intact — same PID, same handle, same `*` marker. Twice now. This is the concrete justification for deciding "gone" by probing the handle rather than by absence from a window list: built the other way, `--close-tracked` would have reported that Notepad closed. |
+| 2026-08-25 | **I-7 resolves D-3, D-4, D-5 as recommended.** D-3: the session marker is the *first* approximate boot time computed in this Windows session, persisted; on later starts it is re-established with a ±120 s tolerance so an InstaDesk restart within the same session **reuses the identical id**, while a reboot yields a new one. Tolerance sits at establishment only — the record stores an exact id and `revalidate_owned_window` compares it exactly, so the pure function keeps the contract its tests were written against. D-4: re-applying the live preset is a **refresh** (tear down, re-apply). D-5: single Layouts participate — what is live is whatever InstaDesk last applied. |
+| 2026-08-25 | **Design call: the two revalidation implementations must AGREE, not merely coexist.** Only Rust can answer "is this record from this Windows session?" (it persisted it); only the agent can answer "is this handle still the window we recorded?" (it has Win32). That split risked leaving I-5’s tested `revalidate_owned_window` alive only in tests — a check nobody has seen run. So `--close-tracked` now also returns the raw probe (`probedIsWindow`, `probedExe`) for each record, and Rust independently recomputes the verdict and **cross-checks it against the agent’s classification**. Two implementations that must agree is stronger than one, and a disagreement is itself a defect signal rather than a silent divergence. |
+| 2026-08-25 | **New standing rule: any Rust test that touches the agent must pin `AGENT_PATH`.** `init_paths()` never runs under `cargo test`, so `agent_path()` falls through to the dev-tree agent at `winagent/.../publish/sidecar/` — which on this machine is stamped `b250b31`, from 2026-07-27, before v0.3.0, and emits no `hwnd`. I-7’s first live run failed on that and looked like a defect in the switch. This is the *other face* of the recorded dev-Sandbox trap: `--dev` uses the bundled agent, but `cargo test` uses the stale sidecar. The worse outcome is a test that **passes** against month-old behaviour. |
+| 2026-08-25 | **Third sighting of the capture-omission phenomenon.** `--capture-layout` reported 2 Explorer windows where a direct enumeration found 6. Cleanup in I-7 was therefore done by enumeration and exact title match, never from a capture. |
 | 2026-08-24 | **Parked finding (§0.3, not fixed here):** `ui/src/services/version.ts:8-10` claims `IS_SANDBOX` disables auto-update via `services/updater.ts`. It does not — `IS_SANDBOX` appears only in its own definition and `TopChrome.tsx:55`. The isolation is really the endpoint override in `tauri.sandbox.conf.json`. A comment asserting a safety property the code does not implement. |
 
 ---

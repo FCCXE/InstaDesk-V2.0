@@ -1111,6 +1111,155 @@ fn with_placed_window(mut result: Value, stdout: &str) -> Value {
     result
 }
 
+// --- The Windows-session marker (decision D-3) --------------------------------
+//
+// A recorded HWND is only meaningful inside the Windows session that produced it.
+// After a reboot the numbers are handed out again, so the whole record must be
+// void — matching one by luck is precisely the accident invariant I-3 guards.
+//
+// The marker is the approximate boot instant (now minus uptime). That value
+// drifts by a second or two between readings, so it is NOT compared directly:
+// the FIRST reading of a session is persisted and becomes that session's id, and
+// later starts re-establish it with a tolerance. An InstaDesk restart inside the
+// same Windows session therefore reuses the *identical* id, while a reboot yields
+// a new one. The tolerance lives here, at establishment; the id itself is then
+// compared exactly by `revalidate_owned_window`.
+
+#[cfg(windows)]
+#[link(name = "kernel32")]
+extern "system" {
+    fn GetTickCount64() -> u64;
+}
+
+fn approx_boot_secs() -> i64 {
+    #[cfg(windows)]
+    {
+        let uptime_secs = (unsafe { GetTickCount64() } / 1000) as i64;
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
+        now - uptime_secs
+    }
+    #[cfg(not(windows))]
+    {
+        0
+    }
+}
+
+/// Reuse the persisted id when this looks like the same Windows session; mint a
+/// new one otherwise. Pure, so the boundary behaviour is testable.
+pub fn resolve_session_id(persisted: Option<i64>, approx_boot: i64, tolerance_secs: i64) -> i64 {
+    match persisted {
+        Some(p) if (p - approx_boot).abs() <= tolerance_secs => p,
+        _ => approx_boot,
+    }
+}
+
+const SESSION_TOLERANCE_SECS: i64 = 120;
+
+fn session_path() -> PathBuf {
+    data_dir().join("session.json")
+}
+
+/// This Windows session's id, establishing and persisting it on first use.
+fn current_session_id() -> i64 {
+    let persisted = fs::read_to_string(session_path())
+        .ok()
+        .and_then(|s| serde_json::from_str::<Value>(&s).ok())
+        .and_then(|v| v.get("sessionId").and_then(|x| x.as_i64()));
+    let id = resolve_session_id(persisted, approx_boot_secs(), SESSION_TOLERANCE_SECS);
+    if persisted != Some(id) {
+        let _ = fs::create_dir_all(data_dir());
+        let _ = fs::write(session_path(), json!({ "sessionId": id }).to_string());
+    }
+    id
+}
+
+// --- The ownership record -----------------------------------------------------
+
+fn live_record_path() -> PathBuf {
+    data_dir().join("live_preset.json")
+}
+
+fn read_live_record() -> Option<Value> {
+    fs::read_to_string(live_record_path())
+        .ok()
+        .and_then(|s| serde_json::from_str::<Value>(&s).ok())
+}
+
+fn write_live_record(v: &Value) {
+    let _ = fs::create_dir_all(data_dir());
+    let _ = fs::write(live_record_path(), v.to_string());
+}
+
+/// Gather every window an apply placed, wherever it sits in the response.
+///
+/// A recursive walk rather than a fixed path, on purpose: the normal assignment
+/// path and the multi-window-app path nest their results differently, and a
+/// hand-written path would quietly miss one of them — which is exactly how
+/// multi-window apps end up unowned and never torn down.
+pub fn collect_placed_windows(v: &Value) -> Vec<OwnedWindow> {
+    fn walk(v: &Value, out: &mut Vec<OwnedWindow>) {
+        match v {
+            Value::Object(map) => {
+                if let Some(pw) = map.get("placedWindow") {
+                    if let Some(h) = pw.get("hwnd").and_then(|x| x.as_i64()) {
+                        if h != 0 {
+                            out.push(OwnedWindow {
+                                hwnd: h,
+                                exe: pw.get("exe").and_then(|x| x.as_str()).unwrap_or("").to_string(),
+                            });
+                        }
+                    }
+                }
+                for (_, child) in map {
+                    walk(child, out);
+                }
+            }
+            Value::Array(items) => {
+                for child in items {
+                    walk(child, out);
+                }
+            }
+            _ => {}
+        }
+    }
+    let mut out = Vec::new();
+    walk(v, &mut out);
+    out
+}
+
+/// Map one `--close-tracked` record onto the verdict `revalidate_owned_window`
+/// reaches from the same raw probe. This cross-checks the agent rather than
+/// replacing it: only Rust knows the session, only the agent can touch Win32, and
+/// two independent implementations that must agree is stronger than one. A
+/// disagreement is a defect signal, not a silent divergence.
+pub fn agent_outcome_agrees(session: i64, rec: &Value) -> bool {
+    let owned = OwnedWindow {
+        hwnd: rec.get("hwnd").and_then(|x| x.as_i64()).unwrap_or(0),
+        exe: rec.get("exe").and_then(|x| x.as_str()).unwrap_or("").to_string(),
+    };
+    let probe = HandleProbe {
+        is_window: rec.get("probedIsWindow").and_then(|x| x.as_bool()).unwrap_or(false),
+        exe: rec.get("probedExe").and_then(|x| x.as_str()).map(String::from),
+    };
+    let outcome = rec.get("outcome").and_then(|x| x.as_str()).unwrap_or("");
+    match revalidate_owned_window(session, session, &owned, &probe) {
+        // We would approve it, so the agent must have posted a close: the window
+        // either went (`closed`) or the app declined (`stillOpen`).
+        Revalidation::Act => outcome == "closed" || outcome == "stillOpen",
+        // `closed` is allowed here because the probe is reported post-close.
+        Revalidation::RefuseStale => outcome == "stale" || outcome == "closed",
+        Revalidation::RefuseExeMismatch => outcome == "stillOpen",
+        // An unreadable exe is either an elevated window — which the agent can
+        // detect and we cannot — or a genuinely unverifiable one.
+        Revalidation::RefuseUnreadableExe => outcome == "skippedElevated" || outcome == "stillOpen",
+        // Never reachable: the caller only sends records from the current session.
+        Revalidation::RefuseSession => false,
+    }
+}
+
 /// Run one launch through the agent. Returns a LaunchResponse-shaped Value.
 /// Uses temp files for the agent's stdio (inherited by its spawned apps), and
 /// waits on the AGENT process (not pipe EOF) with a 45s timeout.
@@ -1468,6 +1617,121 @@ pub async fn quickpresets_run(slot: String, margin_px: Option<i64>) -> Result<Va
         "summary": format!("{}/{} Layouts applied", succeeded, per_layout.len()),
         "layouts": per_layout,
     }))
+}
+
+/// Take down whatever is currently live, then apply the requested preset and
+/// record it as live. The Switch-mode path.
+///
+/// `kind` is `"quickpreset"` for a bundle or a Layout kind (`"general"`) for a
+/// single Layout — decision D-5: what is live is whatever InstaDesk last applied,
+/// either sort. Re-applying the preset that is already live is a **refresh**
+/// (decision D-4): it tears down and re-applies, which is how a user repairs a
+/// desk that has drifted.
+///
+/// The teardown never enumerates the desktop. It can only touch handles this app
+/// recorded when it placed them, so a window the user opened by hand is
+/// untouchable by construction (invariant I-2).
+#[tauri::command]
+pub async fn quickpresets_switch(
+    kind: String,
+    slot: String,
+    margin_px: Option<i64>,
+) -> Result<Value, String> {
+    locked_guard()?;
+    check_slot(&slot)?;
+    let session = current_session_id();
+
+    // --- take down what is live ------------------------------------------------
+    let mut teardown = json!({ "ran": false, "reason": "nothing was live" });
+    if let Some(rec) = read_live_record() {
+        let rec_session = rec.get("sessionId").and_then(|x| x.as_i64()).unwrap_or(i64::MIN);
+        if rec_session != session {
+            // A record from a previous Windows session. Every handle in it is
+            // meaningless now, so it is discarded WITHOUT being acted on.
+            teardown = json!({
+                "ran": false,
+                "reason": "the record was from a previous Windows session, so it was discarded untouched",
+            });
+        } else {
+            let windows = rec.get("windows").cloned().unwrap_or_else(|| json!([]));
+            let count = windows.as_array().map(|a| a.len()).unwrap_or(0);
+            if count == 0 {
+                teardown = json!({ "ran": false, "reason": "the live preset had no recorded windows" });
+            } else {
+                teardown = close_tracked_windows(session, &windows).await?;
+            }
+        }
+    }
+
+    // --- apply the new one -----------------------------------------------------
+    let applied = if kind.eq_ignore_ascii_case("quickpreset") {
+        quickpresets_run(slot.clone(), margin_px).await?
+    } else {
+        apply_preset(&kind, &slot, margin_px).await?
+    };
+
+    // --- record it as live -----------------------------------------------------
+    let placed = collect_placed_windows(&applied);
+    write_live_record(&json!({
+        "sessionId": session,
+        "kind": kind,
+        "slot": slot.to_uppercase(),
+        "windows": placed.iter().map(|w| json!({ "hwnd": w.hwnd, "exe": w.exe })).collect::<Vec<_>>(),
+    }));
+
+    Ok(json!({
+        "ok": true,
+        "teardown": teardown,
+        "applied": applied,
+        "nowLive": { "kind": kind, "slot": slot.to_uppercase(), "windows": placed.len() },
+    }))
+}
+
+/// Hand a set of recorded windows to the agent's `--close-tracked`, then check the
+/// agent's classification against our own reading of the same raw probe.
+async fn close_tracked_windows(session: i64, windows: &Value) -> Result<Value, String> {
+    #[cfg(windows)]
+    {
+        // The handle list travels as a FILE: executable paths carry spaces and
+        // backslashes, and a preset can hold many windows.
+        let dir = std::env::temp_dir();
+        let path = dir.join(format!("instadesk-close-{}.json", std::process::id()));
+        fs::write(&path, windows.to_string()).map_err(|e| e.to_string())?;
+        let args = vec!["--close-tracked".to_string(), path.to_string_lossy().to_string()];
+        let res = run_agent(&args, 30).await;
+        let _ = fs::remove_file(&path);
+        let (_rc, out, err, tmsg) = res?;
+        for line in out.lines().rev() {
+            let l = line.trim();
+            if l.starts_with('{') && l.ends_with('}') {
+                if let Ok(mut v) = serde_json::from_str::<Value>(l) {
+                    // Cross-check every record. A disagreement does not change what
+                    // already happened — it is surfaced so it cannot pass silently.
+                    let disagreements: Vec<Value> = v
+                        .get("windows")
+                        .and_then(|w| w.as_array())
+                        .map(|a| {
+                            a.iter()
+                                .filter(|r| !agent_outcome_agrees(session, r))
+                                .cloned()
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    if let Some(obj) = v.as_object_mut() {
+                        obj.insert("ran".into(), json!(true));
+                        obj.insert("crossCheckDisagreements".into(), json!(disagreements));
+                    }
+                    return Ok(v);
+                }
+            }
+        }
+        Err(format!("No result from agent. {}{}", err, tmsg))
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (session, windows);
+        Ok(json!({ "ran": false, "reason": "not Windows" }))
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -2485,5 +2749,269 @@ mod tests {
             .expect("a handle with an unreadable exe is still our window");
         assert_eq!(got.hwnd, 123);
         assert_eq!(got.exe, "");
+    }
+
+    // -----------------------------------------------------------------------
+    // The Windows-session marker (D-3). The tolerance exists only to ESTABLISH
+    // the id — an InstaDesk restart inside one session must land on the exact
+    // same number, because the id itself is later compared exactly.
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn session_id_is_minted_when_there_is_nothing_persisted() {
+        assert_eq!(resolve_session_id(None, 1_700_000_000, 120), 1_700_000_000);
+    }
+
+    #[test]
+    fn session_id_survives_an_app_restart_within_the_same_windows_session() {
+        // The boot estimate drifts a couple of seconds between readings. The
+        // persisted id must be reused VERBATIM, not re-minted — a re-minted id
+        // would differ and silently void a perfectly good record.
+        let persisted = 1_700_000_000;
+        assert_eq!(resolve_session_id(Some(persisted), persisted + 3, 120), persisted);
+        assert_eq!(resolve_session_id(Some(persisted), persisted - 3, 120), persisted);
+    }
+
+    #[test]
+    fn session_id_is_reminted_after_a_reboot() {
+        let persisted = 1_700_000_000;
+        let after_reboot = persisted + 5_000;
+        assert_eq!(resolve_session_id(Some(persisted), after_reboot, 120), after_reboot);
+    }
+
+    #[test]
+    fn session_tolerance_boundary_is_inclusive_and_then_stops() {
+        let p = 1_700_000_000;
+        assert_eq!(resolve_session_id(Some(p), p + 120, 120), p, "exactly at tolerance: same session");
+        assert_eq!(resolve_session_id(Some(p), p + 121, 120), p + 121, "one past it: new session");
+    }
+
+    // -----------------------------------------------------------------------
+    // Collecting the windows an apply placed. The response nests them TWO
+    // different ways, and a fixed path would quietly miss one — which is how a
+    // multi-window app ends up unowned and therefore never torn down.
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn collects_placed_windows_from_both_response_shapes() {
+        let applied = json!({
+            "ok": true,
+            "layouts": [{
+                "kind": "general", "slot": "S", "ok": true,
+                "results": [
+                    // shape 1 — a normal assignment, via run_launch
+                    { "exitCode": 0, "placedWindow": { "hwnd": 111, "exe": "a.exe" } },
+                    // shape 2 — a multi-window app, via run_agent_raw, nested deeper
+                    { "ok": true, "type": "multiWindowApp", "windows": [
+                        { "title": "one", "placed": true, "placedWindow": { "hwnd": 222, "exe": "b.exe" } },
+                        { "title": "two", "placed": true, "placedWindow": { "hwnd": 333, "exe": "b.exe" } }
+                    ]}
+                ]
+            }]
+        });
+        let got = collect_placed_windows(&applied);
+        let mut hwnds: Vec<i64> = got.iter().map(|w| w.hwnd).collect();
+        hwnds.sort();
+        assert_eq!(hwnds, vec![111, 222, 333], "must find the multi-window app's windows too");
+    }
+
+    #[test]
+    fn collecting_ignores_failures_and_zero_handles() {
+        let applied = json!({
+            "results": [
+                { "exitCode": 1 },
+                { "placedWindow": { "hwnd": 0, "exe": "x.exe" } }
+            ]
+        });
+        assert!(collect_placed_windows(&applied).is_empty());
+    }
+
+    // -----------------------------------------------------------------------
+    // Cross-checking the agent. Two independent implementations must agree.
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn cross_check_accepts_the_agents_agreeing_verdicts() {
+        let closed = json!({ "hwnd": 1, "exe": "a.exe", "outcome": "closed",
+                             "probedIsWindow": false, "probedExe": "a.exe" });
+        let refused = json!({ "hwnd": 2, "exe": "a.exe", "outcome": "stillOpen",
+                              "probedIsWindow": true, "probedExe": "b.exe" });
+        let stale = json!({ "hwnd": 3, "exe": "a.exe", "outcome": "stale",
+                            "probedIsWindow": false, "probedExe": null });
+        let elevated = json!({ "hwnd": 4, "exe": "a.exe", "outcome": "skippedElevated",
+                               "probedIsWindow": true, "probedExe": null });
+        for r in [closed, refused, stale, elevated] {
+            assert!(agent_outcome_agrees(9, &r), "should agree: {r}");
+        }
+    }
+
+    #[test]
+    fn cross_check_catches_an_agent_that_closed_a_mismatched_window() {
+        // The probe says this handle belongs to something else, yet the agent
+        // claims it closed it. That is the exact defect the cross-check exists
+        // for, and it must NOT pass quietly.
+        let bad = json!({ "hwnd": 5, "exe": "a.exe", "outcome": "closed",
+                          "probedIsWindow": true, "probedExe": "b.exe" });
+        assert!(!agent_outcome_agrees(9, &bad));
+    }
+
+    // -----------------------------------------------------------------------
+    // LIVE end-to-end switch. Opens and closes real windows, so it is #[ignore]d
+    // and run deliberately:
+    //
+    //   cargo test --lib -- --ignored --nocapture live_switch
+    //
+    // Uses the S/T fixtures authored in I-1 (Edge + File Explorer, never
+    // Code.exe). The control window is opened FIRST and never recorded, so if the
+    // teardown ever reached beyond the ownership record it would die — which is
+    // exactly why it is there.
+    // -----------------------------------------------------------------------
+    #[cfg(windows)]
+    #[tokio::test]
+    #[ignore]
+    async fn live_switch_takes_down_only_the_previous_preset() {
+        // TRAP: `init_paths()` never runs under `cargo test`, so `agent_path()`
+        // falls through to the dev-tree agent at winagent/.../publish/sidecar/ —
+        // which on this machine is a MONTH stale and emits no `hwnd` at all. The
+        // first run of this test failed for exactly that reason and looked like a
+        // defect in the switch. Pin the bundled agent explicitly.
+        let bundled = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("binaries")
+            .join("InstaDesk.WinAgent.exe");
+        assert!(bundled.exists(), "bundled agent missing: {}", bundled.display());
+        std::env::set_var("AGENT_PATH", &bundled);
+        println!("pinned agent: {}", bundled.display());
+
+        let control = run_launch(&LaunchBody {
+            program: Some(r"C:\Windows\explorer.exe".into()),
+            args: Some(r"C:\Windows".into()),
+            title: Some("CONTROL".into()),
+            monitor: 1,
+            grid: "3,3,2,2".into(),
+            grid_size: "4x4".into(),
+            ..Default::default()
+        })
+        .await;
+        let control_hwnd = control
+            .get("placedWindow")
+            .and_then(|w| w.get("hwnd"))
+            .and_then(|h| h.as_i64())
+            .unwrap_or_else(|| panic!("control not placed. agent={:?} raw={}", agent_path(), control));
+        println!("control window (never recorded): hwnd {control_hwnd}");
+
+        let first = quickpresets_switch("quickpreset".into(), "S".into(), None)
+            .await
+            .expect("switch to S");
+        let live_after_s = first["nowLive"]["windows"].as_i64().unwrap_or(0);
+        println!("switched to S -> {live_after_s} window(s) recorded live");
+        assert!(live_after_s > 0, "S should have placed and recorded windows");
+
+        let second = quickpresets_switch("quickpreset".into(), "T".into(), None)
+            .await
+            .expect("switch to T");
+        println!("teardown of S: {}", second["teardown"]["counts"]);
+        println!("cross-check disagreements: {}", second["teardown"]["crossCheckDisagreements"]);
+
+        assert_eq!(
+            second["teardown"]["counts"]["closed"].as_i64().unwrap_or(-1),
+            live_after_s,
+            "every window S placed should have been closed"
+        );
+        assert_eq!(
+            second["teardown"]["crossCheckDisagreements"].as_array().map(|a| a.len()),
+            Some(0),
+            "our reading and the agent's must agree on every record"
+        );
+
+        let still: Vec<i64> = collect_placed_windows(&second["applied"])
+            .iter()
+            .map(|w| w.hwnd)
+            .collect();
+        assert!(!still.contains(&control_hwnd), "control must not be among T's windows");
+        println!("T live with {} window(s); control {control_hwnd} was never recorded", still.len());
+
+        // Leave the desk as we found it.
+        let mut cleanup: Vec<Value> = still
+            .iter()
+            .map(|h| json!({ "hwnd": h, "exe": r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" }))
+            .collect();
+        cleanup.push(json!({ "hwnd": control_hwnd, "exe": r"C:\Windows\explorer.exe" }));
+        let _ = close_tracked_windows(current_session_id(), &json!(cleanup)).await;
+        let _ = fs::remove_file(live_record_path());
+    }
+
+    /// D-3's other half: a record from a previous Windows session must be
+    /// discarded WITHOUT being acted on. A reboot cannot be staged in a test, so
+    /// the record is stamped with a session id from a different boot — which is
+    /// exactly what surviving a reboot would look like on disk.
+    #[cfg(windows)]
+    #[tokio::test]
+    #[ignore]
+    async fn live_record_from_a_previous_session_is_discarded_untouched() {
+        let bundled = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("binaries")
+            .join("InstaDesk.WinAgent.exe");
+        std::env::set_var("AGENT_PATH", &bundled);
+
+        // Same-session stability first: the id must not drift between reads, or a
+        // perfectly good record would be voided every time the app restarts.
+        let a = current_session_id();
+        let b = current_session_id();
+        assert_eq!(a, b, "the session id must be stable across reads");
+        let persisted = read_live_record();
+        println!("session id stable at {a}; existing record: {}", persisted.is_some());
+
+        // A record naming REAL, LIVE window handles — the operator's own windows
+        // would be the casualty if the session gate failed to hold. Stamped with a
+        // foreign session id, it must be discarded untouched.
+        let victim = run_launch(&LaunchBody {
+            program: Some(r"C:\Windows\explorer.exe".into()),
+            args: Some(r"C:\Windows".into()),
+            title: Some("PREV-SESSION-VICTIM".into()),
+            monitor: 1,
+            grid: "3,3,2,2".into(),
+            grid_size: "4x4".into(),
+            ..Default::default()
+        })
+        .await;
+        let victim_hwnd = victim["placedWindow"]["hwnd"].as_i64().expect("victim placed");
+        let victim_exe = victim["placedWindow"]["exe"].as_str().unwrap_or("").to_string();
+        println!("victim window: hwnd {victim_hwnd}");
+
+        write_live_record(&json!({
+            "sessionId": a - 999_999,
+            "kind": "quickpreset",
+            "slot": "S",
+            "windows": [ { "hwnd": victim_hwnd, "exe": victim_exe.clone() } ],
+        }));
+
+        let res = quickpresets_switch("quickpreset".into(), "T".into(), None)
+            .await
+            .expect("switch should still apply the new preset");
+        println!("teardown: {}", res["teardown"]);
+
+        assert_eq!(res["teardown"]["ran"], json!(false), "a foreign-session record must not be acted on");
+        assert!(
+            res["teardown"]["reason"].as_str().unwrap_or("").contains("previous Windows session"),
+            "the reason must say WHY nothing was torn down"
+        );
+
+        // And the proof that matters: the window named in that record is untouched.
+        let probe = json!([{ "hwnd": victim_hwnd, "exe": victim_exe }]);
+        let check = close_tracked_windows(current_session_id(), &probe).await.expect("probe");
+        assert_eq!(
+            check["counts"]["closed"], json!(1),
+            "the victim should still have been alive for us to close now"
+        );
+        println!("victim survived the discarded record, and was cleaned up afterwards");
+
+        // Tidy: close whatever T placed, and drop the record.
+        let placed = collect_placed_windows(&res["applied"]);
+        let cleanup: Vec<Value> = placed
+            .iter()
+            .map(|w| json!({ "hwnd": w.hwnd, "exe": w.exe }))
+            .collect();
+        let _ = close_tracked_windows(current_session_id(), &json!(cleanup)).await;
+        let _ = fs::remove_file(live_record_path());
     }
 }

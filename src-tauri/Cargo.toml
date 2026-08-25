@@ -14,6 +14,11 @@ rust-version = "1.77.2"
 name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+# Test-only: lets the live switch test drive the async command end to end.
+# Not linked into the shipped binary.
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
 [build-dependencies]
 tauri-build = { version = "2.6.2", features = [] }
 
