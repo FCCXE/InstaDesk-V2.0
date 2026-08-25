@@ -282,28 +282,32 @@ abandoned, `git reset`/checkout back to the last good tag.
   `ASSISTED_HELP_INVESTIGATION_v1_0.md`. Read them for *how* that work was governed — they are the
   worked example of the §0 method, including the eleven defects it caught.
 
-### ⚑ NEXT FEATURE — defined by the operator, not yet investigated
+### ⚑ NEXT FEATURE — PHASE 0 CLOSED, PHASE 1 PLANNED, implementation open
 
-> **A toggle between Quick Presets.**
+> **Quick Preset Switch Mode** — one preset live at a time; applying a new one takes the
+> current one down first. Operator's settled reading, 2026‑08‑24.
 
-That is the operator's stated next upgrade and the whole of what is known. **It has not been
-investigated, scoped, or designed, and nothing about it should be assumed** — the phrase admits
-several readings (cycle through Quick Presets with a hotkey? a switch in the left pane? a
-toggle *within* a Quick Preset?). **Start at Phase 0 (§0): read the code, then ask the operator
-to settle the reading before any plan is written.**
+**Do not re-investigate this.** Phase 0 is complete and the reading is settled. The two documents
+of record, in `docs/workplans/`:
 
-Useful starting evidence, already known and re‑verifiable:
-- Quick Presets live in `data/quickpresets/QP_{SLOT}.json`; the Rust commands are
-  `quickpresets_list | _get | _save | _delete | _run`.
-- `quickpresets_run` **reaches the WinAgent** — it launches programs and moves windows. Anything
-  that fires it is a real, irreversible action on the user's desktop.
-- The left‑pane UI is `ui/src/components/MonitorSelector.tsx` (chooser + Apply); the manager modal is
-  `ui/src/components/quickpresets/QuickPresetsManager.tsx`.
-- There is an existing global‑hotkey mechanism (`services/hotkeys.ts`, `set_hotkey`, and a
-  `Ctrl+Alt+…` Quick Preset binding already listed in Settings → Shortcuts).
-- Anchors already registered for the walkthrough: `quick-presets-section`, `qp-manage-button`,
-  `qp-dropdown`, `qp-apply-button`. **Any new control needs a `data-tour` anchor + registry entry in
-  the same commit, or the anchor gate fails the build.**
+- `QUICK_PRESET_TOGGLE_INVESTIGATION_v1_0.md` — the evidence base. Read it **before** the plan.
+  Carries the measured baseline, the enumerated Quick Preset surface, ten findings, and the
+  operator's rulings. Note especially **F-8** (the agent already resolves the window handle but
+  emits an unusable `processId` instead) and **F-10** (today's close is fire-and-forget, and
+  `affected` counts requests, not closures).
+- `QUICK_PRESET_SWITCH_WORK_PLAN_v1_0.md` — the single document of record for the build.
+  **It holds increment status; this handbook does not.** Target release **v0.5.0**.
+
+Three things a resuming session must know before touching anything:
+
+1. **This programme changes `Program.cs`.** The two-repo sequencing rule (§2) is live again — it
+   was dormant through all of v0.4.0.
+2. **It closes windows.** No test fixture may name `Code.exe`, in **either** Sandbox data dir —
+   they read different ones, and both carried offending fixtures. See the plan §2.1.
+3. **Nothing in it is uploaded.** Operator builds are local installers, version-stamped so they
+   can be told apart. `--publish` was assessed and rejected; the plan §4A.1 records why.
+
+Rollback point for the programme: **`v0.4.0`**. Programme tag: `pre-qp-switch-v1`.
 
 ## §9 — Command quick‑reference (WHERE = app repo root `C:\FcXe Studios\Instadesk\instadesk-tauri` unless noted)
 
