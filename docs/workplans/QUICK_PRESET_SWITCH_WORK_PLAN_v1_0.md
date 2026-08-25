@@ -157,7 +157,7 @@ precise and re-bite it in both directions.
 
 - **Programme rollback point: `v0.4.0`** (`b5120e1`), verified this session with `git tag -l`.
 - Each **RISKY** increment cuts a local `pre-*` tag before its first edit. Planned:
-  `pre-qp-switch-v1`, `-agent-hwnd`, `-ownership`, `-agent-close`, `-switch-cmd`, `-ui`.
+  `pre-qp-switch-v1`, `-ownership`, `-switch-cmd`, `-ui` in the **app** repo; `pre-qp-switch-agent-hwnd` and `-agent-close` in the **WinAgent** repo, because that is where those increments’ risk surface lives.
 - **⚠ A git tag only protects tracked files.** Before cutting one, check that the increment's risk
   surface is actually in git. **I-1 is not** — its files are gitignored or live in `%APPDATA%` — so
   its rollback point is a verified file backup instead. A tag that covers nothing the increment
@@ -269,7 +269,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-1b | **Version-stamp local Sandbox builds** so the operator can tell them apart | no | build + install | ✅ |
 | I-2 | **Extend tour-safety check** with the new verbs, before they exist | no | build | ✅ |
 | I-3 | **HWND spike** (throwaway) — is the handle usable, and how does it die? | no | Sandbox `--dev` | ✅ |
-| I-4 | WinAgent: emit `hwnd` in the launch result | **yes** | agent + Rust + Sandbox | ☐ |
+| I-4 | WinAgent: emit `hwnd` in the launch result | **yes** | agent + Rust + Sandbox | ✅ `6e8f698` |
 | I-5 | Rust: parse the agent result + **revalidation tests written first** | **yes** | cargo | ☐ |
 | I-6 | WinAgent: `--close-tracked` verify-then-report verb | **yes** | agent + Sandbox | ☐ |
 | I-7 | Rust: ownership record + the switch command | **yes** | cargo + Sandbox | ☐ |
@@ -701,7 +701,39 @@ window that was actually placed.
 yet — record that as the expected no-op). Confirm the **bundled** agent was rebuilt before any
 `--dev` test, and verify its `1.0.0+<commit>` stamp against the WinAgent repo HEAD.
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-25.** WinAgent commit **`6e8f698`** (pushed first, per invariant 2.2.6).
+
+- **Rollback point corrected before acting.** The plan listed `pre-qp-switch-agent-hwnd` among the
+  app-repo tags, but this increment's risk surface is entirely in the **WinAgent** repo. The tag
+  was cut **there**, at `dd80f84`, verified with `git tag -l`, and confirmed **local only**
+  (0 remote copies). Same lesson as I-1: check where the risk actually lives before cutting a tag.
+- **Re-investigation:** the success payload still emitted `processId` and no handle.
+- **Change is additive.** Diff is 14 insertions, 1 deletion — and the single deletion is the line
+  that gained a trailing comma. `processId` is untouched and still emitted; other callers read
+  this payload.
+- **Dry run — the handle is the placed window, proven functionally rather than by coordinates.**
+  Comparing the agent's `extendedFrame` against a `GetWindowRect` from PowerShell would have been
+  meaningless: PowerShell reports **DPI-virtualised** coordinates while the agent is DPI-aware
+  (the mismatch that misled I-1). So the test was behavioural instead:
+
+  | step | result |
+  |---|---|
+  | launch Edge → monitor 3, grid `1,1,4,4` | `hwnd 2952640`, `processId 18408` |
+  | probe the handle | `isWindow=true`, title "New tab … Microsoft Edge", owner `msedge` |
+  | `WM_CLOSE` to **that handle only** | **12 windows → 11; exactly `('msedge.exe', 3, '1,1,4,4')` disappeared; nothing else changed, nothing appeared** |
+
+- **Non-browser case:** File Explorer also returned a non-zero handle (`2560576`), closed cleanly
+  by that handle afterwards. The desk was left as found.
+- **Rust gate — the expected no-op:** `cargo test --lib` **8 passed, 0 failed**; `cargo build --lib`
+  clean. Nothing in Rust parses the new field yet, which is exactly right for this increment: the
+  agent may emit it before anything consumes it, but not the reverse.
+- **Bundled agent rebuilt AFTER the commit** so its stamp matches the new HEAD:
+  `1.0.0+6e8f6989…` == WinAgent `HEAD 6e8f6989…`.
+- **S-2 applied, not just recorded.** The stamp was checked **and** so was the working tree —
+  `Program.cs` reports 0 modifications against HEAD. I-3 proved the stamp alone cannot see a dirty
+  tree, so from here the pair is the check, never the stamp by itself.
+- **Both repos clean**, carrying only their known untracked entries.
+
 
 ---
 
@@ -944,6 +976,8 @@ resolved in the increment named.
 | 2026-08-25 | **F-8 hardens further: PID is not a window identity at all.** Both Edge windows are owned by the SAME PID (7524) — the pre-existing browser process, which also owns the user’s own windows. Even the *correct* PID cannot distinguish them. No PID in the ownership record, not as a fallback, not as a tie-breaker. |
 | 2026-08-25 | **New requirement for I-5: TWO agent call sites, not one.** `apply_multiwindow` does not use `run_launch`; it calls `run_agent_raw` per window and discards the output, keeping only `{title, placed}`. Threading the handle through `run_launch` alone would leave every multi-window app unowned and silently never torn down. |
 | 2026-08-25 | **Two instrument findings (S-1, S-2), both caught by controls.** A byte search of the .NET agent binary is blind — the control string `capture-layout` also returned 0 — so no "binary does not contain X" claim about the agent is admissible; use behavioural tests. And the agent’s `1.0.0+<commit>` stamp reflects **HEAD, not the working tree**: the instrumented build carried the identical stamp. Handbook §10’s pre-ship stamp check is necessary but NOT sufficient — **I-14 must also check `git status` on the WinAgent repo.** Flag for the handbook at programme close. |
+| 2026-08-25 | **I-4: rollback tag moved to the WinAgent repo.** The plan listed `pre-qp-switch-agent-hwnd` among the app-repo tags, but this increment changes only `Program.cs`. Cut in the WinAgent repo instead; §4’s tag list corrected to say which repo each tag belongs in. |
+| 2026-08-25 | **S-2 applied for the first time.** The bundled agent was verified by stamp **and** by `git status` on the WinAgent repo, since I-3 proved the stamp cannot see a dirty tree. This pairing is now the check for every agent build, including I-14. |
 | 2026-08-24 | **Parked finding (§0.3, not fixed here):** `ui/src/services/version.ts:8-10` claims `IS_SANDBOX` disables auto-update via `services/updater.ts`. It does not — `IS_SANDBOX` appears only in its own definition and `TopChrome.tsx:55`. The isolation is really the endpoint override in `tauri.sandbox.conf.json`. A comment asserting a safety property the code does not implement. |
 
 ---
