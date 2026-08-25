@@ -273,7 +273,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-5 | Rust: parse the agent result + **revalidation tests written first** | **yes** | cargo | ✅ `e9103b0` |
 | I-6 | WinAgent: `--close-tracked` verify-then-report verb | **yes** | agent + Sandbox | ✅ `bd7c09e`* |
 | I-7 | Rust: ownership record + the switch command | **yes** | cargo + Sandbox | ✅ `957da0e` |
-| I-8 | `api.ts` + `AppState`: switch state and the new call | no | build | ☐ |
+| I-8 | `api.ts` + `AppState`: switch state and the new call | no | build | ✅ |
 | I-9 | UI: the Switch mode control + anchor + EN strings | no | build + Sandbox | ☐ |
 | — | **▶ OPERATOR CHECKPOINT 1** — `--publish`, then desktop icon → Check for updates | — | installed Sandbox | ☐ |
 | I-10 | UI: the outcome report — what could not be closed, and why | no | build + Sandbox | ☐ |
@@ -1032,7 +1032,28 @@ alongside `windowMargin` / `gridSizeByMonitor`, wrapped in try/catch like its ne
 **Done when.** `npm run build` green with the new types unused by any component yet.
 **Verification.** Build output including all four `prebuild` gates.
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-25.**
+
+- **`api.ts`:** `quickPresetsSwitch(kind, slot, marginPx)` plus the response types. The outcome
+  vocabulary is typed as a union (`closed | stillOpen | skippedElevated | stale`) rather than a
+  bare string, so I-10 cannot silently forget a case the agent can produce — and `counts` is keyed
+  by that same union, so the two cannot drift apart.
+- **`AppState`:** `switchMode` persisted at `instadesk:switchMode`, mirroring `windowMargin`'s
+  load/save/try-catch shape. **Default off**, and only the exact string `'true'` turns it on —
+  absent, corrupt or half-written all fall to off, the safe direction for a mode that closes
+  windows.
+- It lives in `AppState`, not in the pane that will show it: component-local state is destroyed
+  when a tab change unmounts the pane, and the switch would appear to turn itself off. Threaded
+  through the context type, the provider, the value object **and the memo dependency list** —
+  omitting the last would have frozen the value every consumer reads.
+- **Nothing consumes it yet**, which is the point of this increment: the tier exists before the
+  control that uses it.
+- **The gate did its job.** The first build failed — `error TS2552: Cannot find name
+  'PresetRunResponse'`. I had invented a type name for the single-Layout response; `presets_run`
+  is typed inline, with no such alias. Fixed by using the real shape rather than by inventing the
+  alias to match, which would have been a second unverified name. `npm run build` then green with
+  all four `prebuild` gates reporting.
+
 
 ---
 

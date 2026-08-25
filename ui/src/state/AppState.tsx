@@ -113,6 +113,39 @@ function saveWindowMargin(value: number) {
   }
 }
 
+// Switch mode. When on, applying a preset first takes down whichever preset is
+// currently live, instead of adding to it.
+//
+// DEFAULT OFF, deliberately. With it off, Apply behaves exactly as it always has,
+// and nothing changes for anyone who never touches the switch. Turning on a mode
+// that closes windows has to be a decision somebody made, never a surprise.
+//
+// It lives here rather than in the pane that shows it: state held in a component
+// is destroyed when a tab change unmounts it, and the user would find the switch
+// silently back off.
+const SWITCH_MODE_STORAGE_KEY = 'instadesk:switchMode'
+
+function loadSwitchMode(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    // Only the exact string 'true' turns it on. Anything else — absent, corrupt,
+    // half-written — falls to off, which is the safe direction for a mode that
+    // closes windows.
+    return window.localStorage.getItem(SWITCH_MODE_STORAGE_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+function saveSwitchMode(value: boolean) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(SWITCH_MODE_STORAGE_KEY, String(value))
+  } catch {
+    // Same silent fallback.
+  }
+}
+
 export type CellKey = string
 // IMPORTANT: keep comma (compatible with existing WorkspaceGrid.tsx)
 export const cellKey = (r: number, c: number): CellKey => `${r},${c}`
@@ -454,6 +487,12 @@ type AppStateContext = {
   windowMargin: number
   setWindowMargin: (px: number) => void
 
+  // Switch mode (2026-08-25): when on, applying a preset first takes down the
+  // preset currently live instead of adding to it. Default OFF — see the
+  // storage helpers above for why a destructive mode must be opted into.
+  switchMode: boolean
+  setSwitchMode: (on: boolean) => void
+
   // Layout content preview (2026-06-09): id of the Layout currently
   // being shown in the central-pane overlay (LayoutPreviewOverlay), or
   // null when no preview is open. Toggled by the "Show content" /
@@ -562,6 +601,17 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     // path) applies the same bezel margin as launch tiling. Runs on mount too.
     void api.setSnapMargin(windowMargin)
   }, [windowMargin])
+
+  /* ---------- Switch mode (2026-08-25) ---------- */
+  const [switchMode, setSwitchModeState] = useState<boolean>(loadSwitchMode)
+
+  useEffect(() => {
+    saveSwitchMode(switchMode)
+  }, [switchMode])
+
+  const setSwitchMode = (on: boolean) => {
+    setSwitchModeState(on)
+  }
 
   const setWindowMargin = (px: number) => {
     setWindowMarginState(Math.max(0, Math.floor(px)))
@@ -943,6 +993,9 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     // window margin (bezel-aware)
     windowMargin,
     setWindowMargin,
+    // switch mode
+    switchMode,
+    setSwitchMode,
     // layout preview overlay
     previewedLayoutId,
     setPreviewedLayout,
@@ -967,7 +1020,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     selectedApp, clipboard,
     monitors, currentMonitorId, presets, pendingPresetByMonitor,
     gridSizeByMonitor, currentGridCols, currentGridRows, defaultGridSize,
-    windowMargin, previewedLayoutId,
+    windowMargin, switchMode, previewedLayoutId,
     urlBuilder, browsers
   ])
 

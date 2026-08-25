@@ -189,6 +189,47 @@ export type QuickPresetRunResponse = {
   layouts: QuickPresetRunLayoutResult[]
 }
 
+/* ---- Switch mode: take the live preset down, then apply the next ---- */
+
+/** What became of one window the previous preset had opened.
+ *  `closed` — it is gone. `stillOpen` — it is not, and `reason` says why: the app
+ *  declined, or we refused to touch a handle we could not confirm was ours.
+ *  `skippedElevated` — it runs as administrator and Windows forbids it.
+ *  `stale` — it had already gone before we asked. */
+export type SwitchWindowOutcome = 'closed' | 'stillOpen' | 'skippedElevated' | 'stale'
+
+export type SwitchWindowResult = {
+  hwnd: number
+  exe: string
+  title: string
+  outcome: SwitchWindowOutcome
+  /** Plain-language explanation. Null only for `closed`, which needs none. */
+  reason: string | null
+}
+
+/** The teardown half. `ran: false` means nothing was taken down — either nothing
+ *  was live, or the record came from a previous Windows session and was discarded
+ *  untouched — and `reason` says which. The counts are present only when it ran. */
+export type SwitchTeardown = {
+  ran: boolean
+  reason?: string
+  requested?: number
+  counts?: Record<SwitchWindowOutcome, number>
+  windows?: SwitchWindowResult[]
+  /** Records where our reading of the raw probe disagreed with the agent's
+   *  verdict. Must be empty: anything here is a defect, not a user-facing state. */
+  crossCheckDisagreements?: SwitchWindowResult[]
+}
+
+export type SwitchResponse = {
+  ok: boolean
+  teardown: SwitchTeardown
+  /** A Quick Preset returns the bundle shape; a single Layout returns the bare
+   *  `presets_run` shape. The caller distinguishes them by `nowLive.kind`. */
+  applied: QuickPresetRunResponse | { ok: boolean; results: LaunchResponse[] }
+  nowLive: { kind: string; slot: string; windows: number }
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method,
@@ -279,6 +320,14 @@ export const api = {
     inTauri()
       ? invoke<QuickPresetRunResponse>('quickpresets_run', { slot, marginPx })
       : request<QuickPresetRunResponse>('POST', '/quickpresets/run', { slot, marginPx }),
+  /** Switch mode. Takes down the preset that is currently live, then applies this
+   *  one. `kind` is 'quickpreset' for a bundle, or a Layout kind for a single
+   *  Layout — what is live is whatever InstaDesk last applied, either sort.
+   *  Strictly more destructive than quickPresetsRun: it CLOSES windows. */
+  quickPresetsSwitch: (kind: string, slot: string, marginPx?: number) =>
+    inTauri()
+      ? invoke<SwitchResponse>('quickpresets_switch', { kind, slot, marginPx })
+      : request<SwitchResponse>('POST', '/quickpresets/switch', { kind, slot, marginPx }),
 
   // ---- Quick Snap (Divvy-style ad-hoc) ----
   // Opens a native overlay popup on the target monitor. The agent finds
