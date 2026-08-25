@@ -152,7 +152,11 @@ precise and re-bite it in both directions.
 
 - **Programme rollback point: `v0.4.0`** (`b5120e1`), verified this session with `git tag -l`.
 - Each **RISKY** increment cuts a local `pre-*` tag before its first edit. Planned:
-  `pre-qp-switch-v1`, `-fixtures`, `-agent-hwnd`, `-ownership`, `-agent-close`, `-switch-cmd`, `-ui`.
+  `pre-qp-switch-v1`, `-agent-hwnd`, `-ownership`, `-agent-close`, `-switch-cmd`, `-ui`.
+- **⚠ A git tag only protects tracked files.** Before cutting one, check that the increment's risk
+  surface is actually in git. **I-1 is not** — its files are gitignored or live in `%APPDATA%` — so
+  its rollback point is a verified file backup instead. A tag that covers nothing the increment
+  touches is a rollback point in name only.
 - Tags stay **local** (`RELEASING.md §7`); confirm 0 remote copies.
 - A half-wired increment is **reset to its tag**, never left as "done".
 
@@ -256,7 +260,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | # | Increment | Risky? | Gate | Status |
 |---|---|---|---|---|
 | I-0 | Programme setup — rollback tag + records committed | no | git | ✅ `08bdc05` |
-| I-1 | **Safe Sandbox fixtures** — remove `Code.exe` from every test Layout | **yes** | manual + Sandbox | ☐ |
+| I-1 | **Safe Sandbox fixtures** — remove `Code.exe` from every test Layout | **yes** | manual + Sandbox | ✅ |
 | I-1b | **Version-stamp local Sandbox builds** so the operator can tell them apart | no | build + install | ☐ |
 | I-2 | **Extend tour-safety check** with the new verbs, before they exist | no | build | ☐ |
 | I-3 | **HWND spike** (throwaway) — is the handle usable, and how does it die? | no | Sandbox `--dev` | ☐ |
@@ -337,7 +341,16 @@ POSIX `sh`; use a heredoc or `-F <file>`, never a PowerShell here-string).
 
 ---
 
-### I-1 — Safe Sandbox fixtures ☐ **RISKY** → tag `pre-qp-switch-fixtures`
+### I-1 — Safe Sandbox fixtures ☐ **RISKY** → rollback is a **verified file backup**, not a git tag
+
+> **Amendment (2026-08-24), before acting.** This increment was scheduled to cut
+> `pre-qp-switch-fixtures`. **A git tag would have protected nothing here** — every file I-1 touches
+> is outside version control: `data/presets/*.json` is gitignored (`.gitignore:34`) and the
+> installed Sandbox's fixtures live in `%APPDATA%`. The tag would have pointed at an app-repo state
+> this increment never changes, i.e. an identical commit to `pre-qp-switch-v1`. Cutting it would
+> have produced a rollback point that looks like protection and provides none — a check rotting
+> into decoration, which §3 forbids. **No tag is cut. The rollback point is a copy of both fixture
+> sets, taken first and verified by reading it back.**
 
 **Objective.** Make it impossible for any later increment to tear down VS Code. This must land
 **before** any teardown code exists, not before it is first tested — the ordering is the point.
@@ -359,7 +372,51 @@ the new Quick Presets apply cleanly.
 combined grep would let one dir hide behind the other), the fixture listing, the backup location,
 and a note confirming the stable app's data dir is unmodified.
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-24.**
+
+- **Re-investigation** re-derived both dirs independently and matched §2.1: DEV `general_A/_E/_F`
+  named `Code.exe` (`general_A` reachable from its `QP_A`); SBX `general_B` named it (reachable
+  from its `QP_A`).
+- **Rollback point = backup, not a tag** (amendment above). **10 files** copied to
+  `C:\Users\FABIAN C\AppData\Local\InstaDesk-fixture-backups\pre-qp-switch-2026-08-24\`, each
+  verified by **SHA-256 comparison of source and copy** — not by trusting that `copy2` returned.
+- **Minimal-damage edit, not wholesale replacement.** Only the offending *assignments* were
+  stripped, leaving the operator's dev Layouts otherwise intact: DEV `general_A` 7→6,
+  `general_E` 7→6, `general_F` 6→5; SBX `general_B` 4→3. Dedicated fixtures added in **free slots
+  S and T** — asserted free before writing, so nothing was clobbered — identical in both dirs so a
+  test behaves the same whichever Sandbox runs it.
+- **Sweeps run separately per dir, both ZERO** — a single combined grep would let one dir hide
+  behind the other.
+- **The sweep was proven to BITE**: a planted `X:\Code.exe` fixture was detected, then removed and
+  the sweep returned to zero. A sweep nobody has seen fail is not evidence.
+- **Dry run:** every assignment launched through the agent with the app's **own** flag construction
+  (mirrored from `agent_flag_args`, read from source, rather than invented). All returned
+  `ok:true` with `DWMBounds` exactly equal to the computed tile. Verified present afterwards with
+  the DPI-aware capture, before/after: Edge mon 1 `3,1,2,4` + Edge mon 3 `1,1,4,4`; Explorer
+  created **its own new window** and left the operator's `Downloads` window untouched.
+- **Desktop restored:** 4 windows I opened closed by graceful `WM_CLOSE` to their specific handles
+  (never by PID — see below, and never force-killed). Final capture: **14 windows, 0 leftover
+  Edge**, only the operator's `Downloads`, and their Notepad holding **unsaved work** still intact
+  at monitor 2. **The operator's real data dir (`com.fcxestudios.instadesk`) was never touched** —
+  its files still carry their June timestamps.
+
+**Three findings, all recorded in §8 and carried into later increments:**
+
+1. **F-8 is broader than the investigation recorded.** All **three** first launches — including
+   Notepad — reported a `processId` that was already dead seconds later. Not browser-specific.
+2. **Notepad was rejected as a fixture app** and the plan's own "test on Notepad and Edge" was
+   corrected mid-increment. Win11's `System32\notepad.exe` is a stub for the packaged Store app,
+   which opens documents as **tabs**; with no new window to find, the agent falls through to
+   *"any existing window"* — and the operator has a Notepad open **with unsaved work**. Replaced
+   with Edge + File Explorer, both verified to spawn their own windows.
+3. ⚠ **An absence in a capture is not proof of absence.** `--capture-layout` reported **no**
+   Explorer window on monitor 1 immediately after a launch that had just succeeded; a later
+   enumeration found **two** such windows had in fact existed. A window-list snapshot can omit a
+   live window. **I-6's verify-then-report must establish "gone" by probing the handle itself
+   (`IsWindow` + executable match), never by a window absent from a snapshot** — otherwise the
+   teardown reports a window closed because it failed to see it. This is the recorded
+   *"an empty value asks HOW it became empty"* rule, and the reassuring reading here would be
+   "closed".
 
 ---
 
@@ -433,6 +490,13 @@ resolves `hwnd` and still excludes `preLaunchWindows`.
 4. Can a recycled handle be distinguished from a live one by exe comparison alone, or is more
    needed? This answers the shape of I-5's revalidation.
 5. For a `multiWindowApp` assignment, how many handles come back — one, or one per window?
+6. **(added from I-1's dry run)** When two assignments launch the **same browser**, does the second
+   get its own window, or does it **relocate the first**? I-1 launched Edge twice with
+   `--new-window` at two different placements; both returned `ok:true` with correct geometry, and
+   afterwards **exactly one Edge window existed**, sitting at the *second* placement. If a second
+   apply moves the first window rather than creating another, the ownership record can hold two
+   entries pointing at one handle — or one entry pointing at a window that has since been moved by
+   a later apply. Answer this before I-5 designs the record's shape.
 **Steps.** Instrument the agent locally (uncommitted), launch Notepad and Edge via the Sandbox,
 log handles, close windows by hand, re-probe. **No `Code.exe`** (invariant I-1).
 **Dry run.** The spike *is* the dry run.
@@ -693,6 +757,10 @@ resolved in the increment named.
 | 2026-08-24 | **I-7 amended** — its dry run named the DEV panel, which does not exist in a packaged build. Moved explicitly to `--dev`, and I-7 marked as having no operator checkpoint. |
 | 2026-08-24 | **§4A.1 / §4A.2 — `--publish` assessed and REJECTED; I-1b added.** The operator challenged the claim that the publishing robot handles Sandbox builds. **They were right** (`release.yml` triggers only on `v*.*.*`; the channel upload creates no ref), and verifying it exposed two further defects in my own recommendation: the repo is **PUBLIC**, so publishing exposes the build; and the self-update loop **could not have worked** — the installed Sandbox reports `0.4.0` and a published `0.4.0-sb.<ms>` sorts *below* it in semver, so it would never be offered. Replaced with local installer builds carrying a local version stamp (I-1b). **A challenge to a recommendation was worth more than the recommendation.** |
 | 2026-08-24 | **I-0 widened** to repoint `SESSION_RESUMPTION.md` §8 in the same commit. Its "next front — not yet investigated" text became false the moment Phase 0 closed, and leaving it would send the next session to redo the investigation. Pointer only, never a copy. |
+| 2026-08-24 | **I-1 fixture choice CORRECTED mid-increment — Notepad is unsafe on this machine.** The plan said "test on Notepad and Edge", inherited from the standing invariant. The dry run showed why that is wrong *here*: Win11's `C:\Windows\System32\notepad.exe` is a stub that hands off to the packaged Store Notepad, which opens documents as **tabs in an existing window** rather than new windows. The agent's snapshot-diff therefore finds no new window and falls through to *"any existing window"* (the fallback is only skipped when `--new-window` is passed, and Notepad has no such flag) — so a Notepad assignment can seize **a Notepad window the user already had open**. The operator currently has one open **with unsaved work** (`*Hybrid Engine - Updated Audit Runbook.txt`). Fixtures rewritten to use **Edge + File Explorer**, both of which reliably spawn their own windows. |
+| 2026-08-24 | **F-8 confirmed live, and it is broader than recorded.** The investigation predicted the emitted `processId` would be useless *for browsers*. In I-1's dry run **all three** launches — including Notepad — reported a `processId` that was already dead seconds later. The launcher-exits-and-hands-off pattern is not browser-specific; Store-packaged apps do it too. The ownership record must be HWND-based, with no PID fallback anywhere. |
+| 2026-08-24 | **I-1 rollback mechanism changed before acting** — a `pre-*` git tag would have protected nothing, since every file I-1 touches is gitignored or lives in `%APPDATA%`. Replaced with a SHA-256-verified file backup. §4 now warns to check the risk surface is actually in git before cutting a tag. |
+| 2026-08-24 | **New constraint for I-6, found in I-1's dry run: an absence in a capture is not proof of absence.** `--capture-layout` reported no Explorer window on monitor 1 immediately after a successful launch; a later enumeration found two such windows had existed. The teardown must therefore establish "gone" by probing the handle (`IsWindow` + exe match), **never** by a window being missing from a window-list snapshot — the reassuring reading of a missing window is "closed", and it would be wrong. |
 | 2026-08-24 | **Parked finding (§0.3, not fixed here):** `ui/src/services/version.ts:8-10` claims `IS_SANDBOX` disables auto-update via `services/updater.ts`. It does not — `IS_SANDBOX` appears only in its own definition and `TopChrome.tsx:55`. The isolation is really the endpoint override in `tauri.sandbox.conf.json`. A comment asserting a safety property the code does not implement. |
 
 ---
