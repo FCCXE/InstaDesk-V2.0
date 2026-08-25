@@ -274,7 +274,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-6 | WinAgent: `--close-tracked` verify-then-report verb | **yes** | agent + Sandbox | ✅ `bd7c09e`* |
 | I-7 | Rust: ownership record + the switch command | **yes** | cargo + Sandbox | ✅ `957da0e` |
 | I-8 | `api.ts` + `AppState`: switch state and the new call | no | build | ✅ |
-| I-9 | UI: the Switch mode control + anchor + EN strings | no | build + Sandbox | ☐ |
+| I-9 | UI: the Switch mode control + anchor + EN strings | no | build + Sandbox | ✅ |
 | — | **▶ OPERATOR CHECKPOINT 1** — `--publish`, then desktop icon → Check for updates | — | installed Sandbox | ☐ |
 | I-10 | UI: the outcome report — what could not be closed, and why | no | build + Sandbox | ☐ |
 | — | **▶ OPERATOR CHECKPOINT 2** — the honest report, incl. the iVMS-4200 case | — | installed Sandbox | ☐ |
@@ -1069,7 +1069,33 @@ the fixed 1280×820 construct.
 assumed. With it on, the swap runs.
 **Verification.** Sandbox `--dev` with the operator watching both states; build green.
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-25** — awaiting **OPERATOR CHECKPOINT 1**.
+
+- **The control** sits directly under Apply, in the Quick Presets block: that is the button whose
+  behaviour it changes, and putting a destructive mode in Settings would hide it away from its own
+  consequence. Default off. The sub-label **states which way round it is** ("On — applying closes
+  the live preset first" / "Off — applying adds to what is already open"), so the state is never
+  inferred from a colour alone.
+- **`data-tour="qp-switch-mode"` and its `anchors.json` entry landed in the SAME commit** — the
+  anchor gate bites in both directions, so either half alone fails the build. 47 → **48** anchors,
+  registry and source agreeing.
+- **The switch-off path is byte-for-byte v0.4.0, and that was verified rather than asserted.** The
+  diff of `MonitorSelector.tsx` removes exactly **one** line — the `useAppState` destructuring,
+  replaced by a superset. Everything else is additive behind two `if (switchMode)` guards, so with
+  the switch off both fall straight through to the original code.
+- **The hotkey honours it too.** `Ctrl+Alt+1..9` routes through the same guard. Switch mode governs
+  the *transition*, so it must govern every way of triggering one; had the button swapped while the
+  hotkey still stacked, one setting would mean two things depending on how you reached it — exactly
+  the ambiguity §1 rejected when choosing a general switch over a per-preset flag.
+- **EN and ES added together**, not EN-then-translate. The parity gate runs on *every* build, so an
+  EN-only step would either fail the gate or need ES placeholders carrying English text — and a
+  placeholder that satisfies a gate is invisible to it afterwards. 595 → **602 = 602**.
+  **I-12 therefore becomes a verification sweep rather than a translation batch.**
+- All four `prebuild` gates green; `built in 4.73s`.
+
+**Owed to the operator at the checkpoint:** confirm the control reads correctly in both states, and
+that Apply with the switch **off** behaves exactly as before.
+
 
 ---
 
@@ -1206,6 +1232,8 @@ resolved in the increment named.
 | 2026-08-25 | **Design call: the two revalidation implementations must AGREE, not merely coexist.** Only Rust can answer "is this record from this Windows session?" (it persisted it); only the agent can answer "is this handle still the window we recorded?" (it has Win32). That split risked leaving I-5’s tested `revalidate_owned_window` alive only in tests — a check nobody has seen run. So `--close-tracked` now also returns the raw probe (`probedIsWindow`, `probedExe`) for each record, and Rust independently recomputes the verdict and **cross-checks it against the agent’s classification**. Two implementations that must agree is stronger than one, and a disagreement is itself a defect signal rather than a silent divergence. |
 | 2026-08-25 | **New standing rule: any Rust test that touches the agent must pin `AGENT_PATH`.** `init_paths()` never runs under `cargo test`, so `agent_path()` falls through to the dev-tree agent at `winagent/.../publish/sidecar/` — which on this machine is stamped `b250b31`, from 2026-07-27, before v0.3.0, and emits no `hwnd`. I-7’s first live run failed on that and looked like a defect in the switch. This is the *other face* of the recorded dev-Sandbox trap: `--dev` uses the bundled agent, but `cargo test` uses the stale sidecar. The worse outcome is a test that **passes** against month-old behaviour. |
 | 2026-08-25 | **Third sighting of the capture-omission phenomenon.** `--capture-layout` reported 2 Explorer windows where a direct enumeration found 6. Cleanup in I-7 was therefore done by enumeration and exact title match, never from a capture. |
+| 2026-08-25 | **I-9 adds ES alongside EN, changing I-12’s job.** The plan said "EN strings only at this stage", but the i18n parity gate runs on every build: EN-only would either fail it or require ES placeholders holding English text — and a placeholder that satisfies the gate is invisible to it afterwards, which is how untranslated strings ship. Both locales were written properly together. **I-12 is now a verification sweep, not a translation batch.** |
+| 2026-08-25 | **D-7 (new, settled in I-9): the Ctrl+Alt+1..9 hotkeys honour Switch mode.** It governs the transition, so it governs every way of triggering one. A button that swaps while a hotkey stacks would give one setting two meanings depending on how it was reached — the ambiguity §1 rejected. |
 | 2026-08-24 | **Parked finding (§0.3, not fixed here):** `ui/src/services/version.ts:8-10` claims `IS_SANDBOX` disables auto-update via `services/updater.ts`. It does not — `IS_SANDBOX` appears only in its own definition and `TopChrome.tsx:55`. The isolation is really the endpoint override in `tauri.sandbox.conf.json`. A comment asserting a safety property the code does not implement. |
 
 ---

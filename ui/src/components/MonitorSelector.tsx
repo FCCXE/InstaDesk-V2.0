@@ -35,7 +35,7 @@ function entryLabel(e: DropdownEntry, t: TFunction): string {
 }
 
 export default function MonitorSelector() {
-  const { monitors, currentMonitorId, setCurrentMonitor, windowMargin } = useAppState()
+  const { monitors, currentMonitorId, setCurrentMonitor, windowMargin, switchMode, setSwitchMode } = useAppState()
   const { t } = useTranslation()
 
   /* -------------------- Quick Presets + Layouts (real data) -------------------- */
@@ -102,6 +102,18 @@ export default function MonitorSelector() {
   // Apply a Quick Preset by slot (sequential Layouts on the server). Shared by
   // the left-pane Apply button and the Ctrl+Alt+1..9 global hotkeys.
   const runQuickPreset = async (slot: string, source: 'manual' | 'hotkey' = 'manual') => {
+    // Switch mode governs the TRANSITION, so it has to govern every way of
+    // triggering one. If the button swapped but Ctrl+Alt+N still stacked, the
+    // same setting would mean two different things depending on how you reached
+    // it — the ambiguity the general-switch decision exists to avoid.
+    if (switchMode) {
+      const q = quickpresets?.find((x) => x.slot === slot)
+      await runSwitch(
+        { type: 'qp', slot, name: q?.name ?? slot, layoutCount: q?.layoutCount ?? 0 },
+        source,
+      )
+      return
+    }
     flash({ kind: 'busy' })
     try {
       const r = await api.quickPresetsRun(slot, windowMargin)
@@ -125,8 +137,45 @@ export default function MonitorSelector() {
     }
   }
 
+  // Switch mode: take the live preset down first, then apply this one. One path
+  // serves a Quick Preset and a single Layout — what is live is whatever InstaDesk
+  // last applied, either sort (decision D-5).
+  const runSwitch = async (entry: DropdownEntry, source: 'manual' | 'hotkey' = 'manual') => {
+    const kind = entry.type === 'qp' ? 'quickpreset' : entry.layout.kind
+    const slot = entry.type === 'qp' ? entry.slot : entry.layout.slot
+    flash({ kind: 'busy' })
+    try {
+      const r = await api.quickPresetsSwitch(kind, slot, windowMargin)
+      const c = r.teardown.counts
+      const leftOver = c ? c.stillOpen + c.skippedElevated : 0
+      track('quickpreset_switched', {
+        kind,
+        closed: c?.closed ?? 0,
+        leftOpen: leftOver,
+        placed: r.nowLive.windows,
+        source,
+      })
+      const applied = t('monitor.appliedName', { name: entryLabel(entry, t) })
+      // Report what became of the OLD preset, not merely that the new one landed.
+      // A count of windows we asked to close is not a count of windows that
+      // closed, and that difference is the whole point of the teardown report.
+      const teardownMsg = !r.teardown.ran
+        ? t('monitor.switchNothingLive')
+        : `${t('monitor.switchedSummary', { closed: c?.closed ?? 0, requested: r.teardown.requested ?? 0 })}${
+            leftOver > 0 ? ` • ${t('monitor.switchedLeftOpen', { count: leftOver })}` : ''
+          }`
+      flash({ kind: leftOver > 0 ? 'err' : 'ok', msg: `${applied} • ${teardownMsg}` })
+    } catch (e) {
+      flash({ kind: 'err', msg: (e as Error).message })
+    }
+  }
+
   const onApply = async () => {
     if (!selected) return
+    if (switchMode) {
+      await runSwitch(selected)
+      return
+    }
     if (selected.type !== 'layout') {
       await runQuickPreset(selected.slot)
       return
@@ -358,6 +407,32 @@ export default function MonitorSelector() {
             {isApplying ? '…' : `▶ ${t('monitor.apply')}`}
           </button>
         </div>
+
+        {/* Switch mode. Sits directly under Apply because that is the button whose
+            behaviour it changes — putting it in Settings would hide a destructive
+            mode away from its own consequence. Default OFF; the label states which
+            way round it currently is, so the state is never inferred from a colour
+            alone. */}
+        <label
+          data-tour="qp-switch-mode"
+          className="mt-2 flex cursor-pointer items-start gap-2 rounded-lg border border-line bg-raised px-2.5 py-2 shadow-sm hover:border-line-strong"
+          title={t('monitor.switchModeTitle')}
+        >
+          <input
+            type="checkbox"
+            checked={switchMode}
+            onChange={(e) => setSwitchMode(e.target.checked)}
+            className="mt-0.5 size-3.5 shrink-0 accent-primary"
+          />
+          <span className="min-w-0">
+            <span className="block text-[12px] font-semibold leading-tight text-fg">
+              {t('monitor.switchMode')}
+            </span>
+            <span className={`block text-[10px] leading-tight ${switchMode ? 'text-amber-600 dark:text-amber-400' : 'text-muted'}`}>
+              {switchMode ? t('monitor.switchModeOn') : t('monitor.switchModeOff')}
+            </span>
+          </span>
+        </label>
 
         <div className={`mt-2 text-[11px] ${statusColor}`}>{statusText}</div>
       </div>

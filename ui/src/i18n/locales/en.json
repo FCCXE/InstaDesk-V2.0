@@ -190,7 +190,14 @@
     "secondary": "Secondary",
     "displayArray": "Display Array",
     "identifyMonitors": "Identify monitors",
-    "identifyMonitorsTitle": "Flash each monitor's number on its physical screen for a few seconds, so you can match these tiles to your real displays."
+    "identifyMonitorsTitle": "Flash each monitor's number on its physical screen for a few seconds, so you can match these tiles to your real displays.",
+    "switchMode": "Switch mode",
+    "switchModeTitle": "When on, applying a preset first CLOSES the windows of the preset that is currently live, instead of opening on top of them. Windows with unsaved work are never forced — the app asks, and anything left open is reported.",
+    "switchModeOn": "On — applying closes the live preset first",
+    "switchModeOff": "Off — applying adds to what is already open",
+    "switchedSummary": "Closed {{closed}} of {{requested}}",
+    "switchedLeftOpen": "{{count}} left open",
+    "switchNothingLive": "Nothing was live to close"
   },
   "tabs": {
     "apps": "Apps",

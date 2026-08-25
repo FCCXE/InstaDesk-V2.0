@@ -134,6 +134,14 @@
       }
     },
     {
+      "id": "qp-switch-mode",
+      "component": "components/MonitorSelector.tsx",
+      "describes": "Switch mode - when on, applying a preset closes the live one first",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
       "id": "monitor-select",
       "component": "components/MonitorSelector.tsx",
       "describes": "the monitor picker - which display you are arranging",

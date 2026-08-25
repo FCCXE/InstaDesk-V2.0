@@ -190,7 +190,14 @@
     "secondary": "Secundario",
     "displayArray": "Disposición de pantallas",
     "identifyMonitors": "Identificar monitores",
-    "identifyMonitorsTitle": "Muestra unos segundos el número de cada monitor en su pantalla física, para que puedas relacionar estas casillas con tus pantallas reales."
+    "identifyMonitorsTitle": "Muestra unos segundos el número de cada monitor en su pantalla física, para que puedas relacionar estas casillas con tus pantallas reales.",
+    "switchMode": "Modo intercambio",
+    "switchModeTitle": "Cuando está activado, aplicar un preajuste CIERRA primero las ventanas del preajuste activo, en lugar de abrirse encima. Las ventanas con trabajo sin guardar nunca se fuerzan: la aplicación lo pide, y se informa de lo que quede abierto.",
+    "switchModeOn": "Activado: al aplicar se cierra primero el preajuste activo",
+    "switchModeOff": "Desactivado: al aplicar se añade a lo que ya está abierto",
+    "switchedSummary": "Cerradas {{closed}} de {{requested}}",
+    "switchedLeftOpen": "{{count}} sin cerrar",
+    "switchNothingLive": "No había ningún preajuste activo que cerrar"
   },
   "tabs": {
     "apps": "Apps",
