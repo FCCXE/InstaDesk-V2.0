@@ -271,7 +271,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-3 | **HWND spike** (throwaway) — is the handle usable, and how does it die? | no | Sandbox `--dev` | ✅ |
 | I-4 | WinAgent: emit `hwnd` in the launch result | **yes** | agent + Rust + Sandbox | ✅ `6e8f698` |
 | I-5 | Rust: parse the agent result + **revalidation tests written first** | **yes** | cargo | ✅ `e9103b0` |
-| I-6 | WinAgent: `--close-tracked` verify-then-report verb | **yes** | agent + Sandbox | ☐ |
+| I-6 | WinAgent: `--close-tracked` verify-then-report verb | **yes** | agent + Sandbox | ✅ `bd7c09e`* |
 | I-7 | Rust: ownership record + the switch command | **yes** | cargo + Sandbox | ☐ |
 | I-8 | `api.ts` + `AppState`: switch state and the new call | no | build | ☐ |
 | I-9 | UI: the Switch mode control + anchor + EN strings | no | build + Sandbox | ☐ |
@@ -281,6 +281,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-11 | Tour: anchor registry, chapter step, content truth (F-7) | no | build | ☐ |
 | I-12 | ES parity sweep | no | build | ☐ |
 | I-13 | Telemetry | no | build | ☐ |
+| — | **⚠ OPEN VERIFICATION carried from I-6** — real elevated-window detection, at the operator checkpoint | — | manual | ☐ |
 | I-14 | Release v0.5.0 — Sandbox installer gate, CHANGELOG, bump, two-repo push, tag | **yes** | full | ☐ |
 
 ---
@@ -848,7 +849,79 @@ seen fail.
 **Verification.** The four transcripts (three bites + one control), and confirmation that no
 `Code.exe` window existed in any handle list.
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-25** — with **one verification left open**, named below. WinAgent
+**`bd7c09e`**, pushed first. Tag `pre-qp-switch-agent-close` cut in the WinAgent repo at `e9103b0`
+(0 remote copies).
+
+**Re-investigation** confirmed `RunCloseAllWindows` still enumerates the desktop, still uses
+`PostMessage`, and still returns `affected` as the number of messages **posted**.
+
+**Design.** Input is a **JSON file**, not command-line arguments — executable paths carry spaces
+and backslashes and a preset can hold many windows. Each record is classified into one of four
+outcomes and carries `hwnd`, `exe`, `title` and a plain-language `reason`. **Every requested handle
+appears in `windows` exactly once**, so the categories sum to `requested` *by construction* rather
+than by a computed claim that could drift from the list beside it.
+
+**Invariants verified structurally**, on the method body with comments stripped, and with controls
+proving the check could still see the code (`PostMessage` and `IsWindow` both found):
+
+| forbidden | result |
+|---|---|
+| `FindAllNonInstaDeskWindows`, `SnapshotWindowsForProcess`, `EnumWindows` (I-2) | clean |
+| `TerminateProcess`, `.Kill(` (I-4) | clean |
+| `SendMessage` (would let one modal prompt block the sweep) | clean |
+
+### Bite tests
+
+All run against windows opened for the purpose — never the operator's.
+
+1. **Three categories in one call, and the sum checked.** Window A with its correct exe → `closed`,
+   and the window really went. Window B with a **deliberately wrong** exe → `stillOpen`, *"this
+   window is no longer the one InstaDesk opened"*, **and B survived** — confirmed by probing its
+   handle afterwards. A bogus handle → `stale`. `counts` summed to `requested` = 3, and each handle
+   was reported exactly once.
+2. **A window that REFUSES to close** → `stillOpen`, reason *"the app did not close it — it may be
+   waiting on a save prompt, or you declined one"*, naming the window by title. **The window and
+   its process both survived.** The call returned in ~6 s (the bounded poll) rather than hanging.
+   **This is exactly the case `--close-all` cannot see**: it would have counted `affected=1` and
+   reported success.
+   ⚠ Modelled with a **purpose-built form that cancels `FormClosing`**, deliberately **not**
+   Notepad: on Win11 Notepad opens documents as tabs, and the operator has one holding unsaved
+   work — closing that window would have prompted for *their* document. The substitution is the
+   safer test, not a weaker one: it makes "the app declines" deterministic instead of dependent on
+   a dialog nobody should be gambling with.
+3. **Elevated → reported and NAMED, not omitted.** `skippedElevated`, with the reason *"runs as
+   administrator, so Windows will not let InstaDesk close it"*, and the window survived.
+
+### ⚠ Open verification — do not read this increment as fully proven
+
+Test 3 forced the elevated branch with a **temporary hook**, because **no elevated window existed
+on the machine and obtaining one requires a UAC prompt** (this session is not elevated). So what is
+proven is the **classification, naming and reporting**; what is **not** proven is
+`IsWindowElevated`'s real detection on a genuinely elevated window. That helper is pre-existing and
+already relied upon by `--close-all`, but "already in production" is not evidence.
+
+**Carried to the operator checkpoint after I-10**, where iVMS-4200 — which the codebase itself
+names as the elevated case — can be running.
+
+The hook was reverted **from a file backup, never from git** (I-5's rule) and the revert proven
+**behaviourally**: the very same window that reported `skippedElevated` under the hook now reports
+`closed`. A grep for the hook returning zero would not have been enough — `RunCloseTracked` itself
+was also checked to be still present, confirming the restore returned the *intended* state rather
+than HEAD.
+
+### A second sighting of the I-1 phenomenon, and it nearly became a false alarm
+
+The post-test capture showed **no** `notepad.exe`, and the operator's unsaved-work Notepad had been
+in every earlier capture. Read naively that says a window with unsaved work disappeared during a
+teardown increment. **It had not.** A direct enumeration found it fully intact — same PID 21228,
+same handle `2295966`, still visible, still showing its `*` unsaved marker.
+
+`--capture-layout` had simply omitted it, exactly as in I-1. **That is now twice**, and it is the
+concrete justification for this increment's central design choice: the teardown decides "gone" by
+probing the handle, never by a window's absence from a list. Had `--close-tracked` been built on a
+window-list diff, it would have reported that Notepad closed.
+
 
 ---
 
@@ -1034,6 +1107,8 @@ resolved in the increment named.
 | 2026-08-25 | **S-2 applied for the first time.** The bundled agent was verified by stamp **and** by `git status` on the WinAgent repo, since I-3 proved the stamp cannot see a dirty tree. This pairing is now the check for every agent build, including I-14. |
 | 2026-08-25 | **I-5 Steps were undoable as written, and the fix is a small agent addition (§0.3: shown to make authorised work wrong).** The step said to extract `hwnd` + `exe` from the agent result; the agent emits no exe. Substituting the Layout’s `program` path would compare the path we **launched** against the path the **window** reports — different quantities, measured differently, and they diverge for handed-off launchers. The agent gains `hwndExe` so the record stores what the window itself says and revalidation compares like with like. |
 | 2026-08-25 | **New standing rule from an incident in I-5: never restore uncommitted work with git.** Restoring after a mutation with `git checkout -- <file>` reset the file to HEAD and destroyed the whole increment — implementation and all ten tests — because none of it was committed. The suite quietly returned to 8 passing, which reads as success unless the count is checked. **When mutation-testing uncommitted work, copy the file first and restore from that copy.** Version control knows nothing about work it has not been given. |
+| 2026-08-25 | **I-6 ships with ONE verification open, and the dashboard says so.** The elevated branch’s classification and naming are proven; `IsWindowElevated`’s real detection is not, because no elevated window existed and obtaining one needs a UAC prompt. Carried to the operator checkpoint (iVMS-4200). Marked `✅*` rather than a plain tick. |
+| 2026-08-25 | **The I-1 capture-omission phenomenon recurred, and nearly produced a false alarm.** A post-test capture showed no Notepad, which would have read as "a window with unsaved work vanished during a teardown increment". Direct enumeration found it wholly intact — same PID, same handle, same `*` marker. Twice now. This is the concrete justification for deciding "gone" by probing the handle rather than by absence from a window list: built the other way, `--close-tracked` would have reported that Notepad closed. |
 | 2026-08-24 | **Parked finding (§0.3, not fixed here):** `ui/src/services/version.ts:8-10` claims `IS_SANDBOX` disables auto-update via `services/updater.ts`. It does not — `IS_SANDBOX` appears only in its own definition and `TopChrome.tsx:55`. The isolation is really the endpoint override in `tauri.sandbox.conf.json`. A comment asserting a safety property the code does not implement. |
 
 ---
