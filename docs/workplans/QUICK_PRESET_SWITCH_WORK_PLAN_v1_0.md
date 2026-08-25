@@ -270,7 +270,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-2 | **Extend tour-safety check** with the new verbs, before they exist | no | build | ✅ |
 | I-3 | **HWND spike** (throwaway) — is the handle usable, and how does it die? | no | Sandbox `--dev` | ✅ |
 | I-4 | WinAgent: emit `hwnd` in the launch result | **yes** | agent + Rust + Sandbox | ✅ `6e8f698` |
-| I-5 | Rust: parse the agent result + **revalidation tests written first** | **yes** | cargo | ☐ |
+| I-5 | Rust: parse the agent result + **revalidation tests written first** | **yes** | cargo | ✅ `e9103b0` |
 | I-6 | WinAgent: `--close-tracked` verify-then-report verb | **yes** | agent + Sandbox | ☐ |
 | I-7 | Rust: ownership record + the switch command | **yes** | cargo + Sandbox | ☐ |
 | I-8 | `api.ts` + `AppState`: switch state and the new call | no | build | ☐ |
@@ -751,7 +751,15 @@ verbatim.
    - handle live but executable differs from the record → refuse (**recycled — the dangerous case**)
    - record's session marker differs from the current one → refuse the **whole record**
    - handle live, exe matches, session matches → act
-2. Then implement the parse: pull the agent's JSON line out of `stdout`, extract `hwnd` + `exe`,
+2. **Amendment (2026-08-25), recorded before acting.** This step said "extract `hwnd` + `exe`" —
+   **but the agent does not emit an exe.** I-4 added only `hwnd`. The obvious substitute is wrong:
+   pairing the handle with the *Layout’s* `program` path would compare **the path we launched**
+   against **the path the window reports**, which are two different quantities measured two
+   different ways — and they genuinely differ (a Store-packaged app, or any launcher that hands
+   off). Revalidation must compare like with like, so the record has to store what the **window**
+   says. The agent therefore gains `hwndExe` in the same additive shape as I-4, and the parse
+   extracts `hwnd` + `hwndExe`. Without this, I-5 as written could not be done.
+3. Then implement the parse: pull the agent's JSON line out of `stdout`, extract `hwnd` + `hwndExe`,
    and return it as structured data from `run_launch` / `apply_preset` — **additively**, leaving
    the existing fields in place so `results.length` and every current consumer keep working.
 **Dry run.** `cargo test --lib` — the new tests must **fail** before the implementation exists
@@ -763,7 +771,53 @@ somebody typed it, so also drive one case from a **real** agent result captured 
 **Verification.** The failing-then-passing transcript, the bite test, `cargo test --lib` and
 `cargo build --lib` both green, and confirmation that the UI's window counts are unchanged.
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-25.** Rollback tag `pre-qp-switch-ownership` cut in the app repo
+(`1e31159`, verified with `git tag -l`, 0 remote copies). Agent side: WinAgent **`e9103b0`**,
+pushed first.
+
+- **Re-investigation** confirmed `run_launch` still returned `{exitCode, stdout, stderr, cmd}` with
+  the agent JSON left inside `stdout` as text, and that `apply_preset` passed it through verbatim.
+  It also exposed that the Steps were undoable as written — see the amendment above; the agent
+  gained `hwndExe` so the record stores what the **window** reports.
+- **Tests written first, and seen to fail first.** With the tests in place and no implementation,
+  `cargo test --lib` refused to compile with **26 errors** naming exactly the missing types and
+  functions. After implementing: **18 passed, 0 failed** (8 pre-existing + 10 new).
+- **Bite tests — two mutations, each modelling a *plausible wrong implementation*, not a crash:**
+
+  | mutation | tests that failed |
+  |---|---|
+  | unreadable exe treated as a match (the reassuring reading) | **only** `revalidate_refuses_when_the_exe_cannot_be_read` |
+  | exe comparison dropped, `IsWindow` alone trusted | **only** `revalidate_refuses_a_recycled_handle_whose_exe_differs` |
+
+  Each bit exactly one test, and the right one — a mutation that took down half the suite would
+  have told us nothing about which test was load-bearing.
+- **Both call sites wired, per the I-3 finding.** `run_launch` (call site 1) and
+  `apply_multiwindow`, which goes through `run_agent_raw` and previously discarded the agent's
+  stdout entirely (call site 2). Both are labelled in the source so the pairing is visible to the
+  next reader. Wiring only the first would have left every multi-window app's windows unowned and
+  silently never torn down.
+- **Additive, verified:** `placedWindow` is inserted as a **key on each result object**, never as
+  an element of the `results` array. The five consumers that read `results.length`
+  (`LayoutsPane.tsx`, `MonitorSelector.tsx`) are therefore unaffected, and the UI gate passes
+  untouched (595=595, 20 identifiers, 47/47 anchors).
+- `cargo test --lib` **18 passed**, `cargo build --lib` clean, `npm run build` green.
+- Agent rebuilt after the commit: stamp `1.0.0+e9103b08…` == WinAgent HEAD, **and** the WinAgent
+  tree reports 0 modifications (the S-2 pairing, applied again).
+
+⚠ **Self-inflicted incident, recorded because the lesson is general.** Restoring after the first
+mutation, I used `git checkout -- src-tauri/src/backend.rs`. That restores the file to **HEAD** —
+and this increment's work was uncommitted, so it destroyed the implementation and all ten tests,
+not just the two mutated lines. The suite silently dropped back to 8 passing, which *looks* like
+success if you are not reading the count. Caught by asserting the mutation was still present
+before applying the next one.
+
+**The rule this yields:** when mutation-testing uncommitted work, the restore point must be a
+**copy of the file taken immediately before the mutation** — never version control, which knows
+nothing about work that has not been committed. The rest of I-5 was redone with
+`backend.rs.PRE_MUTATION` as the restore point, and the second mutation restored cleanly from it.
+This is the recorded "restore what verification kills" rule, failing in a new way: the restore
+mechanism was correct in form and far too broad in scope.
+
 
 ---
 
@@ -978,6 +1032,8 @@ resolved in the increment named.
 | 2026-08-25 | **Two instrument findings (S-1, S-2), both caught by controls.** A byte search of the .NET agent binary is blind — the control string `capture-layout` also returned 0 — so no "binary does not contain X" claim about the agent is admissible; use behavioural tests. And the agent’s `1.0.0+<commit>` stamp reflects **HEAD, not the working tree**: the instrumented build carried the identical stamp. Handbook §10’s pre-ship stamp check is necessary but NOT sufficient — **I-14 must also check `git status` on the WinAgent repo.** Flag for the handbook at programme close. |
 | 2026-08-25 | **I-4: rollback tag moved to the WinAgent repo.** The plan listed `pre-qp-switch-agent-hwnd` among the app-repo tags, but this increment changes only `Program.cs`. Cut in the WinAgent repo instead; §4’s tag list corrected to say which repo each tag belongs in. |
 | 2026-08-25 | **S-2 applied for the first time.** The bundled agent was verified by stamp **and** by `git status` on the WinAgent repo, since I-3 proved the stamp cannot see a dirty tree. This pairing is now the check for every agent build, including I-14. |
+| 2026-08-25 | **I-5 Steps were undoable as written, and the fix is a small agent addition (§0.3: shown to make authorised work wrong).** The step said to extract `hwnd` + `exe` from the agent result; the agent emits no exe. Substituting the Layout’s `program` path would compare the path we **launched** against the path the **window** reports — different quantities, measured differently, and they diverge for handed-off launchers. The agent gains `hwndExe` so the record stores what the window itself says and revalidation compares like with like. |
+| 2026-08-25 | **New standing rule from an incident in I-5: never restore uncommitted work with git.** Restoring after a mutation with `git checkout -- <file>` reset the file to HEAD and destroyed the whole increment — implementation and all ten tests — because none of it was committed. The suite quietly returned to 8 passing, which reads as success unless the count is checked. **When mutation-testing uncommitted work, copy the file first and restore from that copy.** Version control knows nothing about work it has not been given. |
 | 2026-08-24 | **Parked finding (§0.3, not fixed here):** `ui/src/services/version.ts:8-10` claims `IS_SANDBOX` disables auto-update via `services/updater.ts`. It does not — `IS_SANDBOX` appears only in its own definition and `TopChrome.tsx:55`. The isolation is really the endpoint override in `tauri.sandbox.conf.json`. A comment asserting a safety property the code does not implement. |
 
 ---

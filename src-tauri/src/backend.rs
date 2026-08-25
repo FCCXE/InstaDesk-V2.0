@@ -989,6 +989,128 @@ fn agent_flag_args(body: &LaunchBody) -> Vec<String> {
     a
 }
 
+// ----------------------------------------------------------------------------
+// Window ownership — which windows an Apply created, and whether a handle we
+// recorded earlier can still be trusted.
+//
+// Windows recycles HWND values, so a handle stored a minute ago may by now
+// belong to a window we never opened. Nothing may act on a recorded handle
+// without passing `revalidate_owned_window` first (invariant I-3).
+// ----------------------------------------------------------------------------
+
+/// One window this app placed, as held in the ownership record. `exe` is the path
+/// **the window reported** when it was placed — never the path we asked to launch.
+/// The two genuinely differ whenever a launcher hands off (packaged apps,
+/// browsers signalling an existing instance). Empty when it could not be read.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OwnedWindow {
+    pub hwnd: i64,
+    pub exe: String,
+}
+
+/// A live probe of a handle. `exe: None` means the owning executable could not be
+/// read — an elevated process, or a packaged app host. That is *unverifiable*,
+/// which is not the same as matching.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HandleProbe {
+    pub is_window: bool,
+    pub exe: Option<String>,
+}
+
+/// Verdict. Only `Act` permits touching the window. The refusals stay distinct
+/// because the user is told which one happened — "still open because it runs as
+/// administrator" and "gone already" are different messages.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Revalidation {
+    Act,
+    RefuseSession,
+    RefuseStale,
+    RefuseUnreadableExe,
+    RefuseExeMismatch,
+}
+
+/// Compare two Windows executable paths the way Windows itself does:
+/// case-insensitively, and tolerating `/` against `\`.
+fn same_windows_path(a: &str, b: &str) -> bool {
+    let norm = |s: &str| s.replace('/', "\\").to_lowercase();
+    !a.is_empty() && !b.is_empty() && norm(a) == norm(b)
+}
+
+/// The only sanctioned way to decide whether a recorded handle may be acted on.
+pub fn revalidate_owned_window(
+    record_session: i64,
+    current_session: i64,
+    owned: &OwnedWindow,
+    probe: &HandleProbe,
+) -> Revalidation {
+    // Session first. Across a reboot every handle number is meaningless, so the
+    // whole record is void — checking the handle first would let one match by
+    // coincidence and act on a stranger's window.
+    if record_session != current_session {
+        return Revalidation::RefuseSession;
+    }
+    if !probe.is_window {
+        return Revalidation::RefuseStale;
+    }
+    match probe.exe.as_deref() {
+        // Cannot read it now.
+        None => Revalidation::RefuseUnreadableExe,
+        Some(live) => {
+            if owned.exe.is_empty() {
+                // Could not read it when we recorded it either, so there is
+                // nothing to compare against. Unverifiable, not matching.
+                Revalidation::RefuseUnreadableExe
+            } else if same_windows_path(live, &owned.exe) {
+                Revalidation::Act
+            } else {
+                Revalidation::RefuseExeMismatch
+            }
+        }
+    }
+}
+
+/// Pull the window a launch placed out of the agent's stdout.
+///
+/// `None` when the launch failed, when the agent predates the `hwnd` field, or
+/// when no usable handle came back. Never a zero handle: a zero would later be
+/// revalidated against a real window.
+pub fn parse_placed_window(stdout: &str) -> Option<OwnedWindow> {
+    // The agent prints `[IDAG]` diagnostics first and its result as the LAST JSON
+    // line. Scan from the end — the diagnostics contain braces and digits too, so
+    // taking the first brace-looking line would parse noise.
+    for line in stdout.lines().rev() {
+        let l = line.trim();
+        if !(l.starts_with('{') && l.ends_with('}')) {
+            continue;
+        }
+        let v: Value = match serde_json::from_str(l) {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        if v.get("ok") != Some(&json!(true)) {
+            return None;
+        }
+        let hwnd = v.get("hwnd").and_then(|h| h.as_i64()).unwrap_or(0);
+        if hwnd == 0 {
+            return None;
+        }
+        let exe = v.get("hwndExe").and_then(|e| e.as_str()).unwrap_or("").to_string();
+        return Some(OwnedWindow { hwnd, exe });
+    }
+    None
+}
+
+/// Attach the placed window to an agent result, additively. Existing fields are
+/// untouched: every current consumer reads this payload.
+fn with_placed_window(mut result: Value, stdout: &str) -> Value {
+    if let Some(w) = parse_placed_window(stdout) {
+        if let Some(obj) = result.as_object_mut() {
+            obj.insert("placedWindow".into(), json!({ "hwnd": w.hwnd, "exe": w.exe }));
+        }
+    }
+    result
+}
+
 /// Run one launch through the agent. Returns a LaunchResponse-shaped Value.
 /// Uses temp files for the agent's stdio (inherited by its spawned apps), and
 /// waits on the AGENT process (not pipe EOF) with a 45s timeout.
@@ -1049,7 +1171,12 @@ async fn run_launch(body: &LaunchBody) -> Value {
     let out = read_temp(so_read);
     let mut err = read_temp(se_read);
     err.push_str(timeout_msg);
-    json!({ "exitCode": rc, "stdout": out, "stderr": err, "cmd": cmd_str })
+    // Additive: `placedWindow` joins the existing fields, which are unchanged.
+    // CALL SITE 1 of 2 — `apply_multiwindow` does NOT come through here.
+    with_placed_window(
+        json!({ "exitCode": rc, "stdout": out, "stderr": err, "cmd": cmd_str }),
+        &out,
+    )
 }
 
 /// Read a preset and apply every assignment — parallel across programs, serial
@@ -1189,16 +1316,27 @@ async fn apply_multiwindow(a: &Value, margin_px: Option<i64>) -> Value {
             }
         }
         // Retry until the window appears (bounded, ~40s) — covers app startup.
+        // CALL SITE 2 of 2. This path does NOT go through `run_launch`, and it
+        // used to discard the agent's stdout entirely, keeping only `placed`.
+        // Wiring only `run_launch` would leave every multi-window app's windows
+        // unowned — and therefore silently never torn down, with no error
+        // anywhere. (I-3 finding.)
         let mut placed = false;
+        let mut placed_window: Option<OwnedWindow> = None;
         for _ in 0..40 {
             let (_rc, out) = run_agent_raw(&flags).await;
             if out.contains("\"ok\":true") {
                 placed = true;
+                placed_window = parse_placed_window(&out);
                 break;
             }
             tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
         }
-        win_results.push(json!({ "title": title, "placed": placed }));
+        let mut rec = json!({ "title": title, "placed": placed });
+        if let (Some(w), Some(obj)) = (placed_window, rec.as_object_mut()) {
+            obj.insert("placedWindow".into(), json!({ "hwnd": w.hwnd, "exe": w.exe }));
+        }
+        win_results.push(rec);
     }
     let all_placed = !win_results.is_empty()
         && win_results.iter().all(|w| w.get("placed").and_then(|v| v.as_bool()).unwrap_or(false));
@@ -2213,5 +2351,139 @@ mod tests {
 
         let _ = fs::remove_dir_all(&tmp);
         std::env::remove_var("INSTADESK_DATA_DIR");
+    }
+
+    // -----------------------------------------------------------------------
+    // Window-ownership revalidation (invariant I-3). Written BEFORE the code
+    // they guard. Windows recycles HWND values, so a stored handle may point at
+    // a stranger's window by the time we use it. Every refusal reason is kept
+    // distinct: collapsing them would hide WHY a window was left behind, and the
+    // user is told exactly that.
+    // -----------------------------------------------------------------------
+
+    fn owned() -> OwnedWindow {
+        OwnedWindow {
+            hwnd: 3805650,
+            exe: r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe".into(),
+        }
+    }
+
+    #[test]
+    fn revalidate_acts_only_when_session_handle_and_exe_all_agree() {
+        let probe = HandleProbe { is_window: true, exe: Some(owned().exe.clone()) };
+        assert_eq!(revalidate_owned_window(77, 77, &owned(), &probe), Revalidation::Act);
+    }
+
+    #[test]
+    fn revalidate_refuses_a_handle_that_is_no_longer_a_window() {
+        let probe = HandleProbe { is_window: false, exe: None };
+        assert_eq!(revalidate_owned_window(77, 77, &owned(), &probe), Revalidation::RefuseStale);
+    }
+
+    #[test]
+    fn revalidate_refuses_a_recycled_handle_whose_exe_differs() {
+        // THE dangerous case: the handle is live, but Windows has handed it to a
+        // different window. Acting on it would close a stranger's window.
+        let probe = HandleProbe { is_window: true, exe: Some(r"C:\Windows\explorer.exe".into()) };
+        assert_eq!(
+            revalidate_owned_window(77, 77, &owned(), &probe),
+            Revalidation::RefuseExeMismatch
+        );
+    }
+
+    #[test]
+    fn revalidate_refuses_the_whole_record_across_a_session_change() {
+        // Everything else agrees — and it must STILL refuse. After a reboot the
+        // handle numbers are meaningless, and one matching by chance is exactly
+        // the accident this guards against.
+        let probe = HandleProbe { is_window: true, exe: Some(owned().exe.clone()) };
+        assert_eq!(
+            revalidate_owned_window(76, 77, &owned(), &probe),
+            Revalidation::RefuseSession
+        );
+    }
+
+    #[test]
+    fn revalidate_refuses_when_the_exe_cannot_be_read() {
+        // `None` has two possible causes — elevated process, or packaged app host
+        // — and NEITHER of them is "it matches". The reassuring reading would act
+        // on the handle; this asserts we refuse, and say which reason it was.
+        let probe = HandleProbe { is_window: true, exe: None };
+        assert_eq!(
+            revalidate_owned_window(77, 77, &owned(), &probe),
+            Revalidation::RefuseUnreadableExe
+        );
+    }
+
+    #[test]
+    fn revalidate_compares_paths_the_way_windows_does() {
+        // Windows paths are case-insensitive and tolerate mixed separators. A
+        // needlessly strict comparison would refuse our OWN window and report it
+        // to the user as left behind, which reads as a failure of the feature.
+        let probe = HandleProbe {
+            is_window: true,
+            exe: Some(r"c:/PROGRAM FILES (X86)/Microsoft/Edge/Application/MSEDGE.EXE".into()),
+        };
+        assert_eq!(revalidate_owned_window(77, 77, &owned(), &probe), Revalidation::Act);
+    }
+
+    // -----------------------------------------------------------------------
+    // Parsing the agent's launch result. Driven by a VERBATIM capture from a
+    // real agent run (2026-08-25) rather than a hand-typed payload — a
+    // hand-typed one is frozen at the moment somebody typed it and silently
+    // stops tracking what the agent actually emits.
+    // -----------------------------------------------------------------------
+
+    const REAL_AGENT_STDOUT: &str = concat!(
+        "[IDAG] Agent start\n",
+        "[IDAG] Monitors: 4\n",
+        "[IDAG] polls=17 maxCurrent=5 procExited=True bestArea=1334880\n",
+        "[IDAG] HWND found via snapshot-diff-largest-stable\n",
+        "[IDAG] DWMBounds=(2560,0,2560x1030)\n",
+        r#"{"ok":true,"monitor":3,"frameMode":"normal","activate":true,"topmost":false,"#,
+        r#""grid":{"cols":4,"rows":4,"x":1,"y":1,"w":4,"h":4},"#,
+        r#""tile":{"left":2560,"top":0,"right":5120,"bottom":1030,"width":2560,"height":1030},"#,
+        r#""extendedFrame":{"left":2560,"top":0,"right":5120,"bottom":1030,"width":2560,"height":1030},"#,
+        r#""processId":16140,"hwnd":3805650,"#,
+        r#""hwndExe":"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"}"#,
+        "\n",
+    );
+
+    #[test]
+    fn parses_hwnd_and_exe_from_a_real_agent_result() {
+        let got = parse_placed_window(REAL_AGENT_STDOUT).expect("should parse a real agent result");
+        assert_eq!(got.hwnd, 3805650);
+        assert_eq!(
+            got.exe,
+            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+        );
+    }
+
+    #[test]
+    fn parse_ignores_the_idag_noise_around_the_json() {
+        // The JSON is the LAST line, preceded by diagnostics that also contain
+        // braces and digits. Taking the first brace-looking line would parse noise.
+        assert!(parse_placed_window("[IDAG] tile=(0,0,1280x1030)\n").is_none());
+    }
+
+    #[test]
+    fn parse_refuses_a_failed_launch_and_a_missing_handle() {
+        assert!(parse_placed_window(r#"{"ok":false,"error":"nope"}"#).is_none());
+        // ok:true but no handle — an older agent. Must yield nothing rather than a
+        // zero handle, which would later be revalidated against a real window.
+        assert!(parse_placed_window(r#"{"ok":true,"monitor":1}"#).is_none());
+        assert!(parse_placed_window(r#"{"ok":true,"hwnd":0,"hwndExe":"x.exe"}"#).is_none());
+    }
+
+    #[test]
+    fn parse_keeps_a_handle_whose_exe_is_unreadable() {
+        // hwndExe null (elevated / packaged host). The window is still OURS and
+        // must be recorded; declining to record it would leave it untracked and
+        // therefore never reported to the user. Revalidation refuses to ACT on it
+        // later, which is a different thing from pretending it does not exist.
+        let got = parse_placed_window(r#"{"ok":true,"hwnd":123,"hwndExe":null}"#)
+            .expect("a handle with an unreadable exe is still our window");
+        assert_eq!(got.hwnd, 123);
+        assert_eq!(got.exe, "");
     }
 }
