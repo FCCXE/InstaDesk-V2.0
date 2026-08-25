@@ -138,12 +138,42 @@ if (publish) {
 
 // --------------------------- dev / build / debug --------------------------
 const outDir = resolve(innerRepo, `src-tauri/target/${debug ? 'debug' : 'release'}/bundle/nsis`)
+
+// Every non-dev build gets a unique stamp "<base>-sb.<ms>". tauri.sandbox.conf.json
+// declares no version, so without this each installer inherits tauri.conf.json's and two
+// different builds are indistinguishable — same filename, same version on screen, same
+// badge, same window title. The operator then cannot confirm WHICH build they are
+// testing, which turns a verification into a guess.
+//
+// Same temp-config mechanism as --publish above, but deliberately WITHOUT the signing
+// key, WITHOUT createUpdaterArtifacts and WITHOUT any upload: these installers are run
+// locally, never published. Semver ordering ("0.4.0-sb.N" sorts BELOW "0.4.0") is
+// irrelevant here precisely because nothing compares them — this path has no update
+// feed. `--dev` is left unstamped on purpose: a hot-reload session is not an artifact
+// anyone installs.
+let buildCfgRel = overrideCfgRel
+let stampTmpAbs = null
+if (!dev) {
+  const base = JSON.parse(readFileSync(baseConf, 'utf8')).version
+  const stamp = `${base}-sb.${Date.now()}`
+  const sb = JSON.parse(readFileSync(overrideCfg, 'utf8'))
+  sb.version = stamp
+  buildCfgRel = 'src-tauri/.sandbox-build.tmp.json' // relative → space-free under shell
+  stampTmpAbs = resolve(innerRepo, buildCfgRel)
+  writeFileSync(stampTmpAbs, JSON.stringify(sb, null, 2))
+  env.INSTADESK_VERSION_OVERRIDE = stamp // vite.config.ts stamps it into the UI header
+  console.log(`[sandbox] build stamp ${stamp}`)
+}
+
 const args = dev
   ? ['tauri', 'dev', '--config', overrideCfgRel]
-  : ['tauri', 'build', '--config', overrideCfgRel, '--bundles', 'nsis', ...(debug ? ['--debug'] : [])]
+  : ['tauri', 'build', '--config', buildCfgRel, '--bundles', 'nsis', ...(debug ? ['--debug'] : [])]
 
 console.log(`[sandbox] ${dev ? 'Running' : 'Building'} InstaDesk SANDBOX (${dev ? 'dev / live' : debug ? 'debug' : 'release'}) — robot-free, isolated identity.`)
 const r = spawnSync('npx', args, { cwd: innerRepo, env, stdio: 'inherit', shell: onWin })
+// Clean up on BOTH paths — a leftover temp config outlives the build that wrote it and
+// would silently pin a later build to a stale stamp.
+if (stampTmpAbs) { try { rmSync(stampTmpAbs, { force: true }) } catch { /* best-effort cleanup */ } }
 if (r.status !== 0) { console.error(`[sandbox] ${dev ? 'dev session' : 'build'} failed (exit ${r.status}).`); process.exit(r.status ?? 1) }
 if (dev) process.exit(0)
 

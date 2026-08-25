@@ -60,3 +60,7 @@ src-tauri/.tauri-keys/
 
 # Transient sandbox-publish override (written + auto-deleted by scripts/sandbox.mjs --publish).
 src-tauri/.sandbox-publish.tmp.json
+# Transient sandbox-BUILD override (written + auto-deleted by scripts/sandbox.mjs on any
+# non-dev build). Ignored so an interrupted build cannot leave an untracked file behind
+# that a later `git add` could sweep into a commit.
+src-tauri/.sandbox-build.tmp.json

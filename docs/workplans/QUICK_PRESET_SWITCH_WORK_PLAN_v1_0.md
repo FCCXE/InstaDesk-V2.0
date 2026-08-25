@@ -96,7 +96,12 @@ Sandbox uses AppData while the dev Sandbox falls back to the repo):
 Exercising the teardown against the fixtures already on disk would put VS Code windows into the
 ownership record and then close them — **in either flavour**. **I-1 replaces the fixtures in both
 dirs before anything can be torn down**, and no increment after it may test against a Layout that
-names `Code.exe`. Test on Notepad and Edge.
+names `Code.exe`. **Nor may any fixture use Notepad** — see the 2026-08-24 amendment: Win11's
+`System32
+otepad.exe` is a stub for the packaged Store app, which opens documents as **tabs**, so the
+agent finds no new window and falls through to seizing an existing one — and the operator keeps a
+Notepad open with unsaved work. **Test on Edge and File Explorer**, both verified in I-1 to spawn their
+own windows.
 
 `data/presets/*.json` is gitignored (`.gitignore:34`), so this is a purely local change with no
 commit obligation — and equally, no version control to recover it from. Back the originals up
@@ -261,7 +266,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 |---|---|---|---|---|
 | I-0 | Programme setup — rollback tag + records committed | no | git | ✅ `08bdc05` |
 | I-1 | **Safe Sandbox fixtures** — remove `Code.exe` from every test Layout | **yes** | manual + Sandbox | ✅ |
-| I-1b | **Version-stamp local Sandbox builds** so the operator can tell them apart | no | build + install | ☐ |
+| I-1b | **Version-stamp local Sandbox builds** so the operator can tell them apart | no | build + install | ✅ |
 | I-2 | **Extend tour-safety check** with the new verbs, before they exist | no | build | ☐ |
 | I-3 | **HWND spike** (throwaway) — is the handle usable, and how does it die? | no | Sandbox `--dev` | ☐ |
 | I-4 | WinAgent: emit `hwnd` in the launch result | **yes** | agent + Rust + Sandbox | ☐ |
@@ -447,6 +452,47 @@ proves nothing about what the running app reports.
 ⚠ Semver ordering (`0.4.0-sb.N` sorts *below* `0.4.0`) is deliberately irrelevant here: nothing
 compares these versions, because there is no update feed in this path. Do **not** "fix" the
 ordering — that would be re-inventing the publish flow §4A.1 rejected.
+
+**Status. ✅ DONE 2026-08-25.**
+
+- **Re-investigation** confirmed at the moment of editing: `tauri.sandbox.conf.json` still declares
+  **no `version`** and `bundle.createUpdaterArtifacts: false`; base version `0.4.0`;
+  `sandbox.mjs` clean in git.
+- **Implementation:** non-`--dev` builds now write `src-tauri/.sandbox-build.tmp.json` carrying
+  `version = <base>-sb.<ms>`, set `INSTADESK_VERSION_OVERRIDE` so `vite.config.ts` stamps the UI
+  header, and delete the temp config **on both the success and failure paths** — a leftover would
+  outlive its build and silently pin the next one to a stale stamp. `--dev` deliberately unstamped.
+- **`.gitignore` extended first**, and the rule **proven to bite**: a planted
+  `src-tauri/.sandbox-build.tmp.json` was matched by `git check-ignore` and absent from
+  `git status`. Without it, an interrupted build could leave an untracked file for a later
+  `git add` to sweep up.
+- **Verified the build path carries nothing from the publish path** — no signing key, no
+  `TAURI_SIGNING*`, no `createUpdaterArtifacts`, no `gh`, no channel constants.
+  ⚠ **The first version of this check was wrong and it took a comment as a leak.** It matched the
+  *word* `createUpdaterArtifacts` inside my own explanatory comment. Rather than reword the comment
+  to appease it — the reflex §3 forbids — the check was made to strip comments and follow **code**.
+  A control then proved the stripper had not simply deleted everything (`spawnSync`, `buildCfgRel`,
+  `rmSync` all still present) — a check that passes because it can no longer see anything is worse
+  than the false positive it replaced.
+- **Generated temp config inspected while the build was in flight:**
+  `version 0.4.0-sb.1787656233895`, sandbox identity intact, `createUpdaterArtifacts: false`,
+  no signing material.
+- **Two consecutive builds, two distinct stamps** — `…-sb.1787656233895` (06:12) and
+  `…-sb.1787656373798` (06:14). Both carried the stamp into the installer **filename**, and both
+  ran all four `prebuild` gates inside the build (i18n 595=595, safety, anchors 47/47, content).
+  Temp config absent after each; `git status` showed only the two intended modifications.
+- **Proven where it counts, not just in the filename.** The stamp was found in the built UI bundle
+  (`ui/dist/assets/index-*.js`) — vite's `define` substitutes it as a literal, so that *is* what
+  the header renders. Build #2 was then **installed over build #1** and the installed exe's
+  `ProductVersion` moved **`0.4.0` → `0.4.0-sb.1787656373798`**. A byte search of the shipped
+  binary found build #2's stamp present and **build #1's absent**, with a control confirming the
+  search finds a string that is genuinely there.
+- **Side-by-side isolation re-confirmed:** stable InstaDesk still reports `0.4.0` and was still
+  running throughout (PID 1480); the Sandbox's Layout fixtures kept their I-1 timestamps.
+
+**Left for the operator:** open the Sandbox from the desktop icon and confirm the header reads
+`0.4.0-sb.1787656373798`. Everything above proves the value is in the shipped binary; only a human
+looking at the screen proves it is *rendered*, and gates verify structure, never what a screen says.
 
 ---
 
@@ -761,6 +807,7 @@ resolved in the increment named.
 | 2026-08-24 | **F-8 confirmed live, and it is broader than recorded.** The investigation predicted the emitted `processId` would be useless *for browsers*. In I-1's dry run **all three** launches — including Notepad — reported a `processId` that was already dead seconds later. The launcher-exits-and-hands-off pattern is not browser-specific; Store-packaged apps do it too. The ownership record must be HWND-based, with no PID fallback anywhere. |
 | 2026-08-24 | **I-1 rollback mechanism changed before acting** — a `pre-*` git tag would have protected nothing, since every file I-1 touches is gitignored or lives in `%APPDATA%`. Replaced with a SHA-256-verified file backup. §4 now warns to check the risk surface is actually in git before cutting a tag. |
 | 2026-08-24 | **New constraint for I-6, found in I-1's dry run: an absence in a capture is not proof of absence.** `--capture-layout` reported no Explorer window on monitor 1 immediately after a successful launch; a later enumeration found two such windows had existed. The teardown must therefore establish "gone" by probing the handle (`IsWindow` + exe match), **never** by a window being missing from a window-list snapshot — the reassuring reading of a missing window is "closed", and it would be wrong. |
+| 2026-08-25 | **I-1b done.** Two builds → two stamps; build #2 installed over #1 and the installed exe moved `0.4.0` → `0.4.0-sb.1787656373798`. ⚠ The leak-check written for this increment was itself defective first time: it matched the word `createUpdaterArtifacts` inside an explanatory **comment** and reported a leak. Fixed by making the check strip comments and follow code — not by rewording the comment, which is the reflex §3 forbids — and a control then proved the stripper had not simply blanked the file. |
 | 2026-08-24 | **Parked finding (§0.3, not fixed here):** `ui/src/services/version.ts:8-10` claims `IS_SANDBOX` disables auto-update via `services/updater.ts`. It does not — `IS_SANDBOX` appears only in its own definition and `TopChrome.tsx:55`. The isolation is really the endpoint override in `tauri.sandbox.conf.json`. A comment asserting a safety property the code does not implement. |
 
 ---
