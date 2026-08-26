@@ -14,19 +14,19 @@
   },
   "capture": {
     "button": "Capturar disposición actual",
-    "buttonTitle": "Lee dónde están tus ventanas ahora mismo y convierte esa disposición en un Layout.",
+    "buttonTitle": "Lee dónde están tus ventanas ahora mismo y convierte esa disposición en un Diseño.",
     "capturing": "Leyendo ventanas…",
     "failed": "No se pudo leer la disposición de ventanas.",
     "noWindows": "No se encontraron ventanas para capturar.",
     "title": "Capturar disposición actual",
-    "subtitle": "Se encontraron {{count}} ventanas. Elige cuáles incluir y guarda como Layout.",
+    "subtitle": "Se encontraron {{count}} ventanas. Elige cuáles incluir y guarda como Diseño.",
     "browser": "navegador",
     "unidentified": "No se pudo identificar esta app — no se incluirá.",
     "urlsPlaceholder": "https://ejemplo.com  (una URL por línea — opcional)",
     "urlsHint": "Las ventanas de navegador no revelan sus páginas — añade las URL que quieres que abra esta ventana.",
-    "namePlaceholder": "Nombre del Layout (opcional)",
+    "namePlaceholder": "Nombre del Diseño (opcional)",
     "saving": "Guardando…",
-    "save": "Guardar Layout ({{count}})",
+    "save": "Guardar Diseño ({{count}})",
     "nothingIncluded": "Incluye al menos una ventana.",
     "saved": "Capturado «{{name}}» • {{count}} ventanas",
     "multiWindowApps": "Apps multiventana",
@@ -363,7 +363,7 @@
       },
       "urlsFavorites": {
         "title": "URLs y Favoritos",
-        "body": "Un grupo de URLs es una ventana del navegador descrita por sus pestañas — no una lista de marcadores. Crea uno en Apps → URLs: elige el navegador, añade un grupo de pestañas, escribe las direcciones y guarda. Se convierte en una entrada que puedes asignar a una región igual que un programa.\n\nEl comportamiento de apertura decide la forma: una sola ventana para todo, una ventana por grupo, o una ventana por dirección cuando cada una necesita su propia región.\n\nLos Favoritos son sencillamente apps ancladas — las cuatro o cinco que colocas en casi todos los Layouts, a un clic en vez de a una búsqueda."
+        "body": "Un grupo de URLs es una ventana del navegador descrita por sus pestañas — no una lista de marcadores. Crea uno en Apps → URLs: elige el navegador, añade un grupo de pestañas, escribe las direcciones y guarda. Se convierte en una entrada que puedes asignar a una región igual que un programa.\n\nEl comportamiento de apertura decide la forma: una sola ventana para todo, una ventana por grupo, o una ventana por dirección cuando cada una necesita su propia región.\n\nLos Favoritos son sencillamente apps ancladas — las cuatro o cinco que colocas en casi todos los Diseños, a un clic en vez de a una búsqueda."
       }
     }
   },
@@ -598,12 +598,12 @@
             "body": "Con una región seleccionada, elige una app de la lista y pulsa Asignar a la selección. Esa es toda la idea: esta app, ese espacio, en esta pantalla."
           },
           "layout-new-button": {
-            "title": "Guarda la distribución como Layout",
-            "body": "Cuando la cuadrícula tenga las apps que quieres, guárdala. Un Layout recuerda cada app y la región exacta que le corresponde, en todos tus monitores."
+            "title": "Guarda la distribución como Diseño",
+            "body": "Cuando la cuadrícula tenga las apps que quieres, guárdala. Un Diseño recuerda cada app y la región exacta que le corresponde, en todos tus monitores."
           },
           "qp-apply-button": {
             "title": "Y esto es lo que consigues",
-            "body": "Pulsa Aplicar y cada app del Layout se abre y aterriza en su región guardada, en todas las pantallas, con un clic. Ese es el objetivo de todo lo anterior."
+            "body": "Pulsa Aplicar y cada app del Diseño se abre y aterriza en su región guardada, en todas las pantallas, con un clic. Ese es el objetivo de todo lo anterior."
           }
         }
       },
@@ -612,7 +612,7 @@
         "steps": {
           "grid-size-picker": {
             "title": "Con qué detalle se divide la pantalla",
-            "body": "Cada monitor tiene su propio tamaño de cuadrícula — 4×4, 6×6, 8×8 o 10×10. Un monitor ancho admite una cuadrícula más fina; 4×4 es más cómodo en una pantalla pequeña. Cambiarlo borra las celdas actuales de ese monitor — tus Layouts guardados no se tocan."
+            "body": "Cada monitor tiene su propio tamaño de cuadrícula — 4×4, 6×6, 8×8 o 10×10. Un monitor ancho admite una cuadrícula más fina; 4×4 es más cómodo en una pantalla pequeña. Cambiarlo borra las celdas actuales de ese monitor — tus Diseños guardados no se tocan."
           },
           "workspace-grid": {
             "title": "Seleccionar una región",
@@ -628,7 +628,7 @@
           },
           "clear-all-grids-button": {
             "title": "Empezar de nuevo en todo",
-            "body": "Borrar todas las cuadrículas vacía todos los monitores a la vez, por eso te pide confirmación. De nuevo: los Layouts y los Preajustes rápidos guardados no se ven afectados."
+            "body": "Borrar todas las cuadrículas vacía todos los monitores a la vez, por eso te pide confirmación. De nuevo: los Diseños y los Preajustes rápidos guardados no se ven afectados."
           }
         }
       },
@@ -654,23 +654,23 @@
         }
       },
       "layouts": {
-        "title": "Layouts",
+        "title": "Diseños",
         "steps": {
           "tab-layouts": {
             "title": "Distribuciones guardadas",
-            "body": "Un Layout es todo un escritorio en un archivo — cada app, su región, en cada monitor."
+            "body": "Un Diseño es todo un escritorio en un archivo — cada app, su región, en cada monitor."
           },
           "layout-new-button": {
             "title": "Guardar lo que has construido",
-            "body": "Nuevo Layout captura las cuadrículas actuales tal y como están. Permanece atenuado hasta que hayas asignado al menos una app, para que haya algo que guardar."
+            "body": "Nuevo Diseño captura las cuadrículas actuales tal y como están. Permanece atenuado hasta que hayas asignado al menos una app, para que haya algo que guardar."
           },
           "layouts-list": {
-            "title": "Tus Layouts guardados",
-            "body": "Cada Layout que has guardado aparece aquí, lo más reciente arriba."
+            "title": "Tus Diseños guardados",
+            "body": "Cada Diseño que has guardado aparece aquí, lo más reciente arriba."
           },
           "layout-show-content": {
             "title": "Ver lo que contiene",
-            "body": "Ver contenido dibuja el Layout como un diagrama — la misma imagen que usa la visita guiada — para que compruebes qué hay dentro antes de aplicarlo."
+            "body": "Ver contenido dibuja el Diseño como un diagrama — la misma imagen que usa la visita guiada — para que compruebes qué hay dentro antes de aplicarlo."
           },
           "layout-card-actions": {
             "title": "Aplicar, Editar, Exportar, Eliminar",
@@ -678,7 +678,7 @@
           },
           "layout-import-button": {
             "title": "Traer uno de fuera",
-            "body": "Importar vuelve a leer un archivo de Layout — la otra mitad de Exportar, para moverte entre equipos."
+            "body": "Importar vuelve a leer un archivo de Diseño — la otra mitad de Exportar, para moverte entre equipos."
           },
           "layout-capture-button": {
             "title": "Captura lo que ya tienes",
@@ -690,16 +690,16 @@
         "title": "Preajustes rápidos",
         "steps": {
           "quick-presets-section": {
-            "title": "Varios Layouts, un clic",
-            "body": "Un Preajuste rápido agrupa varios Layouts. Donde un Layout prepara una pantalla, un Preajuste rápido puede preparar todo tu escritorio para un tipo de trabajo concreto."
+            "title": "Varios Diseños, un clic",
+            "body": "Un Preajuste rápido agrupa varios Diseños. Donde un Diseño prepara una pantalla, un Preajuste rápido puede preparar todo tu escritorio para un tipo de trabajo concreto."
           },
           "qp-manage-button": {
             "title": "Crear uno",
-            "body": "Gestionar preajustes es donde creas un grupo, le pones nombre y eliges qué Layouts lo componen. También es donde se elimina uno: borrar un Preajuste rápido nunca elimina los Diseños que contiene."
+            "body": "Gestionar preajustes es donde creas un grupo, le pones nombre y eliges qué Diseños lo componen. También es donde se elimina uno: borrar un Preajuste rápido nunca elimina los Diseños que contiene."
           },
           "qp-dropdown": {
             "title": "Elegir qué ejecutar",
-            "body": "Aquí se listan juntos tus Preajustes rápidos y tus Layouts individuales — elige cualquiera."
+            "body": "Aquí se listan juntos tus Preajustes rápidos y tus Diseños individuales — elige cualquiera."
           },
           "qp-apply-button": {
             "title": "Ejecutarlo",
@@ -732,7 +732,7 @@
           },
           "urls-save": {
             "title": "Guarda y asígnalo como una app",
-            "body": "Guardar convierte el conjunto en una entrada que puedes elegir en la lista de Apps y asignar a una región, igual que un programa. Ese es el objetivo: una ventana del navegador pasa a ser algo que un Layout puede colocar."
+            "body": "Guardar convierte el conjunto en una entrada que puedes elegir en la lista de Apps y asignar a una región, igual que un programa. Ese es el objetivo: una ventana del navegador pasa a ser algo que un Diseño puede colocar."
           },
           "favorites-add": {
             "title": "Los Favoritos son una lista corta",
@@ -740,7 +740,7 @@
           },
           "favorites-list": {
             "title": "Tus apps ancladas",
-            "body": "Los Favoritos aparecen aquí y en la lista de Apps. Merece la pena anclar las cuatro o cinco que colocas en casi todos los Layouts."
+            "body": "Los Favoritos aparecen aquí y en la lista de Apps. Merece la pena anclar las cuatro o cinco que colocas en casi todos los Diseños."
           }
         }
       },
@@ -749,7 +749,7 @@
         "steps": {
           "snap-button": {
             "title": "Ajustar — para una ventana, ahora mismo",
-            "body": "Ajustar es la opción rápida. Púlsalo, arrastra un rectángulo sobre la pantalla y la última ventana que usaste salta a ese espacio. Sin Layout, sin guardar — solo esta ventana, ahí."
+            "body": "Ajustar es la opción rápida. Púlsalo, arrastra un rectángulo sobre la pantalla y la última ventana que usaste salta a ese espacio. Sin Diseño, sin guardar — solo esta ventana, ahí."
           },
           "minimize-all-button": {
             "title": "Despejar el escritorio, temporalmente",
@@ -807,7 +807,7 @@
         "steps": {
           "version-status": {
             "title": "¿Está funcionando el motor?",
-            "body": "El punto está verde y la etiqueta dice «live» cuando el componente en segundo plano que realmente mueve tus ventanas está funcionando. Si está ámbar o rojo, los Layouts no se aplicarán — eso es lo primero que hay que comprobar."
+            "body": "El punto está verde y la etiqueta dice «live» cuando el componente en segundo plano que realmente mueve tus ventanas está funcionando. Si está ámbar o rojo, los Diseños no se aplicarán — eso es lo primero que hay que comprobar."
           },
           "bottom-status": {
             "title": "Ventanas que se niegan a moverse",

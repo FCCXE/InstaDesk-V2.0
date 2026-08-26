@@ -176,6 +176,42 @@ for (const [a, b] of [['en', 'es'], ['es', 'en']]) {
   }
 }
 
+// 3. TERMINOLOGY
+//
+// Parity cannot see this. A Spanish string can be present, unique and correctly
+// shaped — and still call a Diseno a "Layout". On 2026-08-26 the operator spotted
+// the tour chapter titled "Layouts" in the Spanish chooser; the sweep that
+// followed found 25 Spanish strings using the English noun against 74 already
+// using the Spanish one. One concept, two names, is the same defect class as one
+// value carrying two meanings.
+//
+// Keep this list SHORT, and only for terms whose translation is settled. It is a
+// consistency rule, not a style guide.
+// NB: written by building the escape from chr(92), never typed through a shell
+// heredoc. The first version of this line went in that way and the word
+// boundaries arrived as literal 0x08 BACKSPACE characters - invisible on
+// read-back, so the rule matched nothing and reported OK. Handbook §10,
+// reproduced exactly. The bite test is the only reason it was caught.
+const FORBIDDEN_TERMS = {
+    es: [{ re: /\bLayouts?\b/, use: 'the Spanish term used by the other 98 strings' }],
+}
+
+for (const [loc, rules] of Object.entries(FORBIDDEN_TERMS)) {
+  const walk = (node, path) => {
+    if (node && typeof node === 'object') {
+      for (const [k, v] of Object.entries(node)) walk(v, path ? `${path}.${k}` : k)
+      return
+    }
+    if (typeof node !== 'string') return
+    for (const { re, use } of rules) {
+      if (re.test(node)) {
+        problems.push(`[${loc}] "${path}" uses an English term where the app uses ${use}: ${JSON.stringify(node.slice(0, 56))}`)
+      }
+    }
+  }
+  walk(parsed[loc], '')
+}
+
 const counts = LOCALES.map((c) => `${c}=${leaves[c].size}`).join(' ')
 
 if (problems.length > 0) {
