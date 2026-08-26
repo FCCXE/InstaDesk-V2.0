@@ -278,8 +278,8 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | — | **▶ OPERATOR CHECKPOINT 1** — stamped local installer → desktop icon | — | installed Sandbox | ✅ **PASSED 2026-08-25** — build `0.4.0-sb.1787666839355`, operator: *"working as expected"* |
 | I-10 | UI: the outcome report — what could not be closed, and why | no | build + Sandbox | ✅ |
 | — | **▶ OPERATOR CHECKPOINT 2** — the honest report, incl. the iVMS-4200 case | — | installed Sandbox | ☐ |
-| I-11 | Tour: anchor registry, chapter step, content truth (F-7) | no | build | ✅* |
-| I-12 | ES parity sweep | no | build | ☐ |
+| I-11 | Tour: anchor registry, chapter step, content truth (F-7) | no | build | ✅ read on screen 08-26 |
+| I-12 | ES parity sweep | no | build | ✅ |
 | I-13 | Telemetry | no | build | ☐ |
 | — | **✅ CLOSED 2026-08-26** — real elevated-window detection, proven on iVMS-4200 | — | manual | ✅ `skippedElevated`, named, window untouched |
 | I-14 | Release v0.5.0 — Sandbox installer gate, CHANGELOG, bump, two-repo push, tag | **yes** | full | ☐ |
@@ -1196,7 +1196,31 @@ three green gates, and a person reading the screen caught it. Folded into the re
 **Done when.** `check-i18n-parity` reports identical sets.
 **Verification.** The parity line from a real build.
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-26.** A verification sweep, per the 2026-08-25 amendment — the translation
+itself was done alongside each English string, because the parity gate runs on every build.
+
+- **Counts re-derived at the moment of the sweep:** **610 = 610**, key sets identical. (§2.2's
+  595/595 is now stale, which is exactly why it says to re-derive rather than quote.)
+- **All 19 keys this programme added or revised are genuinely translated** — checked by asserting
+  the Spanish value is not byte-identical to the English. Parity alone cannot see this: a key
+  present in both files with the English text copied across satisfies the gate perfectly.
+- **Whole-file sweep for the same failure**, not just this programme's keys: of 610 pairs, exactly
+  **one** sentence-length value is identical in both locales — `help.version`
+  (*"InstaDesk v{{version}} — FCLX Studios"*), a product name and version number, correctly the
+  same in both. No untranslated strings anywhere in the file.
+- **✅ Read on screen by the operator, 2026-08-26, in build `0.4.0-sb.1787773148698`:**
+  *"Looks good in english and spanish."* This also closes I-11's owed half — gates verify
+  structure, and only a person reading the screen verifies that prose is true.
+
+**Judgement recorded — the Express Tour's Apply step was left alone.** The sweep surfaced a *second*
+`qp-apply-button` step, in the `quickStart` chapter: *"Press Apply and every app in the Layout opens
+and lands in its saved region…"*. Unlike the Quick Presets chapter's version, this one is **not**
+made incomplete by Switch mode — it describes what Apply does and never claims nothing else happens,
+so it stays true in both modes. It is also the ninety-second introduction for a first-time user, for
+whom the switch is off and unseen. The contrast belongs where the switch step now sits immediately
+after it. Recorded rather than silently skipped, because F-7's whole lesson is that incomplete prose
+is invisible to every gate.
+
 
 ---
 
@@ -1299,6 +1323,7 @@ resolved in the increment named.
 | 2026-08-26 | **Another instrument lied, and the app’s own detector was the reliable one.** My PowerShell elevation proxy (`$_.Handle` throwing) reported **all nine** iVMS processes as *not* elevated. The agent’s `IsWindowElevated` — OpenProcess + token elevation, the check that actually governs behaviour — says elevated, and it is authoritative. Had I trusted the proxy I would have "corrected" a true finding into a false one. |
 | 2026-08-26 | **ANSWERED (control flow, not yet measured): an elevated window CAN enter the ownership record, so `skippedElevated` is reachable in production.** Two halves. (a) *Resolution works* — measured: `SnapshotWindowsForProcess` uses `GetProcessesByName` + `EnumWindows` + PID match, all readable across the integrity boundary, and iVMS’s window was enumerated successfully here. (b) *A blocked placement does not abort* — read from control flow: `SetWindowPos`’s return value is **never checked** at any of its eight call sites, and no placement failure throws, so a UIPI-blocked move fails silently and execution continues to emit `ok:true` with the handle. An elevated app in a Layout is therefore recorded (though never actually moved), and a later swap reports it by name and leaves it alone. ⚠ **Half of this is a code read, not a measurement.** The safe confirmation — add iVMS to a Sandbox test preset, apply, then switch — needs the operator, because launching it may raise a UAC prompt. |
 | 2026-08-26 | **Why the obvious probe was NOT run.** `--single-instance --no-move` would have resolved the existing window without launching or moving it — except iVMS’s only visible window is **159×27**, a tray stub that would likely fail the agent’s minimum-size validity test, at which point the agent falls through to **launching** iVMS and could raise a UAC prompt. Checking the window’s size before running the probe is what caught this. |
+| 2026-08-26 | **Parked (§0.3, pre-existing, NOT this programme’s):** the Spanish tour text mixes *"Layout"* and *"app"* with the *"Diseños"* used elsewhere in the Spanish UI (`monitor.manageQPsTitle` says *"paquetes de Diseños"*). A terminology inconsistency inherited from v0.4.0. Changing established UI vocabulary mid-programme would be scope creep; raised for a later decision on whether the Spanish keeps English product terms deliberately. |
 | 2026-08-24 | **Parked finding (§0.3, not fixed here):** `ui/src/services/version.ts:8-10` claims `IS_SANDBOX` disables auto-update via `services/updater.ts`. It does not — `IS_SANDBOX` appears only in its own definition and `TopChrome.tsx:55`. The isolation is really the endpoint override in `tauri.sandbox.conf.json`. A comment asserting a safety property the code does not implement. |
 
 ---
