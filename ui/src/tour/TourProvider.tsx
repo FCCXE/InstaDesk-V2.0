@@ -471,18 +471,39 @@ function TourOverlay({
     if (h && Math.abs(h - cardH) > 2) setCardH(h)
   })
 
-  // Below the anchor when it genuinely fits, otherwise above it. Never
-  // overlapping the anchor, and always inside the viewport. The EXIT depends on
-  // none of this (R1.3).
+  // Below the anchor when it fits, else above it, else BESIDE it.
+  //
+  // The third case is not decoration. The old code fell back to
+  // `Math.max(16, above)`, which for a card taller than the space above the
+  // anchor clamps the card's TOP to the viewport — and its bottom then extends
+  // down ACROSS the anchor. The comment here claimed "never overlapping the
+  // anchor" and that was simply not true: the walkthrough covered the very
+  // control it was pointing at. Reported from a screenshot, 2026-08-26.
+  //
+  // So when neither vertical position fits, the card goes to the side the anchor
+  // leaves room on, and the no-overlap property is asserted rather than assumed.
   const CARD_W = 340
   const GAP = 12
   const card = (() => {
-    if (!rect) return { left: Math.max(16, window.innerWidth / 2 - CARD_W / 2), top: 120 }
-    const below = rect.y + rect.h + GAP
-    const above = rect.y - GAP - cardH
-    const fitsBelow = below + cardH <= window.innerHeight - 16
-    const top = fitsBelow ? below : Math.max(16, above)
-    const left = Math.min(Math.max(16, rect.x + rect.w / 2 - CARD_W / 2), window.innerWidth - CARD_W - 16)
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    if (!rect) return { left: Math.max(16, vw / 2 - CARD_W / 2), top: 120 }
+
+    const belowTop = rect.y + rect.h + GAP
+    const aboveTop = rect.y - GAP - cardH
+    const centredLeft = Math.min(Math.max(16, rect.x + rect.w / 2 - CARD_W / 2), vw - CARD_W - 16)
+
+    if (belowTop + cardH <= vh - 16) return { left: centredLeft, top: belowTop }
+    if (aboveTop >= 16) return { left: centredLeft, top: aboveTop }
+
+    // Neither fits vertically. Put it on whichever side has more room, and keep
+    // it inside the viewport without letting it drift back over the anchor.
+    const roomLeft = rect.x
+    const roomRight = vw - (rect.x + rect.w)
+    const left = roomLeft >= roomRight
+      ? Math.max(16, rect.x - GAP - CARD_W)
+      : Math.min(vw - CARD_W - 16, rect.x + rect.w + GAP)
+    const top = Math.min(Math.max(16, rect.y), Math.max(16, vh - cardH - 16))
     return { left, top }
   })()
 

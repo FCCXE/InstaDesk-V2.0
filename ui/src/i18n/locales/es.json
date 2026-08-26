@@ -649,7 +649,7 @@
           },
           "apps-launch-args-hint": {
             "title": "Dos ventanas de la misma app",
-            "body": "Selecciona celdas y aquí aparece el cuadro «Argumentos de inicio». Es lo que le indica a InstaDesk que dos regiones de la MISMA app son ventanas distintas: dale a cada una un valor diferente —normalmente una carpeta distinta— y obtendrás dos. Si los dejas idénticos, las dos regiones se tratan como una sola ventana. Así se colocan dos proyectos de VS Code, o dos carpetas del Explorador, uno al lado del otro. Unas pocas apps —Outlook y Teams entre ellas— solo tienen una ventana y enfocarán la existente, sean cuales sean los argumentos."
+            "body": "Selecciona celdas y aparecerá el cuadro «Argumentos de inicio». Da a dos regiones de la MISMA app valores distintos —normalmente una carpeta diferente— y obtendrás dos ventanas. Valores idénticos significan una sola. (Outlook y Teams solo abren una ventana, pongas lo que pongas.)"
           }
         }
       },
@@ -682,7 +682,7 @@
           },
           "layout-capture-button": {
             "title": "Captura lo que ya tienes",
-            "body": "Capturar diseño actual lee tu escritorio tal y como está y lo convierte en un Diseño, sin asignar celdas a mano. Es además la única forma de registrar una app MULTIVENTANA: un solo programa que abre varias ventanas a la vez, cada una recordada por su título. Esas entradas no pueden mostrarse en la cuadrícula, así que un Diseño editado parece más vacío de lo que es; se conservan intactas al guardar."
+            "body": "Capturar diseño actual convierte tu escritorio, tal y como está, en un Diseño. Es además la única forma de registrar una app multiventana: un programa que abre varias ventanas. No pueden dibujarse en la cuadrícula, así que un Diseño editado parece más vacío de lo que es, pero se conservan al guardar."
           }
         }
       },

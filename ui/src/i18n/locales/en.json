@@ -649,7 +649,7 @@
           },
           "apps-launch-args-hint": {
             "title": "Two windows of the same app",
-            "body": "Select cells and a \"Launch args\" box appears here. It is what tells InstaDesk that two regions of the SAME app are different windows: give each a different value — typically a different folder — and you get two. Leave them identical and the two regions are treated as one window. This is how you put two VS Code projects, or two File Explorer folders, side by side. A few apps — Outlook and Teams among them — only ever run one window and will focus the existing one instead, whatever args you give them."
+            "body": "Select cells and a \"Launch args\" box appears here. Give two regions of the SAME app different values — typically a different folder — and you get two windows. Identical values mean one. (Outlook and Teams only ever run one window, whatever you set.)"
           }
         }
       },
@@ -682,7 +682,7 @@
           },
           "layout-capture-button": {
             "title": "Capture what you already have",
-            "body": "Capture current layout reads your desktop exactly as it stands and turns it into a Layout — no assigning cells by hand. It is also the only way to record a MULTI-WINDOW app: one program that opens several windows at once, each remembered by its title. Those entries cannot be shown in the grid, so an edited Layout looks emptier than it is; they are kept untouched when you save."
+            "body": "Capture current layout turns your desktop, as it stands, into a Layout. It is also the only way to record a multi-window app — one program that opens several windows. Those can’t be drawn in the grid, so an edited Layout looks emptier than it is, but they are kept when you save."
           }
         }
       },
