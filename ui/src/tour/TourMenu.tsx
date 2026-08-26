@@ -8,7 +8,14 @@ import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { CHAPTERS } from './chapters'
-import { chapterTitleKey, type TourChapter } from './types'
+import { chapterTitleKey, type TourChapter, type TourGroup } from './types'
+
+// Headings, in the order they are shown. A heading is NOT a submenu: every
+// chapter below stays visible and one click away. Sub-menus were assessed and
+// rejected (2026-08-26) — all the audit's gaps fit existing chapters, so the
+// list never grew, and this app's characteristic defect is things sitting one
+// layer deeper than people look. The tour is the surface meant to cure that.
+const GROUP_ORDER: readonly TourGroup[] = ['essentials', 'building', 'daily', 'trouble']
 
 export default function TourMenu({
   onPick,
@@ -62,7 +69,15 @@ export default function TourMenu({
         </div>
 
         <div className="mt-4 flex max-h-[52vh] flex-col gap-1.5 overflow-y-auto pr-1">
-          {CHAPTERS.map((c) => (
+          {GROUP_ORDER.map((g) => {
+            const inGroup = CHAPTERS.filter((c) => c.group === g)
+            if (inGroup.length === 0) return null
+            return (
+              <div key={g} className="flex flex-col gap-1.5">
+                <span className="mt-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                  {t(`tour.groups.${g}`)}
+                </span>
+                {inGroup.map((c) => (
             <button
               key={c.id}
               type="button"
@@ -74,7 +89,10 @@ export default function TourMenu({
                 {t('tour.steps', { count: c.steps.length })}
               </span>
             </button>
-          ))}
+                ))}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>,

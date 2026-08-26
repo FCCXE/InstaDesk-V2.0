@@ -649,7 +649,7 @@
           },
           "apps-launch-args-hint": {
             "title": "Two windows of the same app",
-            "body": "Select cells and a \"Launch args\" box appears here. It is what tells InstaDesk that two regions of the SAME app are different windows: give each a different value — typically a different folder — and you get two. Leave them identical and the two regions are treated as one window. This is how you put two VS Code projects, or two File Explorer folders, side by side."
+            "body": "Select cells and a \"Launch args\" box appears here. It is what tells InstaDesk that two regions of the SAME app are different windows: give each a different value — typically a different folder — and you get two. Leave them identical and the two regions are treated as one window. This is how you put two VS Code projects, or two File Explorer folders, side by side. A few apps — Outlook and Teams among them — only ever run one window and will focus the existing one instead, whatever args you give them."
           }
         }
       },
@@ -674,11 +674,15 @@
           },
           "layout-card-actions": {
             "title": "Apply, Edit, Export, Delete",
-            "body": "Apply opens everything and places it. Edit loads it back into the grid so you can change it. Export writes it to a file you can keep or move to another machine."
+            "body": "Apply opens everything and places it. Edit loads it back into the grid so you can change it. Export writes it to a file you can keep or move to another machine. Delete removes the Layout itself — the apps inside it are untouched, and it cannot be undone."
           },
           "layout-import-button": {
             "title": "Bringing one in",
             "body": "Import reads a Layout file back — the other half of Export, for moving between machines."
+          },
+          "layout-capture-button": {
+            "title": "Capture what you already have",
+            "body": "Capture current layout reads your desktop exactly as it stands and turns it into a Layout — no assigning cells by hand. It is also the only way to record a MULTI-WINDOW app: one program that opens several windows at once, each remembered by its title. Those entries cannot be shown in the grid, so an edited Layout looks emptier than it is; they are kept untouched when you save."
           }
         }
       },
@@ -691,7 +695,7 @@
           },
           "qp-manage-button": {
             "title": "Building one",
-            "body": "Manage QPs is where you create a bundle, name it, and choose which Layouts belong in it."
+            "body": "Manage QPs is where you create a bundle, name it, and choose which Layouts belong in it. It is also where you delete one: deleting a Quick Preset never removes the Layouts inside it."
           },
           "qp-dropdown": {
             "title": "Choosing what to run",
@@ -699,7 +703,7 @@
           },
           "qp-apply-button": {
             "title": "Running it",
-            "body": "Apply launches everything in the bundle and places each window on the screen it belongs to. On its own it only ever ADDS to what is already open."
+            "body": "Apply launches everything in the bundle and places each window on the screen it belongs to. On its own it only ever ADDS to what is already open. You can also apply Quick Presets A–I from anywhere with Ctrl+Alt+1 to 9, even when InstaDesk is not the focused window."
           },
           "qp-switch-mode": {
             "title": "Switch mode — one preset at a time",
@@ -791,6 +795,10 @@
           "settings-check-updates": {
             "title": "How new versions arrive",
             "body": "InstaDesk checks for signed updates and tells you when one is available — you decide when to install it. You can also check here whenever you like. Updates are signed, so the app will refuse anything that has been tampered with."
+          },
+          "settings-list": {
+            "title": "The settings worth knowing about",
+            "body": "Three that are easy to miss: Launch on system start puts InstaDesk in your Windows start-up; the telemetry switch turns anonymous usage reporting off entirely; and License shows your trial or licence state and lets you enter a key."
           }
         }
       },
@@ -811,6 +819,12 @@
           }
         }
       }
+    },
+    "groups": {
+      "essentials": "Essentials",
+      "building": "Building layouts",
+      "daily": "Using them day to day",
+      "trouble": "When something looks wrong"
     }
   }
 }

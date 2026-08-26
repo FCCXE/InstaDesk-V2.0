@@ -34,6 +34,9 @@ const SNAPSHOT_PROBE: TourChapter = {
   // immediately, so which chapter it borrows is immaterial; what matters is that
   // the step sits behind the Settings tab and therefore forces navigation.
   id: 'monitorsSettings',
+  // Required by TourChapter. The probe never appears in the chooser; it borrows
+  // monitorsSettings' id, so it borrows its group for consistency.
+  group: 'daily',
   steps: [{ anchor: 'settings-theme' }],
 }
 

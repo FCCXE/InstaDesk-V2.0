@@ -269,6 +269,15 @@
       }
     },
     {
+      "id": "layout-capture-button",
+      "component": "components/layouts/LayoutsPane.tsx",
+      "describes": "Capture current layout - reads the desktop as it stands, including multi-window apps",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Layouts"
+      }
+    },
+    {
       "id": "layout-new-button",
       "component": "components/layouts/LayoutsPane.tsx",
       "describes": "+ New Layout - saves the current grid arrangement as a Layout",

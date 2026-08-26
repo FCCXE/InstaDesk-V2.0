@@ -290,10 +290,10 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-18 | **A-0** — the stale command count in `check-tour-safety.mjs` | no | build | ✅ 10/33 |
 | I-19 | **Silent merge** — the save now states the window count; merges are visible | no | build + Sandbox | ✅ |
 | I-20 | **G-8/G-9** — launch args + two windows of one app | no | build | ✅ |
-| I-21 | **G-1** — multi-window apps, taught nowhere today | no | build | ☐ |
-| I-22 | **G-2/G-3** — the two deletes | no | build | ☐ |
-| I-23 | **G-11** — the Ctrl+Alt+1–9 hotkeys, in the tour | no | build | ☐ |
-| I-24 | **G-4/G-5/G-6** — autostart, telemetry, licence | no | build | ☐ |
+| I-21 | **G-1** — multi-window apps | no | build | ✅ |
+| I-22 | **G-2/G-3** — the two deletes | no | build | ✅ |
+| I-23 | **G-11** — the Ctrl+Alt+1–9 hotkeys | no | build | ✅ |
+| I-24 | **G-4/G-5/G-6** — autostart, telemetry, licence + tour grouping | no | build | ✅ |
 | I-14 | Release v0.5.0 — Sandbox installer gate, CHANGELOG, bump, two-repo push, tag | **yes** | full | ☐ |
 
 ---
@@ -1625,10 +1625,42 @@ hold in **both** states: it states the rule rather than promising "a box will ap
 
 617 → **620** keys, 48 → **49** anchors, 46 → **47** step references. All five gates green.
 
-**Still open: I-21 (multi-window apps), I-22 (the two deletes), I-23 (hotkeys), I-24 (settings
-surface), plus the tour grouping and the `monitorsSettings` split.**
+**I-21…I-24 — ✅ DONE 2026-08-26. ALL ELEVEN AUDIT GAPS NOW TAUGHT IN THE TOUR**, re-measured with
+the audit's own cross-reference: 11 of 11, up from 0 of 11.
 
-**Status. ☐** (I-21…I-24)
+- **I-21 (G-1) multi-window apps.** Checked first that a user can actually *author* one — they can,
+  via **Capture current layout**, which is the only route. Teaching something unreachable would have
+  been worse than silence. New anchor on the Capture button and a step that also explains why such
+  a Layout **looks emptier than it is** when edited, and that those entries are kept — which is the
+  experience the operator hit head-on.
+- **I-22 (G-2/G-3) the two deletes**, and **I-23 (G-11) the hotkeys** — added by **extending
+  existing step bodies** rather than adding steps. A separate step per fact would have padded the
+  walkthrough with clicks; the audit's bar is *explained*, not *counted*.
+- **I-24 (G-4/G-5/G-6)** — one step on the settings list naming autostart, telemetry and licence.
+- **G-10 single-instance apps** closed too, placed as the **exception to the rule I-20 had just
+  taught**: for Outlook and Teams, different args will *not* give you two windows, and a user who
+  does not know that blames themselves.
+
+### Tour organisation — grouping DONE, the split DEFERRED on evidence
+
+**Group headings shipped**: Essentials · Building layouts · Using them day to day · When something
+looks wrong. **Headings, not sub-menus** — every chapter stays visible and one click away, per the
+assessment above.
+
+⚠ **The `monitorsSettings` split was NOT done, because its trigger did not materialise.** The
+projection said 10 steps; folding the three settings gaps into a single step made it **8** — and
+`layouts` and `urlsFavorites` are both **7**. The condition I set ("exceeds 8 steps") is not met, so
+the split would be change for its own sake. It also touches the **Help↔chapter id mapping**
+(`chapterById(id)` resolves a *help section* id against chapter ids), which is exactly the quiet
+coupling not to disturb on the eve of a release. Deferred with the reason recorded, not skipped.
+
+The typecheck caught the one thing that would have broken: a **synthetic chapter in
+`DevTourLauncher`** needed the new `group` field. A dev-only surface, invisible to every content
+gate, and it would have failed the build rather than shipping — which is the gate working.
+
+**49 steps across 9 chapters, 628 keys, 50 anchors. All five gates green.**
+
+**Status. ✅**
 
 ---
 

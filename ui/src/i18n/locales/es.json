@@ -649,7 +649,7 @@
           },
           "apps-launch-args-hint": {
             "title": "Dos ventanas de la misma app",
-            "body": "Selecciona celdas y aquí aparece el cuadro «Argumentos de inicio». Es lo que le indica a InstaDesk que dos regiones de la MISMA app son ventanas distintas: dale a cada una un valor diferente —normalmente una carpeta distinta— y obtendrás dos. Si los dejas idénticos, las dos regiones se tratan como una sola ventana. Así se colocan dos proyectos de VS Code, o dos carpetas del Explorador, uno al lado del otro."
+            "body": "Selecciona celdas y aquí aparece el cuadro «Argumentos de inicio». Es lo que le indica a InstaDesk que dos regiones de la MISMA app son ventanas distintas: dale a cada una un valor diferente —normalmente una carpeta distinta— y obtendrás dos. Si los dejas idénticos, las dos regiones se tratan como una sola ventana. Así se colocan dos proyectos de VS Code, o dos carpetas del Explorador, uno al lado del otro. Unas pocas apps —Outlook y Teams entre ellas— solo tienen una ventana y enfocarán la existente, sean cuales sean los argumentos."
           }
         }
       },
@@ -674,11 +674,15 @@
           },
           "layout-card-actions": {
             "title": "Aplicar, Editar, Exportar, Eliminar",
-            "body": "Aplicar abre todo y lo coloca. Editar lo carga de nuevo en la cuadrícula para que lo cambies. Exportar lo escribe en un archivo que puedes guardar o llevar a otro equipo."
+            "body": "Aplicar abre todo y lo coloca. Editar lo carga de nuevo en la cuadrícula para que lo cambies. Exportar lo escribe en un archivo que puedes guardar o llevar a otro equipo. Eliminar borra el Diseño en sí: las apps que contiene no se tocan, y no se puede deshacer."
           },
           "layout-import-button": {
             "title": "Traer uno de fuera",
             "body": "Importar vuelve a leer un archivo de Layout — la otra mitad de Exportar, para moverte entre equipos."
+          },
+          "layout-capture-button": {
+            "title": "Captura lo que ya tienes",
+            "body": "Capturar diseño actual lee tu escritorio tal y como está y lo convierte en un Diseño, sin asignar celdas a mano. Es además la única forma de registrar una app MULTIVENTANA: un solo programa que abre varias ventanas a la vez, cada una recordada por su título. Esas entradas no pueden mostrarse en la cuadrícula, así que un Diseño editado parece más vacío de lo que es; se conservan intactas al guardar."
           }
         }
       },
@@ -691,7 +695,7 @@
           },
           "qp-manage-button": {
             "title": "Crear uno",
-            "body": "Gestionar preajustes es donde creas un grupo, le pones nombre y eliges qué Layouts lo componen."
+            "body": "Gestionar preajustes es donde creas un grupo, le pones nombre y eliges qué Layouts lo componen. También es donde se elimina uno: borrar un Preajuste rápido nunca elimina los Diseños que contiene."
           },
           "qp-dropdown": {
             "title": "Elegir qué ejecutar",
@@ -699,7 +703,7 @@
           },
           "qp-apply-button": {
             "title": "Ejecutarlo",
-            "body": "Aplicar abre todo lo del paquete y coloca cada ventana en la pantalla que le corresponde. Por sí solo únicamente AÑADE a lo que ya está abierto."
+            "body": "Aplicar abre todo lo del paquete y coloca cada ventana en la pantalla que le corresponde. Por sí solo únicamente AÑADE a lo que ya está abierto. También puedes aplicar los Preajustes rápidos A-I desde cualquier sitio con Ctrl+Alt+1 a 9, aunque InstaDesk no sea la ventana activa."
           },
           "qp-switch-mode": {
             "title": "Modo intercambio: un preajuste a la vez",
@@ -791,6 +795,10 @@
           "settings-check-updates": {
             "title": "Cómo llegan las versiones nuevas",
             "body": "InstaDesk busca actualizaciones firmadas y te avisa cuando hay una disponible — tú decides cuándo instalarla. También puedes comprobarlo aquí cuando quieras. Las actualizaciones van firmadas, así que la app rechazará cualquier cosa que haya sido manipulada."
+          },
+          "settings-list": {
+            "title": "Los ajustes que conviene conocer",
+            "body": "Tres que pasan desapercibidos: Iniciar con el sistema añade InstaDesk al arranque de Windows; el interruptor de telemetría desactiva por completo el envío anónimo de uso; y Licencia muestra tu estado de prueba o licencia y permite introducir una clave."
           }
         }
       },
@@ -811,6 +819,12 @@
           }
         }
       }
+    },
+    "groups": {
+      "essentials": "Lo esencial",
+      "building": "Crear diseños",
+      "daily": "El día a día",
+      "trouble": "Cuando algo va mal"
     }
   }
 }

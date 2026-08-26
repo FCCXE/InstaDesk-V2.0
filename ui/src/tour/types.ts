@@ -23,9 +23,16 @@ export type TourStep = {
   schematic?: SchematicAction
 }
 
+export type TourGroup = 'essentials' | 'building' | 'daily' | 'trouble'
+
 export type TourChapter = {
   /** Also the i18n key segment: tour.chapters.<id>.title */
   id: string
+  /** Heading this chapter sits under in the chooser. A HEADING, not a submenu:
+   *  every chapter stays visible and one click away. This app's characteristic
+   *  defect is things sitting one layer deeper than people look, and the tour is
+   *  the surface meant to cure that — so it must not acquire a layer of its own. */
+  group: TourGroup
   steps: readonly TourStep[]
 }
 

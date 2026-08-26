@@ -21,6 +21,7 @@ import type { TourChapter } from './types'
 
 export const SPINE: TourChapter = {
   id: 'quickStart',
+  group: 'essentials',
   steps: [
     { anchor: 'monitor-select' },
     { anchor: 'grid-size-picker' },
@@ -33,6 +34,7 @@ export const SPINE: TourChapter = {
 
 const GRID: TourChapter = {
   id: 'grid',
+  group: 'essentials',
   steps: [
     { anchor: 'grid-size-picker' },
     { anchor: 'workspace-grid' },
@@ -44,6 +46,7 @@ const GRID: TourChapter = {
 
 const APPS: TourChapter = {
   id: 'apps',
+  group: 'essentials',
   steps: [
     { anchor: 'tab-apps' },
     { anchor: 'apps-subtabs' },
@@ -57,8 +60,12 @@ const APPS: TourChapter = {
 
 const LAYOUTS: TourChapter = {
   id: 'layouts',
+  group: 'building',
   steps: [
     { anchor: 'tab-layouts' },
+    // Audit G-1: multi-window apps were taught NOWHERE, in tour or Help, and
+    // Capture is the only way to author one.
+    { anchor: 'layout-capture-button' },
     { anchor: 'layout-new-button' },
     { anchor: 'layouts-list' },
     { anchor: 'layout-show-content' },
@@ -69,6 +76,7 @@ const LAYOUTS: TourChapter = {
 
 const QUICK_PRESETS: TourChapter = {
   id: 'quickPresets',
+  group: 'building',
   steps: [
     { anchor: 'quick-presets-section' },
     { anchor: 'qp-manage-button' },
@@ -86,6 +94,7 @@ const QUICK_PRESETS: TourChapter = {
 
 const URLS_FAVORITES: TourChapter = {
   id: 'urlsFavorites',
+  group: 'building',
   steps: [
     { anchor: 'apps-subtabs' },
     { anchor: 'urls-builder' },
@@ -99,6 +108,7 @@ const URLS_FAVORITES: TourChapter = {
 
 const SNAP: TourChapter = {
   id: 'snap',
+  group: 'daily',
   steps: [
     { anchor: 'snap-button', schematic: 'snap' },
     { anchor: 'minimize-all-button', schematic: 'minimize-all' },
@@ -109,6 +119,7 @@ const SNAP: TourChapter = {
 
 const MONITORS_SETTINGS: TourChapter = {
   id: 'monitorsSettings',
+  group: 'daily',
   steps: [
     { anchor: 'monitor-select' },
     { anchor: 'display-array' },
@@ -117,11 +128,15 @@ const MONITORS_SETTINGS: TourChapter = {
     { anchor: 'settings-window-margin' },
     { anchor: 'settings-theme' },
     { anchor: 'settings-check-updates' },
+    // Audit G-4/G-5/G-6: autostart, telemetry opt-out and licence, taught
+    // nowhere. One step naming all three, on the settings list itself.
+    { anchor: 'settings-list' },
   ],
 }
 
 const TROUBLESHOOTING: TourChapter = {
   id: 'troubleshooting',
+  group: 'trouble',
   steps: [
     { anchor: 'version-status' },
     { anchor: 'bottom-status' },

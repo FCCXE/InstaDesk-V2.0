@@ -628,6 +628,7 @@ export default function LayoutsPane() {
           {inTauri() && (
             <button
               type="button"
+              data-tour="layout-capture-button"
               onClick={onCapture}
               disabled={capturing}
               className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-4 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-60 disabled:cursor-wait dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
