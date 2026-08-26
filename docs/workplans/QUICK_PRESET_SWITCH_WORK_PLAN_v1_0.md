@@ -284,8 +284,8 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-12 | ES parity sweep | no | build | ✅ |
 | I-13 | Telemetry + **a fifth `prebuild` gate** (updater purity) | no | build | ✅ |
 | — | **✅ CLOSED 2026-08-26** — real elevated-window detection, proven on iVMS-4200 | — | manual | ✅ `skippedElevated`, named, window untouched |
-| I-15 | **Defect A** — editing a Layout must never destroy what the grid cannot show | **yes** | build + Sandbox | ☐ |
-| I-16 | **Defect B** — make the save affordance reachable from where the editing happens | no | build + Sandbox | ☐ |
+| I-15 | **Defect A** — editing a Layout must never destroy what the grid cannot show | **yes** | build + Sandbox | ✅ |
+| I-16 | **Defect B** — make the save affordance reachable from where the editing happens | no | build + Sandbox | ✅ |
 | I-17 | **Deep audit** of the app (operator-requested), before release | no | full | ☐ |
 | I-14 | Release v0.5.0 — Sandbox installer gate, CHANGELOG, bump, two-repo push, tag | **yes** | full | ☐ |
 
@@ -1375,7 +1375,27 @@ no jest — checked), so this cannot be a unit test without adding a runner on t
 The decisive proof is a real Edit → Save in the Sandbox with the file compared **byte for byte**
 before and after. Operator triggers; I measure.
 
-**Status. ✅ code / ☐ round trip**
+**Status. ✅ DONE 2026-08-26 — PROVEN END TO END on real data.**
+
+The operator edited the Sandbox's `USDJ Jubilee Observatory` Layout and saved. Measured against the
+byte-exact baseline taken beforehand:
+
+| | before | after |
+|---|---|---|
+| `general_A.json` | 1631 bytes, sha `a0d3aa93055e` | 2117 bytes, sha `4aada6d019d0` |
+| assignments | 1 | **3** |
+| hidden multi-window entries | 1 | **1** |
+| the Observatory entry, 7 windows | — | **SURVIVED BYTE-IDENTICAL** |
+
+Two new entries were added **and** the multi-window launcher came through untouched, field for field.
+Under v0.4.0 that save would have written only the two new entries and destroyed the Observatory
+one. The on-screen notice — *"1 entry in this Layout can't be shown in the grid…"* — was confirmed
+present in the screenshot before the save.
+
+⚠ **A first attempt did NOT test this**, and saying so matters. The operator reported "works fine"
+after editing Layout **B** — which has **zero** hidden entries, so the preserve path never ran. The
+file comparison caught it: `general_A` was byte-identical, untouched. A verification that narrows to
+what it names, exactly as recorded. The real test followed.
 
 ---
 
@@ -1396,7 +1416,11 @@ control already lives is the honest fix and the small one.
 
 **Done when.** While editing, the bottom bar says so from any tab, and one click reaches the save.
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-26 — confirmed on screen.** The operator's screenshot shows the strip while
+they were on the **Apps** tab: *"Editing Layout A — Changes are not saved until you press Save
+changes on the Layouts tab"*, with **Go to save →**. They then found the save and completed the
+round trip, which is the whole point: the affordance was never broken, only unreachable from where
+the work happens.
 
 ---
 
@@ -1481,6 +1505,7 @@ resolved in the increment named.
 | 2026-08-26 | **⚠ OPERATOR-REPORTED DEFECT A — PRE-EXISTING in v0.4.0, and it can DESTROY data.** A Layout containing a `multiWindowApp` assignment loads **EMPTY** when edited. `parsePresetIntoCells` (`layoutBuilder.ts:336`) skips any assignment with no top-level `title` — and a `multiWindowApp` has none, because its titles live inside `windows[]`. Its warning says *"An assignment is missing its title; skipped"*, which does not tell the user an entire app was dropped. **If the user then clicks Save changes, that assignment is overwritten out of existence.** This is why the operator sees it in the Sandbox and not in production: the Sandbox’s `general_A` is the Observatory multi-window launcher, and **none** of their six production Layouts uses that type (verified by reading all ten files). NOT this programme’s work and NOT fixed here (§0.3) — raised for its own increment. |
 | 2026-08-26 | **⚠ OPERATOR-REPORTED DEFECT B — PRE-EXISTING in v0.4.0: the save control is on a different tab from the editing.** The flow works — Edit loads the Layout, `editingLayoutId` lives in `AppState` so it survives the tab change, and an amber *"Save changes to Layout X"* banner offers a one-click overwrite. But `RightPane.tsx:83` mounts `LayoutsPane` **only** while the Layouts tab is selected, and changing a monitor’s window configuration happens in the grid and the Apps tab. The user must navigate **back** to Layouts to find the save. Nothing is broken; it is undiscoverable, which for the user is the same thing — hence *"I can’t find a way to save the changes"*. NOT fixed here. |
 | 2026-08-26 | **DEFECT C was MINE, and is fixed.** The I-1 fixtures `general_S` / `general_T` were written without the `name` field that **every** app-written Layout carries (verified across all ten files). Cosmetic — the list falls back to *"Layout S"* — but it made the Sandbox’s Layouts differ in shape from anything the app produces, which muddied exactly the comparison the operator was trying to make. Both fixtures now carry a name and match the app’s key order in both data dirs. **Hand-written fixtures must match what the app writes, or they become a confound in every later diagnosis.** |
+| 2026-08-26 | **⚠ NEAR-MISS: invariant I-1 was broken by the verification itself.** Testing the defect-A fix, the operator added **VS Code** to Sandbox Layout A — which Quick Preset *"xxx"* reaches, with Switch mode ON and a live record already present. Applying it would have launched and then recorded a VS Code window for a later teardown to close. The agent’s `--new-window` handling refuses the "grab an existing window" fallback, so it should only ever have closed the window it opened — but that "should" was never tested against `Code.exe`, deliberately, because the failure mode ends the session. Entry removed (3→2 assignments, Observatory intact), both data dirs re-swept **separately**, control re-bitten. **The lesson: an invariant about test data is broken most easily by the person running the test, not by the code.** |
 | 2026-08-24 | **Parked finding (§0.3, not fixed here):** `ui/src/services/version.ts:8-10` claims `IS_SANDBOX` disables auto-update via `services/updater.ts`. It does not — `IS_SANDBOX` appears only in its own definition and `TopChrome.tsx:55`. The isolation is really the endpoint override in `tauri.sandbox.conf.json`. A comment asserting a safety property the code does not implement. |
 
 ---
