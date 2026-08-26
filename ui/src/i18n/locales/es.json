@@ -142,7 +142,10 @@
     "confirmWillClear_other": "se borrarán {{count}} celdas en {{monitor}}",
     "confirmExitEdit": "y se saldrá del modo de edición del Diseño actual",
     "confirmUnaffected": "Los Diseños y Preajustes rápidos guardados no se ven afectados.",
-    "confirmContinue": "¿Continuar?"
+    "confirmContinue": "¿Continuar?",
+    "editingLayout": "Editando {{name}}",
+    "editingGoSave": "Ir a guardar →",
+    "editingHint": "Los cambios no se guardan hasta que pulses Guardar cambios en la pestaña Diseños."
   },
   "grid": {
     "noSelection": "Sin selección",
@@ -438,7 +441,9 @@
     "exported": "Exportado \"{{name}}\" → instadesk-layout-{{kind}}-{{slot}}.json (revisa tu carpeta de Descargas).",
     "readFileError": "No se pudo leer el archivo: {{error}}",
     "importPrompt": "Importar \"{{file}}\" — guardar en la ranura (A–Z). Sugerida: {{suggested}}",
-    "imported": "Importado \"{{file}}\" → {{type}} {{slot}} ({{count}} asignaciones)."
+    "imported": "Importado \"{{file}}\" → {{type}} {{slot}} ({{count}} asignaciones).",
+    "preservedNotice": "{{count}} elemento de este Diseño no puede mostrarse en la cuadrícula (una app multiventana). Se conserva tal cual al guardar.",
+    "preservedNotice_other": "{{count}} elementos de este Diseño no pueden mostrarse en la cuadrícula (apps multiventana). Se conservan tal cual al guardar."
   },
   "browseApp": {
     "title": "Añadir aplicación",

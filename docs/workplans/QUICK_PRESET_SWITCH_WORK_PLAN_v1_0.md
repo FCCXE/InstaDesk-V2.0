@@ -284,6 +284,9 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-12 | ES parity sweep | no | build | ✅ |
 | I-13 | Telemetry + **a fifth `prebuild` gate** (updater purity) | no | build | ✅ |
 | — | **✅ CLOSED 2026-08-26** — real elevated-window detection, proven on iVMS-4200 | — | manual | ✅ `skippedElevated`, named, window untouched |
+| I-15 | **Defect A** — editing a Layout must never destroy what the grid cannot show | **yes** | build + Sandbox | ☐ |
+| I-16 | **Defect B** — make the save affordance reachable from where the editing happens | no | build + Sandbox | ☐ |
+| I-17 | **Deep audit** of the app (operator-requested), before release | no | full | ☐ |
 | I-14 | Release v0.5.0 — Sandbox installer gate, CHANGELOG, bump, two-repo push, tag | **yes** | full | ☐ |
 
 ---
@@ -1296,6 +1299,117 @@ re-confirm both repos clean.
 **Done when.** The live `latest.json` reports `0.5.0` and the operator has run the released build.
 **Verification.** The `curl` and `gh release view` output, read from the live release — not from
 the robot's green tick.
+
+**Status. ☐**
+
+---
+
+### I-15 — Defect A: editing must not destroy what the grid cannot show ☐ **RISKY** → tag `pre-layout-preserve`
+
+**Objective.** Stop silent data loss. Operator-reported, pre-existing in v0.4.0, and capable of
+deleting a user's saved work.
+
+**Mechanism, already measured (2026-08-26).** `parsePresetIntoCells` (`layoutBuilder.ts:336`) skips
+any assignment with no top-level `title`; a `multiWindowApp` has none, because its titles live
+inside `windows[]`. And `buildSaveAssignmentsMulti` (`:269`) builds **purely from grid cells** — it
+never sees the original preset. So Edit drops the entry and Save writes it out of existence.
+
+**Design — PRESERVE, do not represent.** Three options were weighed:
+(a) **preserve** unrepresentable assignments through load → save, untouched;
+(b) **represent** multi-window apps as grid cells so they can be edited;
+(c) **warn only**, and let the loss happen if the user proceeds.
+
+**(a) is the fix.** (b) is a feature, not a repair — it needs a design for how a one-launch,
+many-window app occupies cells across monitors, and shipping that in reaction to a data-loss report
+is how one defect becomes two. (c) leaves the destruction intact and merely narrates it. (a) makes
+the edit **non-destructive**, which is the actual defect, and does not foreclose (b) later.
+
+**Steps.**
+1. On Edit, capture the assignments the parser could not represent, into `AppState` beside
+   `editingLayoutId` — the same place, for the same reason: a tab change unmounts the pane.
+2. On the edit-overwrite save, append them to the built assignments.
+3. **Only** on that path. Saving to a *different* slot must not carry another Layout's hidden
+   entries into it.
+4. Tell the user on the editing banner: N entries are preserved and not editable here.
+
+**Bite test (mandatory).** Load a Layout containing a `multiWindowApp`, save it unchanged, and
+assert the assignment is **byte-identical** afterwards — against the real Sandbox `general_A`
+(the Observatory launcher), not a hand-typed fixture. Then mutate the preserve step off and prove
+the assignment is destroyed, which is what v0.4.0 does today.
+**Done when.** A round-trip edit+save of a multi-window Layout loses nothing.
+
+**Status. ✅ CODE DONE 2026-08-26** — one end-to-end verification owed (below).
+
+⚠ **SEVERITY CORRECTED. I overstated this to the operator and must own it.** I said saving after an
+edit *destroys* the hidden entry. Reading `onSaveEditedLayout`'s guards shows that is true in only
+one of two cases:
+
+| Layout contains | What v0.4.0 actually does |
+|---|---|
+| **only** unrepresentable entries (e.g. the Sandbox's `general_A`) | loads EMPTY, and the save is **refused** — `assignedCount === 0` returns early. Frustrating; **no data lost**. **This is the operator's case.** |
+| a **mix** of representable and unrepresentable entries | loads partially, the save **succeeds**, and the hidden entry is **silently destroyed**. **This is the data-loss case.** |
+
+Both symptoms the operator reported are real — the empty display and the un-saveable Layout — but
+the destruction needs a *mixed* Layout, which they do not currently have. The defect is real and
+worth fixing; it was not, in their case, eating their work. Saying so plainly matters more than the
+drama of the first telling.
+
+**Implemented.**
+- On Edit, assignments with no top-level `title` are captured into `AppState` beside
+  `editingLayoutId` — same place, same reason: the pane unmounts on a tab change.
+- On the **edit-overwrite path only**, they are appended back. Saving to a different slot cannot
+  carry one Layout's hidden entries into another.
+- Cleared at all **3** exit-edit sites, so they cannot leak into the next edit.
+- The editing banner now **says** how many entries are hidden and that they are kept — silence is
+  what made this a defect rather than a limitation, because the user could not know.
+
+**Verified so far.**
+- The Rust save path preserves them: `presets_save` only fills in `type` when **absent**, and a
+  `multiWindowApp` already has one, so every field passes through verbatim.
+- Against the **real** Sandbox `general_A`, the fix's own predicate selects exactly the
+  `multiWindowApp` entry (1 of 1, 7 windows), and the categories sum.
+- All five `prebuild` gates green.
+
+**⚠ Owed: the end-to-end round trip.** There is **no TS test harness in this project** (no vitest,
+no jest — checked), so this cannot be a unit test without adding a runner on the eve of a release.
+The decisive proof is a real Edit → Save in the Sandbox with the file compared **byte for byte**
+before and after. Operator triggers; I measure.
+
+**Status. ✅ code / ☐ round trip**
+
+---
+
+### I-16 — Defect B: the save affordance is on a different tab from the editing ☐
+
+**Objective.** Make it findable. Nothing is broken — `editingLayoutId` lives in `AppState` and
+survives the tab change, and the amber *"Save changes to Layout X"* banner does overwrite in one
+click. But `RightPane.tsx:83` mounts `LayoutsPane` **only** on the Layouts tab, while changing a
+monitor's configuration happens in the grid and the Apps tab. The user must navigate back to find
+the save, and therefore concludes there is none.
+
+**Design.** Surface the editing state in the **bottom bar**, which is always mounted and already
+reads `editingLayoutId`. It names the Layout being edited and offers a control that takes the user
+to the save.
+⚠ **The save itself stays in `LayoutsPane`.** Firing it from the bottom bar would mean invoking
+logic in a component that is unmounted — an event nobody is listening to. Navigating to where the
+control already lives is the honest fix and the small one.
+
+**Done when.** While editing, the bottom bar says so from any tab, and one click reaches the save.
+
+**Status. ☐**
+
+---
+
+### I-17 — Deep audit before release ☐
+
+**Objective.** Operator-requested: a deliberate sweep of the app before v0.5.0 ships, rather than
+trusting that five green gates mean the product is sound. **Mechanical green is not soundness** —
+the gates compare the app to its own rules; nothing compares the app to what a user expects.
+
+**Scope to settle with the operator before starting**, since "deep audit" admits several readings:
+the Layout/Quick Preset data paths, the whole UI surface for more affordance gaps of B's kind, the
+agent's verbs, or the release artefacts. Defects A and B were both found by a **person using the
+app**, not by any gate — which is itself evidence about where to look.
 
 **Status. ☐**
 

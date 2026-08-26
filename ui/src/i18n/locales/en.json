@@ -142,7 +142,10 @@
     "confirmWillClear_other": "will clear {{count}} cells on {{monitor}}",
     "confirmExitEdit": "and exit Edit mode for the current Layout",
     "confirmUnaffected": "Saved Layouts and Quick Presets are not affected.",
-    "confirmContinue": "Continue?"
+    "confirmContinue": "Continue?",
+    "editingLayout": "Editing {{name}}",
+    "editingGoSave": "Go to save →",
+    "editingHint": "Changes are not saved until you press Save changes on the Layouts tab."
   },
   "grid": {
     "noSelection": "No selection",
@@ -438,7 +441,9 @@
     "exported": "Exported \"{{name}}\" → instadesk-layout-{{kind}}-{{slot}}.json (check your Downloads folder).",
     "readFileError": "Could not read file: {{error}}",
     "importPrompt": "Import \"{{file}}\" — save to slot (A–Z). Suggested: {{suggested}}",
-    "imported": "Imported \"{{file}}\" → {{type}} {{slot}} ({{count}} assignments)."
+    "imported": "Imported \"{{file}}\" → {{type}} {{slot}} ({{count}} assignments).",
+    "preservedNotice": "{{count}} entry in this Layout can't be shown in the grid (a multi-window app). It is kept exactly as it was when you save.",
+    "preservedNotice_other": "{{count}} entries in this Layout can't be shown in the grid (multi-window apps). They are kept exactly as they were when you save."
   },
   "browseApp": {
     "title": "Add Application",

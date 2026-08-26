@@ -44,6 +44,15 @@ export default function BottomControls() {
   } = useAppState()
 
   const { t } = useTranslation()
+
+  // editingLayoutId is `${kind}_${slot}` — a filename stem, never something to
+  // show a user. The saved NAME is not reachable from here: AppState.presets is
+  // the demo list, not the saved Layouts, and the real ones are fetched inside
+  // LayoutsPane. So show the slot, which the id genuinely carries. Reaching for a
+  // name we do not have would mean inventing a lookup that is wrong.
+  const editingLayoutName = editingLayoutId
+    ? t('monitor.entryLayout', { slot: editingLayoutId.split('_').pop() ?? '' })
+    : ''
   const confirm = useConfirm()
   const assignedCount = Object.values(assignments).filter(Boolean).length
   // Total assignments across ALL monitors — drives the "Clear All Grids"
@@ -248,7 +257,34 @@ export default function BottomControls() {
     'text-muted'
 
   return (
-    <div data-tour="bottom-bar" className="mt-4 h-12 border-t border-line bg-surface flex items-center gap-2 px-3">
+    <div className="mt-4">
+      {/* DEFECT B (2026-08-26). The Save control lives in LayoutsPane, which
+          RightPane mounts ONLY on the Layouts tab — while the editing itself
+          happens in the grid and the Apps tab. Nothing was broken: the editing
+          state survives the tab change and the amber banner does overwrite in one
+          click. It was simply unfindable, and to the user that is the same thing.
+          The bottom bar is always mounted and already reads editingLayoutId, so
+          it can say what is going on from anywhere.
+          The save itself deliberately stays where it is: firing it from here would
+          mean invoking logic in an unmounted component. This points at it. */}
+      {editingLayoutId && (
+        <div className="flex items-center gap-2 border-t border-amber-300 bg-amber-50 px-3 py-1.5 dark:border-amber-500/40 dark:bg-amber-500/10">
+          <span className="text-[11px] font-semibold text-amber-900 dark:text-amber-200">
+            {t('bottomBar.editingLayout', { name: editingLayoutName })}
+          </span>
+          <span className="min-w-0 flex-1 truncate text-[10px] text-amber-800 dark:text-amber-300">
+            {t('bottomBar.editingHint')}
+          </span>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('insta:open-layouts-tab'))}
+            className="shrink-0 rounded-md border border-amber-400 bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-900 hover:bg-amber-200 dark:border-amber-500/50 dark:bg-amber-500/20 dark:text-amber-200"
+          >
+            {t('bottomBar.editingGoSave')}
+          </button>
+        </div>
+      )}
+    <div data-tour="bottom-bar" className="h-12 border-t border-line bg-surface flex items-center gap-2 px-3">
       {/* Bottom-bar strip (2026-07-27): three zones — a fixed LEFT spacer, the
           flex-1 CENTER that holds the button group (justify-center), and a fixed
           RIGHT status zone. The group centers within the flex-1 middle; because
@@ -383,6 +419,7 @@ export default function BottomControls() {
           {statusText}
         </span>
       </div>
+    </div>
     </div>
   )
 }

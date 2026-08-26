@@ -493,6 +493,14 @@ type AppStateContext = {
   switchMode: boolean
   setSwitchMode: (on: boolean) => void
 
+  // Assignments of the Layout being edited that the GRID CANNOT REPRESENT, held
+  // so that saving does not delete them (defect A, 2026-08-26). Lives here, not
+  // in LayoutsPane, for the same reason editingLayoutId does: the pane unmounts
+  // on a tab change, and the user edits on a different tab from the one that
+  // saves. Empty whenever nothing is being edited.
+  preservedAssignments: unknown[]
+  setPreservedAssignments: (a: unknown[]) => void
+
   // Layout content preview (2026-06-09): id of the Layout currently
   // being shown in the central-pane overlay (LayoutPreviewOverlay), or
   // null when no preview is open. Toggled by the "Show content" /
@@ -601,6 +609,9 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     // path) applies the same bezel margin as launch tiling. Runs on mount too.
     void api.setSnapMargin(windowMargin)
   }, [windowMargin])
+
+  /* ---------- Unrepresentable assignments held across an edit ---------- */
+  const [preservedAssignments, setPreservedAssignments] = useState<unknown[]>([])
 
   /* ---------- Switch mode (2026-08-25) ---------- */
   const [switchMode, setSwitchModeState] = useState<boolean>(loadSwitchMode)
@@ -996,6 +1007,9 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     // switch mode
     switchMode,
     setSwitchMode,
+    // assignments the grid cannot show, preserved across an edit
+    preservedAssignments,
+    setPreservedAssignments,
     // layout preview overlay
     previewedLayoutId,
     setPreviewedLayout,
@@ -1020,7 +1034,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     selectedApp, clipboard,
     monitors, currentMonitorId, presets, pendingPresetByMonitor,
     gridSizeByMonitor, currentGridCols, currentGridRows, defaultGridSize,
-    windowMargin, switchMode, previewedLayoutId,
+    windowMargin, switchMode, preservedAssignments, previewedLayoutId,
     urlBuilder, browsers
   ])
 

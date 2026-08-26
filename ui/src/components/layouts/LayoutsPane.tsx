@@ -61,6 +61,7 @@ export default function LayoutsPane() {
     assignmentsByMonitor, assignedCountTotal,
     argsOverridesByMonitor,
     editingLayoutId, setEditingLayoutId,
+    preservedAssignments, setPreservedAssignments,
     // Per-monitor grid sizes (Step 3 of the grid-size build, 2026-06-09):
     // save flow captures gridSizeByMonitor into each assignment; load flow
     // restores per-monitor sizes via setGridSizeForMonitor for each monitor
@@ -173,6 +174,18 @@ export default function LayoutsPane() {
     try {
       const res = await api.presetsGet(m.preset.kind, m.preset.slot);
       const parsed = parsePresetIntoCellsMulti(res.preset.assignments, defaultGridSize);
+      // DEFECT A (2026-08-26). The grid can only represent an assignment that
+      // has a top-level `title`; a multiWindowApp has none, because its titles
+      // live inside windows[]. Those entries are dropped here — and the save
+      // path builds PURELY from grid cells, so saving used to delete them from
+      // the user's Layout without ever saying so.
+      //
+      // Hold them, and put them back on save. They stay uneditable, which is a
+      // separate and much larger job; what they must not be is DESTROYED by an
+      // edit that never showed them in the first place.
+      const unrepresentable = (res.preset.assignments as Array<{ title?: string }>)
+        .filter((a) => !a.title);
+      setPreservedAssignments(unrepresentable);
       // Restore each monitor's grid size from the saved preset BEFORE
       // replacing the cells (Step 3 of grid-size build). Without this, the
       // dashboard would render the loaded assignments against whatever
@@ -244,7 +257,10 @@ export default function LayoutsPane() {
       // Preserve the Layout's existing custom name (raw, may be "") when
       // overwriting — `name` above is the localized display label and must not
       // be frozen in as a custom name for unnamed Layouts.
-      await api.presetsSave(kind, slot, built.assignments, editingLayout.preset.name);
+      // Restore what the grid could not show. ONLY on this path: saving to a
+      // DIFFERENT slot must never carry one Layout's hidden entries into another.
+      const toSave = [...built.assignments, ...(preservedAssignments as typeof built.assignments)];
+      await api.presetsSave(kind, slot, toSave, editingLayout.preset.name);
       const perMonitor = new Map<number, string[]>();
       for (const a of built.assignments) {
         const list = perMonitor.get(a.monitor) ?? [];
@@ -259,7 +275,7 @@ export default function LayoutsPane() {
       if (built.warnings.length > 0) {
         window.setTimeout(() => flash({ kind: "err", msg: built.warnings.join(" ") }), 200);
       }
-      setEditingLayoutId(null);
+      setEditingLayoutId(null); setPreservedAssignments([]);
       window.dispatchEvent(new CustomEvent("insta:presets-changed"));
     } catch (e) {
       flash({ kind: "err", msg: (e as Error).message });
@@ -269,7 +285,7 @@ export default function LayoutsPane() {
   };
 
   const onCancelEdit = () => {
-    setEditingLayoutId(null);
+    setEditingLayoutId(null); setPreservedAssignments([]);
     flash({ kind: "ok", msg: t("layouts.editCleared") });
   };
 
@@ -395,7 +411,7 @@ export default function LayoutsPane() {
       }
       // Saving a NEW layout (via the explicit slot prompt) ends any prior
       // edit session, since the user has just committed to a different slot.
-      setEditingLayoutId(null);
+      setEditingLayoutId(null); setPreservedAssignments([]);
       window.dispatchEvent(new CustomEvent("insta:presets-changed"));
     } catch (e) {
       flash({ kind: "err", msg: (e as Error).message });
@@ -541,6 +557,14 @@ export default function LayoutsPane() {
               <span className="text-sm font-medium text-amber-900 dark:text-amber-200">
                 {t("layouts.editingName", { name: editingLayout.name })}
               </span>
+            {/* Defect A: say that hidden entries exist and are safe. Silence here
+                is what made the old behaviour a data-loss bug rather than a
+                limitation — the user could not know anything had been dropped. */}
+            {preservedAssignments.length > 0 && (
+              <span className="w-full text-[11px] text-amber-800 dark:text-amber-300">
+                {t("layouts.preservedNotice", { count: preservedAssignments.length })}
+              </span>
+            )}
               <span className="text-[11px] text-amber-700 dark:text-amber-300">
                 {t("layouts.editingHint")}
               </span>
