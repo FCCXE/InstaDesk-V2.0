@@ -8,6 +8,7 @@ import {
   inTauri,
   type PresetListItem,
   type QuickPresetListItem,
+  type SwitchWindowResult,
 } from '../services/api'
 import DisplayArray from './DisplayArray'
 import QuickPresetsManager from './quickpresets/QuickPresetsManager'
@@ -45,6 +46,12 @@ export default function MonitorSelector() {
   const [applyState, setApplyState] = useState<ApplyState>({ kind: 'idle' })
   const [open, setOpen] = useState(false)
   const [qpManagerOpen, setQpManagerOpen] = useState(false)
+  // The windows a switch could NOT take down, kept until dismissed. The status
+  // line flashes and clears after a few seconds, which is fine for "it worked"
+  // and wrong for "something of yours is still open" — that has to stay put long
+  // enough to be read and acted on.
+  const [leftBehind, setLeftBehind] = useState<SwitchWindowResult[]>([])
+  const [disagreements, setDisagreements] = useState<SwitchWindowResult[]>([])
 
   const refreshLayouts = useCallback(async () => {
     try {
@@ -143,6 +150,10 @@ export default function MonitorSelector() {
   const runSwitch = async (entry: DropdownEntry, source: 'manual' | 'hotkey' = 'manual') => {
     const kind = entry.type === 'qp' ? 'quickpreset' : entry.layout.kind
     const slot = entry.type === 'qp' ? entry.slot : entry.layout.slot
+    // Clear the previous report first: a leftover list from an earlier switch
+    // still on screen would be read as describing THIS one.
+    setLeftBehind([])
+    setDisagreements([])
     flash({ kind: 'busy' })
     try {
       const r = await api.quickPresetsSwitch(kind, slot, windowMargin)
@@ -155,6 +166,15 @@ export default function MonitorSelector() {
         placed: r.nowLive.windows,
         source,
       })
+      // Name what survived, do not merely count it. `stillOpen` and
+      // `skippedElevated` are the two the user can act on; `stale` needs no
+      // mention (it was already gone) and `closed` speaks for itself.
+      const survivors = (r.teardown.windows ?? []).filter(
+        (w) => w.outcome === 'stillOpen' || w.outcome === 'skippedElevated',
+      )
+      setLeftBehind(survivors)
+      setDisagreements(r.teardown.crossCheckDisagreements ?? [])
+
       const applied = t('monitor.appliedName', { name: entryLabel(entry, t) })
       // Report what became of the OLD preset, not merely that the new one landed.
       // A count of windows we asked to close is not a count of windows that
@@ -435,6 +455,56 @@ export default function MonitorSelector() {
         </label>
 
         <div className={`mt-2 text-[11px] ${statusColor}`}>{statusText}</div>
+
+        {/* What the swap could NOT take down, named and explained. Ruling D-1.
+            This persists until dismissed rather than flashing like the status
+            line: "it worked" can afford to disappear, "something of yours is
+            still open" cannot.
+
+            Deliberately NOT a tour anchor. It exists only after a switch has left
+            something open, so a walkthrough could never reach it on a healthy
+            desktop — a step pointing here would find null and be unable to tell
+            "not rendered yet" from "deleted", the exact ambiguity reachableWhen
+            exists to prevent (finding F-4). */}
+        {leftBehind.length > 0 && (
+          <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-2 dark:border-amber-500/40 dark:bg-amber-500/10">
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <span className="text-[11px] font-semibold text-amber-800 dark:text-amber-300">
+                {t('monitor.switchLeftBehindTitle')} · {leftBehind.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => { setLeftBehind([]); setDisagreements([]) }}
+                className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium text-amber-800 hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-500/20"
+              >
+                {t('monitor.switchLeftBehindDismiss')}
+              </button>
+            </div>
+            <ul className="space-y-1">
+              {leftBehind.map((w) => (
+                <li key={w.hwnd} className="text-[10px] leading-tight">
+                  <span className="block truncate font-medium text-fg" title={w.title || undefined}>
+                    {w.title || t('monitor.switchUnnamedWindow')}
+                  </span>
+                  {/* The reason comes from the agent, which is the only layer that
+                      knows why. Inventing wording here would let the two drift. */}
+                  <span className="block text-amber-700 dark:text-amber-400">{w.reason}</span>
+                </li>
+              ))}
+            </ul>
+
+            {disagreements.length > 0 && (
+              <div className="mt-2 border-t border-amber-300 pt-1.5 dark:border-amber-500/40">
+                <span className="block text-[10px] font-semibold text-red-700 dark:text-red-400">
+                  {t('monitor.switchDisagreementTitle')}
+                </span>
+                <span className="block text-[10px] leading-tight text-red-700 dark:text-red-400">
+                  {t('monitor.switchDisagreementBody', { count: disagreements.length })}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ---------------------------------------------------- */}

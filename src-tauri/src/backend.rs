@@ -3014,4 +3014,51 @@ mod tests {
         let _ = close_tracked_windows(current_session_id(), &json!(cleanup)).await;
         let _ = fs::remove_file(live_record_path());
     }
+
+    /// Ruling D-1: a window the swap could not take down must be NAMED, with a
+    /// reason. Driven against a live record planted by the harness in
+    /// scratchpad/stubborn.ps1 — a window that refuses WM_CLOSE, standing in for
+    /// an app whose save prompt the user declines. Deliberately not Notepad (I-1).
+    ///
+    /// Plant the record first, then:
+    ///   cargo test --lib -- --ignored --nocapture live_switch_reports
+    #[cfg(windows)]
+    #[tokio::test]
+    #[ignore]
+    async fn live_switch_reports_a_window_it_could_not_close() {
+        let bundled = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("binaries")
+            .join("InstaDesk.WinAgent.exe");
+        std::env::set_var("AGENT_PATH", &bundled);
+
+        let planted = read_live_record().expect("plant a live record first");
+        println!("planted record: {planted}");
+
+        let res = quickpresets_switch("quickpreset".into(), "T".into(), None)
+            .await
+            .expect("switch");
+        let td = &res["teardown"];
+        println!("counts: {}", td["counts"]);
+        let survivors: Vec<&Value> = td["windows"]
+            .as_array()
+            .map(|a| a.iter().filter(|w| w["outcome"] == json!("stillOpen")).collect())
+            .unwrap_or_default();
+        for w in &survivors {
+            println!("  LEFT OPEN  title={}  reason={}", w["title"], w["reason"]);
+        }
+        assert!(!survivors.is_empty(), "the stubborn window should be reported stillOpen");
+        for w in &survivors {
+            assert!(w["title"].as_str().unwrap_or("").len() > 0, "must NAME the window");
+            assert!(w["reason"].as_str().unwrap_or("").len() > 0, "must say WHY");
+        }
+        assert_eq!(td["crossCheckDisagreements"].as_array().map(|a| a.len()), Some(0));
+
+        // Tidy up T's windows; the stubborn one is killed by the harness.
+        let cleanup: Vec<Value> = collect_placed_windows(&res["applied"])
+            .iter()
+            .map(|w| json!({ "hwnd": w.hwnd, "exe": w.exe }))
+            .collect();
+        let _ = close_tracked_windows(current_session_id(), &json!(cleanup)).await;
+        let _ = fs::remove_file(live_record_path());
+    }
 }

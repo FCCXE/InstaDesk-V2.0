@@ -197,7 +197,13 @@
     "switchModeOff": "Off — applying adds to what is already open",
     "switchedSummary": "Closed {{closed}} of {{requested}}",
     "switchedLeftOpen": "{{count}} left open",
-    "switchNothingLive": "Nothing was live to close"
+    "switchNothingLive": "Nothing was live to close",
+    "switchLeftBehindTitle": "Left open",
+    "switchLeftBehindDismiss": "Dismiss",
+    "switchUnnamedWindow": "(untitled window)",
+    "switchDisagreementTitle": "Report inconsistency — please tell FcXe Studios",
+    "switchDisagreementBody": "InstaDesk and its Windows helper disagreed about {{count}} window. The desktop was not changed beyond what is listed above.",
+    "switchDisagreementBody_other": "InstaDesk and its Windows helper disagreed about {{count}} windows. The desktop was not changed beyond what is listed above."
   },
   "tabs": {
     "apps": "Apps",

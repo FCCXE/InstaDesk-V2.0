@@ -275,8 +275,8 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-7 | Rust: ownership record + the switch command | **yes** | cargo + Sandbox | ✅ `957da0e` |
 | I-8 | `api.ts` + `AppState`: switch state and the new call | no | build | ✅ |
 | I-9 | UI: the Switch mode control + anchor + EN strings | no | build + Sandbox | ✅ |
-| — | **▶ OPERATOR CHECKPOINT 1** — `--publish`, then desktop icon → Check for updates | — | installed Sandbox | ☐ |
-| I-10 | UI: the outcome report — what could not be closed, and why | no | build + Sandbox | ☐ |
+| — | **▶ OPERATOR CHECKPOINT 1** — stamped local installer → desktop icon | — | installed Sandbox | ✅ **PASSED 2026-08-25** — build `0.4.0-sb.1787666839355`, operator: *"working as expected"* |
+| I-10 | UI: the outcome report — what could not be closed, and why | no | build + Sandbox | ✅ |
 | — | **▶ OPERATOR CHECKPOINT 2** — the honest report, incl. the iVMS-4200 case | — | installed Sandbox | ☐ |
 | I-11 | Tour: anchor registry, chapter step, content truth (F-7) | no | build | ☐ |
 | I-12 | ES parity sweep | no | build | ☐ |
@@ -1107,10 +1107,44 @@ that Apply with the switch **off** behaves exactly as before.
 count, plus each `stillOpen` and `skippedElevated` window **named with its reason** ("runs as
 administrator", "save prompt not answered"). Never report a count of requests as an outcome.
 **Done when.** A swap that leaves a window behind says so, on screen, naming it.
-**Verification.** Sandbox run with an elevated window and with a Notepad holding unsaved text;
-screenshot or transcript of the actual message.
+**Verification.** Sandbox run with a window that DECLINES to close, and — if one is available — an
+elevated window; transcript or screenshot of the actual message.
+⚠ **Amended 2026-08-25:** this step said "a Notepad holding unsaved text". I-1 banned Notepad from
+this programme: Win11 opens documents as **tabs**, and the operator keeps one holding unsaved work, so
+the test could prompt for *their* document. The stubborn-window harness from I-6 models the same case
+deterministically and without touching anything real.
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-26** — awaiting **OPERATOR CHECKPOINT 2**.
+
+- **The report names windows; it does not merely count them.** After a swap, every window that came
+  back `stillOpen` or `skippedElevated` is listed with its **title and the agent's own reason**.
+  `stale` is omitted (it was already gone) and `closed` speaks for itself.
+- **The wording comes from the agent**, which is the only layer that knows why. Composing our own
+  phrasing in the UI would let the two drift, and the user would be told something the mechanism
+  never concluded.
+- **It persists until dismissed**, unlike the status line, which clears after 2.8 s. "It worked" can
+  afford to vanish; "something of yours is still open" cannot.
+- **Cross-check disagreements surface as a defect notice**, not as a user-facing outcome. If our
+  reading and the agent's ever disagree, the panel says so and asks the user to report it.
+- **Live proof** (`live_switch_reports_a_window_it_could_not_close`):
+  ```
+  counts: {"closed":0,"skippedElevated":0,"stale":0,"stillOpen":1}
+  LEFT OPEN  title="INSTADESK-BITE-TEST-STUBBORN"
+             reason="the app did not close it — it may be waiting on a save prompt, or you declined one"
+  ```
+  The test asserts the title and reason are both non-empty — a report that named nothing would pass a
+  weaker assertion while telling the user nothing.
+
+**⚠ Not a tour anchor, deliberately.** The panel first carried `data-tour="qp-left-behind"`, and the
+anchor gate **rejected the `reachableWhen` kind I invented for it**. That refusal was right, and it
+pointed at the real answer: this panel exists *only* after a switch has left something open, so a
+walkthrough could never reach it on a healthy desktop. A step pointing here would find null and be
+unable to tell "not rendered yet" from "deleted" — finding F-4 exactly. The attribute was removed
+rather than the gate widened, and the reasoning kept in the source.
+
+**Owed at the checkpoint:** see the panel on screen, and — with **iVMS-4200 running** — close I-6's
+open verification by confirming a genuinely elevated window is reported and named.
+
 
 ---
 
@@ -1234,6 +1268,8 @@ resolved in the increment named.
 | 2026-08-25 | **Third sighting of the capture-omission phenomenon.** `--capture-layout` reported 2 Explorer windows where a direct enumeration found 6. Cleanup in I-7 was therefore done by enumeration and exact title match, never from a capture. |
 | 2026-08-25 | **I-9 adds ES alongside EN, changing I-12’s job.** The plan said "EN strings only at this stage", but the i18n parity gate runs on every build: EN-only would either fail it or require ES placeholders holding English text — and a placeholder that satisfies the gate is invisible to it afterwards, which is how untranslated strings ship. Both locales were written properly together. **I-12 is now a verification sweep, not a translation batch.** |
 | 2026-08-25 | **D-7 (new, settled in I-9): the Ctrl+Alt+1..9 hotkeys honour Switch mode.** It governs the transition, so it governs every way of triggering one. A button that swaps while a hotkey stacks would give one setting two meanings depending on how it was reached — the ambiguity §1 rejected. |
+| 2026-08-26 | **A suspected D-3 defect was investigated and REFUTED — the instrument was wrong, not the design.** The session id changed between two runs (1787587487 → 1787681405, ~26 h apart) with no reboot apparent, which looked like sleep/hibernate corrupting the boot estimate. Measurement showed the machine **had** rebooted (2026-08-25 13:10; the operator’s InstaDesk PID 1480 was gone; uptime 1 day), so a new id was correct and the planted record was rightly discarded as belonging to a previous session. The alarm came from `[Environment]::TickCount64` returning blank under PowerShell 5.1 and a timezone-skewed `-UFormat %s`. **D-3 behaved exactly as designed.** Recorded because the near-miss was a false defect report, which would have been as costly as a missed one. |
+| 2026-08-26 | **Heredoc backslash trap struck a third time**, corrupting an exe path written for a test fixture (`1.0` → vertical tab). The planting step is now a **file** (`scratchpad/plant.py`) that asserts the path survived and contains no control characters. Stop writing backslash-bearing content through heredocs. |
 | 2026-08-24 | **Parked finding (§0.3, not fixed here):** `ui/src/services/version.ts:8-10` claims `IS_SANDBOX` disables auto-update via `services/updater.ts`. It does not — `IS_SANDBOX` appears only in its own definition and `TopChrome.tsx:55`. The isolation is really the endpoint override in `tauri.sandbox.conf.json`. A comment asserting a safety property the code does not implement. |
 
 ---

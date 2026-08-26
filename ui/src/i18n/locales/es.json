@@ -197,7 +197,13 @@
     "switchModeOff": "Desactivado: al aplicar se añade a lo que ya está abierto",
     "switchedSummary": "Cerradas {{closed}} de {{requested}}",
     "switchedLeftOpen": "{{count}} sin cerrar",
-    "switchNothingLive": "No había ningún preajuste activo que cerrar"
+    "switchNothingLive": "No había ningún preajuste activo que cerrar",
+    "switchLeftBehindTitle": "Quedaron abiertas",
+    "switchLeftBehindDismiss": "Descartar",
+    "switchUnnamedWindow": "(ventana sin título)",
+    "switchDisagreementTitle": "Inconsistencia en el informe: comunícalo a FcXe Studios",
+    "switchDisagreementBody": "InstaDesk y su asistente de Windows discreparon sobre {{count}} ventana. El escritorio no se modificó más allá de lo indicado arriba.",
+    "switchDisagreementBody_other": "InstaDesk y su asistente de Windows discreparon sobre {{count}} ventanas. El escritorio no se modificó más allá de lo indicado arriba."
   },
   "tabs": {
     "apps": "Apps",
