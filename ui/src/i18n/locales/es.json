@@ -346,7 +346,7 @@
       },
       "quickPresets": {
         "title": "Preajustes rápidos",
-        "body": "• Un Preajuste rápido agrupa varios Diseños para aplicarlos todos juntos con un clic.\n• Créalos y gestiónalos desde «Gestionar PR» en el panel izquierdo; luego elige uno y pulsa Aplicar."
+        "body": "• Un Preajuste rápido agrupa varios Diseños para aplicarlos todos de una vez.\n• Créalos y gestiónalos desde “Gestionar preajustes” en el panel izquierdo; luego elige uno y pulsa Aplicar. Para eliminar uno, entra en Gestionar preajustes.\n• Ctrl+Alt+1–9 aplica los Preajustes rápidos A–I desde cualquier sitio, aunque InstaDesk no esté en primer plano.\n• Modo intercambio (la casilla bajo Aplicar, desactivada por defecto): al activarlo, aplicar un preajuste CIERRA primero las ventanas del preajuste en uso, de modo que cambias de escritorio en lugar de apilarlos. Nada con trabajo sin guardar se fuerza: la aplicación pregunta, y lo que quede abierto se enumera por su nombre."
       },
       "snap": {
         "title": "Ajuste (Snap)",
@@ -695,7 +695,7 @@
             "body": "Aplicar abre todo lo del paquete y coloca cada ventana en la pantalla que le corresponde. Por sí solo únicamente AÑADE a lo que ya está abierto."
           },
           "qp-switch-mode": {
-            "title": "Un preajuste a la vez, si lo prefieres",
+            "title": "Modo intercambio: un preajuste a la vez",
             "body": "Déjalo desactivado y Aplicar funciona como arriba. Actívalo y Aplicar CERRARÁ primero las ventanas del preajuste que esté en uso, de modo que cambias de escritorio en lugar de apilarlos. A lo que tenga trabajo sin guardar se le pregunta y nunca se le fuerza, y lo que quede abierto se te enumera por su nombre."
           }
         }

@@ -286,7 +286,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | — | **✅ CLOSED 2026-08-26** — real elevated-window detection, proven on iVMS-4200 | — | manual | ✅ `skippedElevated`, named, window untouched |
 | I-15 | **Defect A** — editing a Layout must never destroy what the grid cannot show | **yes** | build + Sandbox | ✅ |
 | I-16 | **Defect B** — make the save affordance reachable from where the editing happens | no | build + Sandbox | ✅ |
-| I-17 | **Deep audit** of the app (operator-requested), before release | no | full | ☐ |
+| I-17 | **Discoverability audit** — capability vs teaching | no | full | ✅ 11/30 gaps |
 | I-14 | Release v0.5.0 — Sandbox installer gate, CHANGELOG, bump, two-repo push, tag | **yes** | full | ☐ |
 
 ---
@@ -1435,7 +1435,41 @@ the Layout/Quick Preset data paths, the whole UI surface for more affordance gap
 agent's verbs, or the release artefacts. Defects A and B were both found by a **person using the
 app**, not by any gate — which is itself evidence about where to look.
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-26.** Record: `docs/workplans/DISCOVERABILITY_AUDIT_v1_0.md`.
+
+**Scope, set by the operator's own observation** (*"these are the types of features our Guided Tour
+doesn't cover"*): audit **capability versus discoverability** — what the app can do, against what it
+tells you it can do. Chosen over the data paths, the agent verbs or the release artefacts because
+**every** defect this sweep produced had that one shape, and **not one was findable by a gate**:
+the save on the wrong tab, the Quick Preset delete inside a modal, launch args taught nowhere.
+Gates compare the app to its own rules; nothing compared its capabilities to its teaching.
+
+**Result: 11 of 30 user-facing capabilities are absent from the Guided Tour; 7 of those are absent
+from Help as well — taught nowhere in the product.** The `apps` chapter is the thinnest of the nine
+and stops exactly one step short of launch args, the feature that unlocks two windows of one app.
+
+**The audit independently rediscovered the Quick Preset delete** — the gap the operator had hit by
+hand an hour earlier. That is the best evidence available that it measures the right thing.
+
+**⚠ And it caught this programme's own work.** The I-11 tour step for Switch mode pointed at the
+control and explained the behaviour but **never used the words "Switch mode"**, and there was **no
+Help entry at all** — the very defect the audit exists to find, committed by the increment meant to
+prevent it. Fixed on the spot, since it is in scope: the step is now titled *"Switch mode — one
+preset at a time"*, and the Quick Presets Help section went from 2 bullets to 4, naming Switch
+mode, the delete, and the Ctrl+Alt+1–9 hotkeys.
+
+**Left open, ranked, for the next programme:** launch args in the `apps` chapter (highest value per
+word); multi-window apps; the two deletes; the hotkeys in the tour; autostart / telemetry / licence.
+
+**⚠ Method caveat, stated in the audit itself:** the cross-reference is a keyword match. It answers
+*"is this ever mentioned?"*, not *"is it explained well?"* A `yes` means **no gap proven**, never
+**adequately taught**.
+
+**A-0 (new, not fixed):** `check-tour-safety.mjs`'s header still reasons *"9 of 32 commands reach
+the agent … 9+23=32"*. The surface is now **33** — 32 under `backend::`/`license::` plus
+`set_hotkey` — because this programme added `quickpresets_switch`. The gate's behaviour is
+unaffected (it matches identifiers, not counts), but a comment stating a total that no longer holds
+is exactly the stale fact someone trusts later.
 
 ---
 

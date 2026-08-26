@@ -346,7 +346,7 @@
       },
       "quickPresets": {
         "title": "Quick Presets",
-        "body": "• A Quick Preset bundles several Layouts so you can apply them all together in one click.\n• Create and manage them from “Manage QPs” in the left panel, then pick one and click Apply."
+        "body": "• A Quick Preset bundles several Layouts so you can apply them all together in one click.\n• Create and manage them from “Manage QPs” in the left panel, then pick one and click Apply. Delete one from inside Manage QPs.\n• Ctrl+Alt+1–9 applies Quick Presets A–I from anywhere, even when InstaDesk is not focused.\n• Switch mode (the tick-box under Apply, off by default): with it on, applying a preset first CLOSES the windows of the preset currently in place, so you swap desks instead of stacking them. Nothing with unsaved work is forced — the app asks, and anything left open is listed by name."
       },
       "snap": {
         "title": "Snap",
@@ -695,7 +695,7 @@
             "body": "Apply launches everything in the bundle and places each window on the screen it belongs to. On its own it only ever ADDS to what is already open."
           },
           "qp-switch-mode": {
-            "title": "One preset at a time, if you want it",
+            "title": "Switch mode — one preset at a time",
             "body": "Leave this off and Apply behaves as above. Turn it on and Apply first CLOSES the windows of the preset currently in place, so you swap desks instead of stacking them. Anything with unsaved work is asked politely and never forced, and whatever stays open is listed for you by name."
           }
         }
