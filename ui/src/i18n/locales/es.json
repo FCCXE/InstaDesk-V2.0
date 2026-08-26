@@ -687,7 +687,11 @@
           },
           "qp-apply-button": {
             "title": "Ejecutarlo",
-            "body": "Aplicar abre todo lo del grupo y coloca cada ventana en la pantalla que le corresponde."
+            "body": "Aplicar abre todo lo del paquete y coloca cada ventana en la pantalla que le corresponde. Por sí solo únicamente AÑADE a lo que ya está abierto."
+          },
+          "qp-switch-mode": {
+            "title": "Un preajuste a la vez, si lo prefieres",
+            "body": "Déjalo desactivado y Aplicar funciona como arriba. Actívalo y Aplicar CERRARÁ primero las ventanas del preajuste que esté en uso, de modo que cambias de escritorio en lugar de apilarlos. A lo que tenga trabajo sin guardar se le pregunta y nunca se le fuerza, y lo que quede abierto se te enumera por su nombre."
           }
         }
       },

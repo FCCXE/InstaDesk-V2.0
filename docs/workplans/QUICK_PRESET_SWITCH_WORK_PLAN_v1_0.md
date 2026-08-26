@@ -278,7 +278,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | — | **▶ OPERATOR CHECKPOINT 1** — stamped local installer → desktop icon | — | installed Sandbox | ✅ **PASSED 2026-08-25** — build `0.4.0-sb.1787666839355`, operator: *"working as expected"* |
 | I-10 | UI: the outcome report — what could not be closed, and why | no | build + Sandbox | ✅ |
 | — | **▶ OPERATOR CHECKPOINT 2** — the honest report, incl. the iVMS-4200 case | — | installed Sandbox | ☐ |
-| I-11 | Tour: anchor registry, chapter step, content truth (F-7) | no | build | ☐ |
+| I-11 | Tour: anchor registry, chapter step, content truth (F-7) | no | build | ✅* |
 | I-12 | ES parity sweep | no | build | ☐ |
 | I-13 | Telemetry | no | build | ☐ |
 | — | **✅ CLOSED 2026-08-26** — real elevated-window detection, proven on iVMS-4200 | — | manual | ✅ `skippedElevated`, named, window untouched |
@@ -1160,7 +1160,31 @@ tells the truth about Switch mode. Verify the safety gate still forbids firing i
 gates verify structure; nothing verifies that prose is true.
 **Verification.** Build output plus a note recording who read it and when.
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-26** — one half owed to the operator, named below.
+
+- **F-7 was real, and it had already happened.** The Apply step read *"Apply launches everything in
+  the bundle and places each window on the screen it belongs to."* With Switch mode shipped that
+  sentence is **incomplete, not wrong** — the most dangerous kind, because every gate stays green
+  while it quietly stops telling the whole truth. It now ends: *"On its own it only ever ADDS to
+  what is already open."*
+- **New step** on `qp-switch-mode`, in EN and ES: what the switch does, that unsaved work is asked
+  and never forced, and that whatever stays open is listed by name. 45 → **46** step references.
+- **Deliberately NO schematic**, and this is a judgement worth recording rather than a gap. The
+  engine animates a two-state A → B toggle (`startTransform` / `endTransform`). A swap is inherently
+  **three**-state: old in place, old gone, new in place. Squeezing it into two would draw something
+  that is not what the action does — and a misleading diagram of the **most destructive action in
+  the app** is worse than no diagram. REQ-2's purpose is that the tour must never *perform* such an
+  action; that is enforced by the safety gate, not by the picture. A faithful switch schematic
+  needs a three-phase engine, which is a legitimate future item and not this increment's job.
+- **The safety gate re-bitten in the new state**, since the chapter now references the anchor: a
+  tour file calling `api.quickPresetsSwitch` was refused with **2** violations — the denylist entry
+  added in I-2 *and* the structural api rule — then removed and the gate returned to green.
+- All four `prebuild` gates green; `built in 4.28s`; 610 = 610 keys.
+
+**⚠ Owed: a human must READ the chapter on screen.** Gates verify structure; **nothing verifies that
+prose is true** — v0.4.0 shipped a walkthrough describing grid sizes the app does not offer, past
+three green gates, and a person reading the screen caught it. Folded into the release checkpoint.
+
 
 ---
 

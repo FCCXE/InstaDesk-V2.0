@@ -687,7 +687,11 @@
           },
           "qp-apply-button": {
             "title": "Running it",
-            "body": "Apply launches everything in the bundle and places each window on the screen it belongs to."
+            "body": "Apply launches everything in the bundle and places each window on the screen it belongs to. On its own it only ever ADDS to what is already open."
+          },
+          "qp-switch-mode": {
+            "title": "One preset at a time, if you want it",
+            "body": "Leave this off and Apply behaves as above. Turn it on and Apply first CLOSES the windows of the preset currently in place, so you swap desks instead of stacking them. Anything with unsaved work is asked politely and never forced, and whatever stays open is listed for you by name."
           }
         }
       },

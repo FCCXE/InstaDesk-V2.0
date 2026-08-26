@@ -70,6 +70,13 @@ const QUICK_PRESETS: TourChapter = {
     { anchor: 'qp-manage-button' },
     { anchor: 'qp-dropdown' },
     { anchor: 'qp-apply-button', schematic: 'apply' },
+    // Switch mode gets a step but NO schematic. The engine animates a two-state
+    // A -> B toggle; a swap is inherently three-state (old in place, old gone,
+    // new in place), and squeezing it into two would draw something that is not
+    // what the action does. A misleading diagram of the most destructive action
+    // in the app is worse than none — the prose carries it instead, and the
+    // safety gate still forbids the tour from ever FIRING it.
+    { anchor: 'qp-switch-mode' },
   ],
 }
 
