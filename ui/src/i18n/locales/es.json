@@ -682,7 +682,7 @@
           },
           "layout-capture-button": {
             "title": "Captura lo que ya tienes",
-            "body": "Capturar diseño actual convierte tu escritorio, tal y como está, en un Diseño. Es además la única forma de registrar una app multiventana: un programa que abre varias ventanas. No pueden dibujarse en la cuadrícula, así que un Diseño editado parece más vacío de lo que es, pero se conservan al guardar."
+            "body": "Capturar disposición actual convierte tu escritorio, tal y como está, en un Diseño. Es además la única forma de registrar una app multiventana: un programa que abre varias ventanas. No pueden dibujarse en la cuadrícula, así que un Diseño editado parece más vacío de lo que es, pero se conservan al guardar."
           }
         }
       },

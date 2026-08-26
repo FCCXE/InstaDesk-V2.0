@@ -631,7 +631,7 @@ export default function LayoutsPane() {
               data-tour="layout-capture-button"
               onClick={onCapture}
               disabled={capturing}
-              className="flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-4 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-60 disabled:cursor-wait dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
+              className="flex min-h-9 w-full items-center justify-center gap-1.5 rounded-lg py-1 leading-tight border border-emerald-300 bg-emerald-50 px-4 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-60 disabled:cursor-wait dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
               title={t("capture.buttonTitle")}
             >
               <span aria-hidden>📸</span>
@@ -674,7 +674,7 @@ export default function LayoutsPane() {
               type="button"
               data-tour="layout-import-button"
               onClick={triggerImport}
-              className="h-9 flex-1 rounded-lg px-4 text-sm font-medium border border-line bg-raised text-fg hover:bg-raised"
+              className="min-h-9 flex-1 rounded-lg px-4 py-1 text-sm font-medium leading-tight border border-line bg-raised text-fg hover:bg-raised"
               title={t("layouts.importTitle")}
             >
               {t("layouts.import")}

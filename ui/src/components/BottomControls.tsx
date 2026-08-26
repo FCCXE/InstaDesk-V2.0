@@ -284,7 +284,7 @@ export default function BottomControls() {
           </button>
         </div>
       )}
-    <div data-tour="bottom-bar" className="h-12 border-t border-line bg-surface flex items-center gap-2 px-3">
+    <div data-tour="bottom-bar" className="min-h-12 border-t border-line bg-surface flex flex-wrap items-center gap-2 px-3 py-1">
       {/* Bottom-bar strip (2026-07-27): three zones — a fixed LEFT spacer, the
           flex-1 CENTER that holds the button group (justify-center), and a fixed
           RIGHT status zone. The group centers within the flex-1 middle; because
