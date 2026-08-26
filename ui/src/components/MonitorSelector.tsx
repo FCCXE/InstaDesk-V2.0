@@ -159,12 +159,27 @@ export default function MonitorSelector() {
       const r = await api.quickPresetsSwitch(kind, slot, windowMargin)
       const c = r.teardown.counts
       const leftOver = c ? c.stillOpen + c.skippedElevated : 0
+      // Each outcome reported SEPARATELY, not summed. The whole question this
+      // event exists to answer is WHICH kind of leftover happens in the field:
+      // "the app declined" and "Windows forbade it" have different remedies, and
+      // a single `leftOpen` total cannot tell them apart — the same collapsing of
+      // two meanings into one value that this programme keeps running into.
+      // `requested` is carried too, so a rate can be computed rather than a bare
+      // count that says nothing without its denominator.
       track('quickpreset_switched', {
         kind,
-        closed: c?.closed ?? 0,
-        leftOpen: leftOver,
-        placed: r.nowLive.windows,
         source,
+        teardownRan: r.teardown.ran,
+        requested: r.teardown.requested ?? 0,
+        closed: c?.closed ?? 0,
+        stillOpen: c?.stillOpen ?? 0,
+        skippedElevated: c?.skippedElevated ?? 0,
+        stale: c?.stale ?? 0,
+        placed: r.nowLive.windows,
+        // Must always be 0. Anything else is our reading disagreeing with the
+        // agent's, which is a defect we would otherwise only hear about if a user
+        // happened to report the on-screen notice.
+        disagreements: r.teardown.crossCheckDisagreements?.length ?? 0,
       })
       // Name what survived, do not merely count it. `stillOpen` and
       // `skippedElevated` are the two the user can act on; `stale` needs no
