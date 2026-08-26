@@ -288,7 +288,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-16 | **Defect B** — make the save affordance reachable from where the editing happens | no | build + Sandbox | ✅ |
 | I-17 | **Discoverability audit** — capability vs teaching | no | full | ✅ 11/30 gaps |
 | I-18 | **A-0** — the stale command count in `check-tour-safety.mjs` | no | build | ✅ 10/33 |
-| I-19 | **Silent merge** — warn when one app's regions collapse into one window | no | build + Sandbox | ☐ |
+| I-19 | **Silent merge** — the save now states the window count; merges are visible | no | build + Sandbox | ✅ |
 | I-20 | **G-8/G-9** — launch args + two windows of one app, in the tour | no | build | ☐ |
 | I-21 | **G-1** — multi-window apps, taught nowhere today | no | build | ☐ |
 | I-22 | **G-2/G-3** — the two deletes | no | build | ☐ |
@@ -1541,7 +1541,59 @@ silently change the meaning of **every Layout already saved**. The fix is to **w
 at the launch-args override that already solves it.
 **Done when.** Saving a Layout where one (app, args) group spans what were plainly separate
 selections produces a visible warning naming the app and the remedy.
-**Status. ☐**
+
+**Status. ✅ DONE 2026-08-26 — but NOT as the Done-when was written, and that is the finding.**
+
+⚠ **The Done-when asked for something undetectable.** "Spans what were plainly separate
+selections" is a statement about the user's **intent**, and by the time `buildSaveAssignments` runs,
+that history is gone — all it has is a `cell → app` map. Two regions drawn separately and one
+region drawn in a single sweep are **byte-identical** in the data. Any warning keyed on "these were
+separate" would have been a guess dressed as a detection, and it would have fired on people who
+meant exactly what they drew.
+
+**So the fix reports rather than detects** — the same move as the teardown report:
+
+1. **The save summary now states the window count**, and tallies repeats as `App ×2`:
+   *"Saved … • 3 windows • M1: VS Code, File Explorer • M3: Edge"*. A user who drew two VS Code
+   regions and got one window now **sees** `VS Code` once instead of `×2`. The merge stops being
+   silent without anyone having to infer intent.
+2. **The not-a-rectangle error now names the remedy.** It previously said what was wrong and left
+   the user to discover on their own that two regions of one app need **different launch args** to
+   become two windows — the very thing they were trying to do. It now says so.
+
+**Grouping deliberately unchanged**, per the increment's own prohibition: `regionGroupKey(app, args)`
+decides the meaning of every Layout already saved.
+
+Both save paths were updated — the assertion required **2** matches and would have failed on 1, which
+is how the "+ New Layout" path avoided being left behind. All five gates green; 617 = 617 keys.
+
+---
+
+### ⚖ Sub-menus for the Guided Tour — ASSESSED AND REJECTED (operator question, 2026-08-26)
+
+**Measured first.** Every one of the audit's eleven gaps belongs in a chapter that **already
+exists**. Projected: **46 → 55 steps, and 9 → 9 chapters.** The chapter list does not grow; the
+chapters get deeper. Only `monitorsSettings` becomes uncomfortable, at 7 → **10** steps — and
+nesting would not help that at all.
+
+Sub-menus solve *"too many top-level items"*, which is a problem this tour does not have.
+
+**And the stronger objection.** This app's diagnosed failure mode is **things sitting one layer
+deeper than people look** — the save on another tab, the Quick Preset delete inside a modal, launch
+args behind a control nothing mentions. Three for three, all found by a person, none by a gate. The
+Guided Tour is the one surface whose whole job is to cure that. **A sub-menu is by construction a
+place to hide things**; adding one here would apply the disease as the treatment.
+
+**Instead, folded into I-20…I-24** — organisation designed with the content, not bolted on after:
+1. **Group headers in the flat list** — Essentials · Building layouts · Power features · Settings.
+   Everything stays one click away; the menu already scrolls, so length is not the constraint.
+2. **Split `monitorsSettings`** into *Monitors* and *Settings* rather than nesting it — 10 chapters,
+   still a comfortable flat list, and it puts autostart / telemetry / licence where they are looked
+   for.
+3. **Tag the advanced chapters**, so a first-timer is not intimidated and a returning user can find
+   depth deliberately.
+
+**Revisit only if the chapter count ever passes ~15.** It will not from this work.
 
 ---
 

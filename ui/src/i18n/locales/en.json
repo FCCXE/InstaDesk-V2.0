@@ -443,7 +443,9 @@
     "importPrompt": "Import \"{{file}}\" — save to slot (A–Z). Suggested: {{suggested}}",
     "imported": "Imported \"{{file}}\" → {{type}} {{slot}} ({{count}} assignments).",
     "preservedNotice": "{{count}} entry in this Layout can't be shown in the grid (a multi-window app). It is kept exactly as it was when you save.",
-    "preservedNotice_other": "{{count}} entries in this Layout can't be shown in the grid (multi-window apps). They are kept exactly as they were when you save."
+    "preservedNotice_other": "{{count}} entries in this Layout can't be shown in the grid (multi-window apps). They are kept exactly as they were when you save.",
+    "windowsCount": "{{count}} window",
+    "windowsCount_other": "{{count}} windows"
   },
   "browseApp": {
     "title": "Add Application",

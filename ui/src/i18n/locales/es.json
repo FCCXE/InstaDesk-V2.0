@@ -443,7 +443,9 @@
     "importPrompt": "Importar \"{{file}}\" — guardar en la ranura (A–Z). Sugerida: {{suggested}}",
     "imported": "Importado \"{{file}}\" → {{type}} {{slot}} ({{count}} asignaciones).",
     "preservedNotice": "{{count}} elemento de este Diseño no puede mostrarse en la cuadrícula (una app multiventana). Se conserva tal cual al guardar.",
-    "preservedNotice_other": "{{count}} elementos de este Diseño no pueden mostrarse en la cuadrícula (apps multiventana). Se conservan tal cual al guardar."
+    "preservedNotice_other": "{{count}} elementos de este Diseño no pueden mostrarse en la cuadrícula (apps multiventana). Se conservan tal cual al guardar.",
+    "windowsCount": "{{count}} ventana",
+    "windowsCount_other": "{{count}} ventanas"
   },
   "browseApp": {
     "title": "Añadir aplicación",

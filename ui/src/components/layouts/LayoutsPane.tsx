@@ -267,9 +267,19 @@ export default function LayoutsPane() {
         list.push(a.title ?? "?");
         perMonitor.set(a.monitor, list);
       }
-      const summary = [...perMonitor.entries()]
+      // Each assignment is one window. State the total and collapse repeats as
+      // "App ×2", so a user who drew two regions of one app can SEE whether they
+      // got two windows or one — regions with identical launch args merge, and
+      // that merge was previously silent.
+      const totalWindows = [...perMonitor.values()].reduce((s, l) => s + l.length, 0);
+      const summary = `${t("layouts.windowsCount", { count: totalWindows })} • ` + [...perMonitor.entries()]
         .sort((a, b) => a[0] - b[0])
-        .map(([m, titles]) => `M${m}: ${titles.join(", ")}`)
+        .map(([m, titles]) => {
+          const tally = new Map<string, number>();
+          for (const x of titles) tally.set(x, (tally.get(x) ?? 0) + 1);
+          const shown = [...tally.entries()].map(([x, k]) => (k > 1 ? `${x} ×${k}` : x));
+          return `M${m}: ${shown.join(", ")}`;
+        })
         .join(" • ");
       flash({ kind: "ok", msg: t("layouts.savedChanges", { name, count: perMonitor.size, summary }) });
       if (built.warnings.length > 0) {
@@ -397,9 +407,19 @@ export default function LayoutsPane() {
         list.push(a.title ?? "?");
         perMonitor.set(a.monitor, list);
       }
-      const summary = [...perMonitor.entries()]
+      // Each assignment is one window. State the total and collapse repeats as
+      // "App ×2", so a user who drew two regions of one app can SEE whether they
+      // got two windows or one — regions with identical launch args merge, and
+      // that merge was previously silent.
+      const totalWindows = [...perMonitor.values()].reduce((s, l) => s + l.length, 0);
+      const summary = `${t("layouts.windowsCount", { count: totalWindows })} • ` + [...perMonitor.entries()]
         .sort((a, b) => a[0] - b[0])
-        .map(([m, titles]) => `M${m}: ${titles.join(", ")}`)
+        .map(([m, titles]) => {
+          const tally = new Map<string, number>();
+          for (const x of titles) tally.set(x, (tally.get(x) ?? 0) + 1);
+          const shown = [...tally.entries()].map(([x, k]) => (k > 1 ? `${x} ×${k}` : x));
+          return `M${m}: ${shown.join(", ")}`;
+        })
         .join(" • ");
       const shownName = displayName({ kind: "general", slot, name });
       track("layout_saved", { monitors: perMonitor.size, windows: built.assignments.length, named: name.length > 0 });
