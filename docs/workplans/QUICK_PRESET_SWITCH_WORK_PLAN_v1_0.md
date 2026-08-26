@@ -287,6 +287,13 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-15 | **Defect A** — editing a Layout must never destroy what the grid cannot show | **yes** | build + Sandbox | ✅ |
 | I-16 | **Defect B** — make the save affordance reachable from where the editing happens | no | build + Sandbox | ✅ |
 | I-17 | **Discoverability audit** — capability vs teaching | no | full | ✅ 11/30 gaps |
+| I-18 | **A-0** — the stale command count in `check-tour-safety.mjs` | no | build | ✅ 10/33 |
+| I-19 | **Silent merge** — warn when one app's regions collapse into one window | no | build + Sandbox | ☐ |
+| I-20 | **G-8/G-9** — launch args + two windows of one app, in the tour | no | build | ☐ |
+| I-21 | **G-1** — multi-window apps, taught nowhere today | no | build | ☐ |
+| I-22 | **G-2/G-3** — the two deletes | no | build | ☐ |
+| I-23 | **G-11** — the Ctrl+Alt+1–9 hotkeys, in the tour | no | build | ☐ |
+| I-24 | **G-4/G-5/G-6** — autostart, telemetry, licence | no | build | ☐ |
 | I-14 | Release v0.5.0 — Sandbox installer gate, CHANGELOG, bump, two-repo push, tag | **yes** | full | ☐ |
 
 ---
@@ -1470,6 +1477,85 @@ the agent … 9+23=32"*. The surface is now **33** — 32 under `backend::`/`lic
 `set_hotkey` — because this programme added `quickpresets_switch`. The gate's behaviour is
 unaffected (it matches identifiers, not counts), but a comment stating a total that no longer holds
 is exactly the stale fact someone trusts later.
+
+---
+
+### ⚡ SEQUENCE CHANGED 2026-08-26 — finish, then launch
+
+The plan had the release next. The operator asked *"why the haste to launch an unfinished
+product?"* and was right. **My case for shipping first was "get the data-loss fix to users" — and I
+had never checked whether there are any.**
+
+Measured: **one download per release** on v0.2.1, v0.3.0 and v0.4.0 — the operator's own machine.
+The `latest.json` counts (60 / 109 / 12) are that one installation's updater polling. **There are no
+users.** Shipping now would protect nobody, and nothing is time-pressured.
+
+A recommendation from a general principle, without checking that its premise held. The measurement
+cost one command. **I-14 moves after the fixes below.**
+
+---
+
+### I-18 — A-0: the stale command count in the safety gate ☐
+
+**Objective.** `check-tour-safety.mjs`'s header reasons *"9 of 32 commands reach the agent, 23 do
+not, 9+23=32"*. Correct for v0.4.0; the surface is now **33**. The gate matches identifiers, not
+counts, so behaviour is unaffected — but a comment stating a total that no longer holds is the
+stale fact someone trusts later.
+**Steps.** Re-derive the surface **and the reach set** from source; do not adjust the numbers by
+arithmetic. Prove the categories still sum.
+
+**Status. ✅ DONE 2026-08-26. Result: 10 of 33 reach the agent, 23 do not, 10+23=33.**
+
+The old comment was **right for v0.4.0** (9 of 32, 23 do not). The delta is exactly
+`quickpresets_switch`, and **"23 do not" is unchanged** — which is the check on the arithmetic.
+
+⚠ **Getting this right took four derivations, and three were confidently wrong. Every error was
+caught by a control, never by inspection.** That is the finding; the number is almost incidental.
+
+| attempt | said | wrong because |
+|---|---|---|
+| 1 | 11 reach | fn bodies extracted by guessing where the next `fn` starts — bodies bled together and credited `list_browsers` and `open_manual` |
+| 2 | 9 reach | brace matching fixed the false positives, but the seed set was a **guessed list of helper names**; it lost `identify_monitors`, which spawns via `spawn_agent_detached` → `spawn_agent_child` |
+| 3 | 11 reach | seeded on "touches `agent_path()`" — too broad: `health` looks the path up **to report it** and never spawns |
+| 4 | **10 reach** | seeded on the two real spawn constructions — `agent_command(..)`, and `agent_invocation(..)` + `Command::new` — with **9 controls in both directions**, all passing |
+
+**The method that worked, now written into the gate's own header** so the next person does not
+repeat it: *reaching* means **spawning**, not path lookup; there are **two** spawn constructions,
+not one; extract bodies by **brace matching**; and run controls in **both** directions, requiring
+every one to pass.
+
+The gate's behaviour is untouched — a comment was edited — and it was re-bitten to prove it:
+a tour file calling the switch still fails with 2 violations, then green on removal.
+
+---
+
+### I-19 — The silent merge ☐
+
+**Objective.** Two regions of one app with the same args collapse into a single window **with no
+warning**. Non-adjacent regions error (*"isn't a single rectangle"*); adjacent ones merge silently
+— the user gets one full-width window they did not ask for and is told nothing. This is what cost
+the operator the two-VS-Code-sessions discovery.
+
+**⛔ Do NOT change the grouping.** `regionGroupKey(app, args)` is deliberate, and altering it would
+silently change the meaning of **every Layout already saved**. The fix is to **warn**, and to point
+at the launch-args override that already solves it.
+**Done when.** Saving a Layout where one (app, args) group spans what were plainly separate
+selections produces a visible warning naming the app and the remedy.
+**Status. ☐**
+
+---
+
+### I-20…I-24 — the audit's open gaps ☐
+
+Ranked in `DISCOVERABILITY_AUDIT_v1_0.md` §4 by *cost of not knowing*: launch args first (highest
+value per word, and the operator hit it), then multi-window apps, the two deletes, the hotkeys,
+then the Settings surface.
+
+**⚠ The audit's own caveat binds this work:** its cross-reference is a **keyword match**. Adding a
+passing mention would flip a row to `yes` while teaching nobody anything. The bar is *explained*,
+not *mentioned*.
+
+**Status. ☐**
 
 ---
 

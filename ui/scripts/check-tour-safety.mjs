@@ -15,8 +15,28 @@
 //
 //   Axis 1 — mutates the user's desktop. A ONE-HOP call analysis put
 //            presets_run ("Apply a Layout") in the SAFE column; it reaches the
-//            WinAgent through run_launch. Only the transitive closure is
-//            correct: 9 of 32 commands reach the agent, 23 do not, 9+23=32.
+//            WinAgent through run_launch. Only the transitive closure is correct.
+//
+//            Re-derived 2026-08-26 (v0.5.0): 10 of 33 commands reach the agent,
+//            23 do not, 10+23=33. It was 9 of 32 for v0.4.0; the delta is
+//            quickpresets_switch, this programme's addition. The "23 do not" is
+//            unchanged, which is the check on the arithmetic.
+//
+//            HOW to re-derive it, because getting this right took four attempts
+//            and three of them were confidently wrong:
+//              - "reaches the agent" means SPAWNING it, not calling agent_path().
+//                `health` looks the path up to report it and never runs it.
+//              - there are TWO spawn constructions, not one: agent_command(..),
+//                and agent_invocation(..) + std::process::Command::new. Seeding
+//                on the first alone silently loses identify_monitors, which goes
+//                through spawn_agent_detached -> spawn_agent_child.
+//              - extract fn bodies by BRACE MATCHING. Guessing where the next fn
+//                begins bleeds one body into the next and manufactures false
+//                positives (it credited list_browsers and open_manual).
+//              - run controls in BOTH directions and require every one to pass:
+//                identify_monitors/monitors/arrange_all_windows must reach;
+//                health/list_browsers/presets_save/browse must not. Each wrong
+//                answer above was caught by a control, never by inspection.
 //
 //   Axis 2 — destroys or overwrites saved data WITHOUT touching a window.
 //            presets_delete / quickpresets_delete call fs::remove_file;
