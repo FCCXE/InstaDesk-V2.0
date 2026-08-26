@@ -141,12 +141,14 @@ current Windows session. A stale record must degrade to "nothing to take down", 
 ## §3 — The gates
 
 The four `prebuild` gates from v0.4.0 are permanent infrastructure and bind this work unchanged.
-This programme adds two instruments of its own, each written before the code it guards:
+**`prebuild` now runs FIVE checks** — the fifth added by I-13.
+This programme adds three instruments of its own:
 
 | Gate | Where it runs | Guards |
 |---|---|---|
 | `check-tour-safety.mjs` **(extended, I-2)** | `npm run build` → `prebuild` | the new teardown verbs can never be fired from walkthrough code |
 | Rust revalidation tests **(new, I-5)** | `cargo test --lib` | a recycled, mismatched or cross-session handle is refused before any close is posted |
+| `check-updater-purity.mjs` **(new, I-13)** | `npm run build` → `prebuild` | a side effect sits inside a React state updater, which React may run more than once |
 
 **⛔ Never weaken a gate to stop it complaining.** If one fires on a false positive, make it more
 precise and re-bite it in both directions.
@@ -280,7 +282,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | — | **▶ OPERATOR CHECKPOINT 2** — the honest report, incl. the iVMS-4200 case | — | installed Sandbox | ☐ |
 | I-11 | Tour: anchor registry, chapter step, content truth (F-7) | no | build | ✅ read on screen 08-26 |
 | I-12 | ES parity sweep | no | build | ✅ |
-| I-13 | Telemetry | no | build | ☐ |
+| I-13 | Telemetry + **a fifth `prebuild` gate** (updater purity) | no | build | ✅ |
 | — | **✅ CLOSED 2026-08-26** — real elevated-window detection, proven on iVMS-4200 | — | manual | ✅ `skippedElevated`, named, window untouched |
 | I-14 | Release v0.5.0 — Sandbox installer gate, CHANGELOG, bump, two-repo push, tag | **yes** | full | ☐ |
 
@@ -1233,7 +1235,45 @@ recorded `StrictMode` double-emit defect came from a side effect inside a setter
 **Done when.** Events fire once per transition under `StrictMode`.
 **Verification.** Observed event log showing exactly one event per swap.
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-26.**
+
+- **Each outcome is reported SEPARATELY**, not summed. I-9 emitted a single `leftOpen` total — the
+  very collapsing of two meanings into one value this programme keeps running into. *"The app
+  declined"* and *"Windows forbade it"* have different remedies and a combined count cannot tell
+  them apart. `quickpreset_switched` now carries `closed`, `stillOpen`, `skippedElevated`, `stale`,
+  plus `requested` so a **rate** can be computed rather than a bare count that means nothing without
+  its denominator — and `teardownRan`, `placed`, `kind`, `source`.
+- **`disagreements` is emitted and must always be 0.** A cross-check failure would otherwise reach
+  us only if a user happened to report the on-screen notice.
+- Telemetry stays **inert unless keys are present at build time**, so this adds nothing to a dev run
+  or a key-less build, and the existing opt-out governs it like every other event.
+
+### A fifth gate, added deliberately: `check-updater-purity.mjs`
+
+The step said *"React state updaters must stay pure — the recorded StrictMode double-emit defect
+came from a side effect inside a setter."* That was a **sentence**. This programme adds a second
+emit, on a destructive action, so the defect class is live again — and rule 4 says a check is
+written and proven to bite, not asserted. It is now a mechanism.
+
+It scans the **updater form only** (`setX(prev => …)`); `setX(value)` is not an updater, and effects
+in event handlers or `useEffect` are legitimate and untouched. Argument text is captured by paren
+balancing with string-skipping, so a nested call or a bracket inside a message cannot truncate it.
+
+**Bite tests — 3 of 3:**
+1. the **v0.4.0 defect verbatim in shape** (`track()` inside `setIndex`) → FAIL, naming file, line,
+   setter and reason.
+2. `localStorage` inside an updater → FAIL.
+3. **negative control** — effect in the handler, pure updater → **PASS**, and that run reported
+   **57** updaters across **51** files, proving the file was scanned and cleared, not skipped.
+
+**Proven to stop the build, not merely run inside it:** with a violation planted, `npm run build`
+exited **1** and `tsc`/`vite` never executed. Restored → green.
+
+**The existing tree passes on its merits:** **56** functional updaters across 50 files, all clean —
+including this programme's three `track()` calls, which sit in async handler bodies that StrictMode
+does not double-invoke. A gate with nothing to look at would be worthless, and this one says so
+loudly if that ever becomes true.
+
 
 ---
 
