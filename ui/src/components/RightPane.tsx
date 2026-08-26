@@ -507,14 +507,29 @@ function AppsAppsPane() {
             It also gives the walkthrough a stable anchor: the override box cannot
             be one, because an anchor that is only sometimes present makes a null
             lookup ambiguous (finding F-4). */}
-        {(
-          <div
-            data-tour="apps-launch-args-hint"
-            className="mt-3 rounded-md border border-dashed border-line px-2 py-1.5 text-[11px] leading-tight text-muted"
-          >
-            {t("apps.launchArgsHintIdle")}
-          </div>
-        )}
+        {/* Collapsed by default. App History below is flex-1, so it gets whatever
+            vertical space is left — every line here is taken directly out of it,
+            and the Spanish text runs 287 characters against English's 219, so the
+            cost was roughly twice as large in Spanish. Reported from screenshots,
+            2026-08-26.
+
+            The one-line summary still NAMES the thing, so it remains findable by
+            scanning; only the elaboration folds away. That is not the "hidden one
+            layer deeper" mistake the audit condemns — and the detail now also
+            lives in a tour step, which did not exist when this block was written
+            always-open. <details> keeps it stateless and keyboard-accessible, and
+            the anchor stays present in both states. */}
+        <details
+          data-tour="apps-launch-args-hint"
+          className="group mt-3 rounded-md border border-dashed border-line px-2 py-1 text-[11px] leading-tight text-muted"
+        >
+          <summary className="cursor-pointer list-none select-none marker:content-[''] hover:text-fg">
+            <span aria-hidden className="mr-1">💡</span>
+            {t("apps.launchArgsHintSummary")}
+            <span aria-hidden className="float-right transition-transform group-open:rotate-90">›</span>
+          </summary>
+          <p className="mt-1 border-t border-line pt-1">{t("apps.launchArgsHintIdle")}</p>
+        </details>
 
         {/* Per-cell args override — only shown when there's a selection.
             Lets two regions of the same app launch with different args

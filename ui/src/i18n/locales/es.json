@@ -274,7 +274,8 @@
     "showHiddenTitle": "Muestra las apps ocultas del catálogo en línea. Activa Editar para restaurar individuales.",
     "restoreAll": "↺ Restaurar todo",
     "restoreAllConfirm": "¿Restaurar las {{count}} apps ocultas a la lista?",
-    "launchArgsHintIdle": "Dos regiones de la MISMA app necesitan «Argumentos de inicio» distintos para abrirse como dos ventanas separadas: por ejemplo, una carpeta diferente para cada VS Code o Explorador de archivos. Selecciona celdas para definirlos. Con argumentos idénticos se convierten en una sola ventana."
+    "launchArgsHintIdle": "Dos regiones de la MISMA app necesitan «Argumentos de inicio» distintos para abrirse como dos ventanas separadas: por ejemplo, una carpeta diferente para cada VS Code o Explorador de archivos. Selecciona celdas para definirlos. Con argumentos idénticos se convierten en una sola ventana.",
+    "launchArgsHintSummary": "¿Dos ventanas de la misma app?"
   },
   "urls": {
     "pickBrowser": "Elige primero un navegador.",

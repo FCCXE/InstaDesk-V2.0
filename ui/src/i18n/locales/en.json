@@ -274,7 +274,8 @@
     "showHiddenTitle": "Reveal the hidden catalog seeds inline. Turn on Edit to Restore individual ones.",
     "restoreAll": "↺ Restore all",
     "restoreAllConfirm": "Restore all {{count}} hidden apps to the list?",
-    "launchArgsHintIdle": "Two regions of the SAME app need different \"Launch args\" to open as two separate windows — e.g. a different folder for each VS Code or File Explorer. Select cells to set them. With identical args they become one window."
+    "launchArgsHintIdle": "Two regions of the SAME app need different \"Launch args\" to open as two separate windows — e.g. a different folder for each VS Code or File Explorer. Select cells to set them. With identical args they become one window.",
+    "launchArgsHintSummary": "Two windows of the same app?"
   },
   "urls": {
     "pickBrowser": "Pick a browser first.",
