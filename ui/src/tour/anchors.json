@@ -241,6 +241,16 @@
       }
     },
     {
+      "id": "apps-launch-args-hint",
+      "component": "components/RightPane.tsx",
+      "describes": "the always-present hint pointing at Launch args, and why two regions of one app need different args",
+      "reachableWhen": {
+        "kind": "tab+sub",
+        "tab": "Apps",
+        "sub": "Apps"
+      }
+    },
+    {
       "id": "help-sections",
       "component": "components/RightPane.tsx",
       "describes": "the collapsible Help quick-reference sections",

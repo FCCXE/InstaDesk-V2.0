@@ -273,7 +273,8 @@
     "hideHiddenTitle": "Hide the hidden-seed entries again — they remain hidden by default.",
     "showHiddenTitle": "Reveal the hidden catalog seeds inline. Turn on Edit to Restore individual ones.",
     "restoreAll": "↺ Restore all",
-    "restoreAllConfirm": "Restore all {{count}} hidden apps to the list?"
+    "restoreAllConfirm": "Restore all {{count}} hidden apps to the list?",
+    "launchArgsHintIdle": "Two regions of the SAME app need different \"Launch args\" to open as two separate windows — e.g. a different folder for each VS Code or File Explorer. Select cells to set them. With identical args they become one window."
   },
   "urls": {
     "pickBrowser": "Pick a browser first.",
@@ -645,6 +646,10 @@
           "assign-buttons": {
             "title": "Assigning and unassigning",
             "body": "Select a region, pick an app, then Assign to Selection. Unassign Selection empties the region again without touching anything else."
+          },
+          "apps-launch-args-hint": {
+            "title": "Two windows of the same app",
+            "body": "Select cells and a \"Launch args\" box appears here. It is what tells InstaDesk that two regions of the SAME app are different windows: give each a different value — typically a different folder — and you get two. Leave them identical and the two regions are treated as one window. This is how you put two VS Code projects, or two File Explorer folders, side by side."
           }
         }
       },

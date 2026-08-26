@@ -48,6 +48,10 @@ const APPS: TourChapter = {
     { anchor: 'tab-apps' },
     { anchor: 'apps-subtabs' },
     { anchor: 'assign-buttons' },
+    // Discoverability audit G-8/G-9. The `apps` chapter was the thinnest of the
+    // nine and stopped exactly one step short of the thing that unlocks two
+    // windows of one app — the feature the operator hit as a dead end.
+    { anchor: 'apps-launch-args-hint' },
   ],
 }
 

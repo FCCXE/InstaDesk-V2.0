@@ -273,7 +273,8 @@
     "hideHiddenTitle": "Vuelve a ocultar las entradas ocultas — permanecen ocultas por defecto.",
     "showHiddenTitle": "Muestra las apps ocultas del catálogo en línea. Activa Editar para restaurar individuales.",
     "restoreAll": "↺ Restaurar todo",
-    "restoreAllConfirm": "¿Restaurar las {{count}} apps ocultas a la lista?"
+    "restoreAllConfirm": "¿Restaurar las {{count}} apps ocultas a la lista?",
+    "launchArgsHintIdle": "Dos regiones de la MISMA app necesitan «Argumentos de inicio» distintos para abrirse como dos ventanas separadas: por ejemplo, una carpeta diferente para cada VS Code o Explorador de archivos. Selecciona celdas para definirlos. Con argumentos idénticos se convierten en una sola ventana."
   },
   "urls": {
     "pickBrowser": "Elige primero un navegador.",
@@ -645,6 +646,10 @@
           "assign-buttons": {
             "title": "Asignar y quitar",
             "body": "Selecciona una región, elige una app y pulsa Asignar a la selección. Quitar selección vacía la región de nuevo sin tocar nada más."
+          },
+          "apps-launch-args-hint": {
+            "title": "Dos ventanas de la misma app",
+            "body": "Selecciona celdas y aquí aparece el cuadro «Argumentos de inicio». Es lo que le indica a InstaDesk que dos regiones de la MISMA app son ventanas distintas: dale a cada una un valor diferente —normalmente una carpeta distinta— y obtendrás dos. Si los dejas idénticos, las dos regiones se tratan como una sola ventana. Así se colocan dos proyectos de VS Code, o dos carpetas del Explorador, uno al lado del otro."
           }
         }
       },

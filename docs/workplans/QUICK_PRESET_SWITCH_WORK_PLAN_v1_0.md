@@ -289,7 +289,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-17 | **Discoverability audit** — capability vs teaching | no | full | ✅ 11/30 gaps |
 | I-18 | **A-0** — the stale command count in `check-tour-safety.mjs` | no | build | ✅ 10/33 |
 | I-19 | **Silent merge** — the save now states the window count; merges are visible | no | build + Sandbox | ✅ |
-| I-20 | **G-8/G-9** — launch args + two windows of one app, in the tour | no | build | ☐ |
+| I-20 | **G-8/G-9** — launch args + two windows of one app | no | build | ✅ |
 | I-21 | **G-1** — multi-window apps, taught nowhere today | no | build | ☐ |
 | I-22 | **G-2/G-3** — the two deletes | no | build | ☐ |
 | I-23 | **G-11** — the Ctrl+Alt+1–9 hotkeys, in the tour | no | build | ☐ |
@@ -1607,7 +1607,28 @@ then the Settings surface.
 passing mention would flip a row to `yes` while teaching nobody anything. The bar is *explained*,
 not *mentioned*.
 
-**Status. ☐**
+**I-20 (G-8 / G-9) — ✅ DONE 2026-08-26.**
+
+Fixed in the **product**, not only in the tour. The "Launch args" box renders **only when cells are
+selected**, so a user with nothing selected had no way to learn it exists — and it is the **only**
+way to get two windows of one app. An always-present hint now states the rule in the Apps tab, and
+a tour step teaches it: *"Two windows of the same app."* The `apps` chapter goes 3 → 4 steps, no
+longer the one that stops short of what matters.
+
+⚠ **Two anchoring traps, both avoided by the same reasoning — and I walked into the second one.**
+The args box itself **cannot** be an anchor: a control that is only sometimes present makes a null
+lookup ambiguous between "not mounted yet" and "deleted" (finding F-4). So the hint carries the
+anchor instead. But I first rendered the hint **only when nothing was selected** — which would have
+made *it* absent exactly half the time, reproducing the very ambiguity I was avoiding, one line
+after avoiding it. The hint now renders **unconditionally**, and its wording had to be rewritten to
+hold in **both** states: it states the rule rather than promising "a box will appear".
+
+617 → **620** keys, 48 → **49** anchors, 46 → **47** step references. All five gates green.
+
+**Still open: I-21 (multi-window apps), I-22 (the two deletes), I-23 (hotkeys), I-24 (settings
+surface), plus the tour grouping and the `monitorsSettings` split.**
+
+**Status. ☐** (I-21…I-24)
 
 ---
 

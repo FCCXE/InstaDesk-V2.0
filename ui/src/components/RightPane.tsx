@@ -500,6 +500,22 @@ function AppsAppsPane() {
           </GhostBtn>
         </div>
 
+        {/* Always-present hint for the args override below. The override itself
+            renders only with a selection, so before today a user with nothing
+            selected had no way to learn it exists — and it is the ONLY way to get
+            two windows of one app. Discoverability audit G-8/G-9, 2026-08-26.
+            It also gives the walkthrough a stable anchor: the override box cannot
+            be one, because an anchor that is only sometimes present makes a null
+            lookup ambiguous (finding F-4). */}
+        {(
+          <div
+            data-tour="apps-launch-args-hint"
+            className="mt-3 rounded-md border border-dashed border-line px-2 py-1.5 text-[11px] leading-tight text-muted"
+          >
+            {t("apps.launchArgsHintIdle")}
+          </div>
+        )}
+
         {/* Per-cell args override — only shown when there's a selection.
             Lets two regions of the same app launch with different args
             (e.g., two File Explorer windows pointed at different folders). */}
