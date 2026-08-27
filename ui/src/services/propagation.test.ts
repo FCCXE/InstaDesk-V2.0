@@ -110,6 +110,49 @@ describe('I-9 — field-scoped propagation', () => {
   })
 })
 
+// W-1. A Favorite resolves differently depending on its kind, so propagation has
+// to be able to carry EITHER field, not both:
+//
+//   kind "app"  ->  { program: fav.pathOrUrl }              — snapshots `program`
+//   kind "url"  ->  { program: chrome, urls: [pathOrUrl] }  — snapshots `urls`
+//
+// Writing `urls: []` into an app assignment because the caller had no URLs to
+// give would corrupt it. So absent must mean UNCHANGED for every field, which is
+// the same rule `program` already followed — an empty value that quietly carries
+// two meanings is how data goes missing.
+describe('W-1 — propagation carries only the fields it was given', () => {
+  it('updates program alone for an app favorite, leaving urls untouched', () => {
+    const assignments = [a({ title: 'Notepad', program: 'C:/old/notepad.exe' })]
+    const next = applyPropagationToAssignments(assignments, {
+      name: 'Notepad', program: 'C:/new/notepad.exe',
+    })
+    expect(next.changed).toBe(true)
+    expect(next.assignments[0].program).toBe('C:/new/notepad.exe')
+    expect(next.assignments[0].urls).toBeUndefined()   // absent, not emptied
+  })
+
+  it('updates urls alone for a url favorite, leaving program untouched', () => {
+    const assignments = [a({ title: 'Docs', program: 'chrome.exe', urls: ['https://old.example'] })]
+    const next = applyPropagationToAssignments(assignments, {
+      name: 'Docs', urls: ['https://new.example'],
+    })
+    expect(next.assignments[0].urls).toEqual(['https://new.example'])
+    expect(next.assignments[0].program).toBe('chrome.exe')
+  })
+
+  it('reports no change when the caller supplies nothing that differs', () => {
+    const assignments = [a({ title: 'Notepad', program: 'C:/old/notepad.exe' })]
+    const next = applyPropagationToAssignments(assignments, { name: 'Notepad' })
+    expect(next.changed).toBe(false)
+  })
+
+  it('still never touches a per-cell args override, whichever field changed', () => {
+    const assignments = [a({ title: 'Notepad', program: 'C:/old.exe', args: 'D:\\project' })]
+    const next = applyPropagationToAssignments(assignments, { name: 'Notepad', program: 'C:/new.exe' })
+    expect(next.assignments[0].args).toBe('D:\\project')
+  })
+})
+
 describe('I-9 — the dry run reports without writing', () => {
   const layouts = [
     { kind: 'general' as const, slot: 'A', name: 'Monitor 4 - Basic', assignments: [

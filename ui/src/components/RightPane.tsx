@@ -1116,6 +1116,19 @@ function FavoritesPane() {
   const [editMode, setEditMode] = useState(false);
   const [favorites, setFavorites] = useState<Favorite[]>(() => listFavorites());
   const [showAdd, setShowAdd] = useState(false);
+  // null = the modal is composing a NEW favorite; a record = it is editing that
+  // one. Same shape as editingUrlGroupId, and for the same reason: the edit is
+  // addressed by identity, never by the name the user can retype.
+  const [editingFav, setEditingFav] = useState<Favorite | null>(null);
+  const [flashFav, setFlashFav] = useState<string | null>(null);
+  useEffect(() => {
+    if (!flashFav) return;
+    // Long enough to read a sentence naming how many Layouts changed. "It
+    // worked" can afford to vanish; "and 2 Layouts were rewritten" should not
+    // disappear before it is read.
+    const id = window.setTimeout(() => setFlashFav(null), 4000);
+    return () => window.clearTimeout(id);
+  }, [flashFav]);
 
   useEffect(() => {
     setFavorites(listFavorites());
@@ -1126,6 +1139,49 @@ function FavoritesPane() {
     setFavorites(listFavorites());
     window.dispatchEvent(new CustomEvent("insta:favorites-changed"));
   };
+  /**
+   * A saved Layout snapshots what a Favorite resolved to — `program` for an app,
+   * `urls` for a URL — so editing one reaches no existing Layout unless it is
+   * propagated, exactly as for URL groups (F-3). Field-scoped: only the field
+   * this favorite's kind owns is written, so a per-cell `args` override and every
+   * geometry field survive.
+   */
+  const onFavUpdated = async (fav: Favorite) => {
+    setFavorites(listFavorites());
+    try {
+      const listed = await api.presetsList();
+      if (!listed?.ok) return;
+      const loaded = await Promise.all(
+        (listed.presets ?? []).map(async (pr) => {
+          const got = await api.presetsGet(pr.kind, pr.slot);
+          return got?.ok
+            ? { kind: pr.kind, slot: pr.slot, name: pr.name, assignments: got.preset.assignments ?? [] }
+            : null;
+        }),
+      );
+      const change =
+        fav.kind === "app"
+          ? { name: fav.title, program: fav.pathOrUrl }
+          : { name: fav.title, urls: [fav.pathOrUrl] };
+      const planned = planUrlGroupPropagation(
+        loaded.filter(Boolean) as Parameters<typeof planUrlGroupPropagation>[0],
+        change,
+      );
+      for (const layout of planned) {
+        await api.presetsSave(layout.kind as any, layout.slot, layout.assignments, layout.name);
+      }
+      setFlashFav(
+        planned.length > 0
+          ? t("favorites.updatedAndPropagated", { name: fav.title, layouts: planned.length })
+          : t("favorites.updated", { name: fav.title }),
+      );
+    } catch {
+      // The favorite itself is already saved. Say that, and do NOT claim the
+      // Layouts are current, because they are not.
+      setFlashFav(t("favorites.updatedPropagationFailed", { name: fav.title }));
+    }
+  };
+
   const onAdded = () => {
     setFavorites(listFavorites());
     // AddFavoriteModal already broadcasts on save; this is a defensive
@@ -1144,6 +1200,12 @@ function FavoritesPane() {
           </div>
         </div>
 
+        {flashFav && (
+          <div className="mb-3 rounded-md border border-primary/40 bg-primary/10 px-2 py-1.5 text-[11px] leading-tight text-fg">
+            {flashFav}
+          </div>
+        )}
+
         <div data-tour="favorites-list" className="grid grid-cols-1 gap-2">
           {/* eslint-disable-next-line */}
           {favorites.map((f) => (
@@ -1155,7 +1217,12 @@ function FavoritesPane() {
                 </TruncateText>
                 <span className="ml-1 text-amber-500">★</span>
               </div>
-              {editMode ? <GhostBtn onClick={() => onDelete(f.id)}>{t("apps.delete")}</GhostBtn> : <div className="h-7" />}
+              {editMode ? (
+                <div className="flex items-center gap-2">
+                  <GhostBtn onClick={() => setEditingFav(f)}>{t("apps.edit")}</GhostBtn>
+                  <GhostBtn onClick={() => onDelete(f.id)}>{t("apps.delete")}</GhostBtn>
+                </div>
+              ) : <div className="h-7" />}
             </div>
           ))}
           {favorites.length === 0 && (
@@ -1175,7 +1242,13 @@ function FavoritesPane() {
         </div>
       </div>
 
-      <AddFavoriteModal open={showAdd} onClose={() => setShowAdd(false)} onAdded={onAdded} />
+      <AddFavoriteModal
+        open={showAdd || !!editingFav}
+        editing={editingFav}
+        onClose={() => { setShowAdd(false); setEditingFav(null); }}
+        onAdded={onAdded}
+        onUpdated={onFavUpdated}
+      />
     </div>
   );
 }

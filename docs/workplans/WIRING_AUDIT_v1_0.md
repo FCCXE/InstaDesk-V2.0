@@ -56,6 +56,23 @@ class, and it is proven to catch it.
 
 ## §3 — Findings that matter: capability that exists and cannot be reached
 
+### W-1 — ✅ **FIXED 2026-08-27** — a Favorite can now be edited
+
+Tag `pre-favorite-edit` pushed first. `AddFavoriteModal` gained an `editing` prop: it prefills the
+record, **locks the title** (the title is what `findFavoriteByName` resolves against, so renaming is
+F-2's cascade again) and **fixes the kind** (swapping app↔url changes *which* field a Layout
+snapshots — a different job). The save updates **by id, never by title**.
+
+The edit **propagates to saved Layouts**, field-scoped by kind: `kind:"app"` writes `program`,
+`kind:"url"` writes `urls`. That required generalising `DefinitionChange` so **both** value fields are
+optional — writing `urls: []` into an app assignment because the caller had none would corrupt it.
+Four tests were witnessed red (`TypeError: change.urls is not iterable`) before the change, and one of
+them re-asserts that a per-cell `args` override survives whichever field moved. **38 tests green.**
+
+**Confirmed by the instrument that found it:** probe A drops from 17 candidates to 16, with
+`updateFavorite` no longer among them.
+
+*(original finding, for the record)*
 ### W-1 — **A Favorite cannot be edited** *(the same defect you just had fixed for URL groups)*
 
 `FavoritesService.updateFavorite(id, patch)` is written, correct, and **called from nowhere**.

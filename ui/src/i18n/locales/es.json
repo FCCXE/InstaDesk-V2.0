@@ -322,7 +322,11 @@
     "title": "Favoritos",
     "addFavorite": "+ Añadir favorito",
     "none": "Aún no hay favoritos. Haz clic en «+ Añadir favorito» para agregar una app o una URL.",
-    "addCustom": "+ Añadir app/URL personalizada"
+    "addCustom": "+ Añadir app/URL personalizada",
+    "updated": "Se actualizó \"{{name}}\".",
+    "updatedAndPropagated_one": "Se actualizó \"{{name}}\", y {{layouts}} Diseño que lo usa.",
+    "updatedAndPropagated_other": "Se actualizó \"{{name}}\", y {{layouts}} Diseños que lo usan.",
+    "updatedPropagationFailed": "Se actualizó \"{{name}}\", pero no se pudieron refrescar los Diseños guardados: puede que sigan abriendo el destino anterior."
   },
   "help": {
     "title": "Ayuda",
@@ -504,7 +508,11 @@
     "errPath": "Introduce la ruta de una aplicación (p. ej., C:\\Program Files\\App\\app.exe)",
     "confirmExt": "La ruta no termina en .exe/.lnk/.bat/.cmd. ¿Guardar de todos modos?",
     "confirmExtTitle": "¿Guardar de todos modos?",
-    "pickFile": "Elegir este archivo"
+    "pickFile": "Elegir este archivo",
+    "editTitle": "Editar \"{{name}}\"",
+    "renameNotSupported": "El nombre no se puede cambiar aquí, porque los Diseños guardados se refieren a este favorito por su nombre.",
+    "kindFixed": "URL y App no se pueden intercambiar durante la edición: elimínalo y vuelve a añadirlo.",
+    "editTargetGone": "Ese favorito ya no existe: se eliminó mientras lo editabas."
   },
   "editLayout": {
     "title": "Editar diseño",

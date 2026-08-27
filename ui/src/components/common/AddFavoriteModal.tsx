@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { addFavorite, seedEmoji, type Favorite } from "../../services/FavoritesService";
+import { addFavorite, updateFavorite, seedEmoji, type Favorite } from "../../services/FavoritesService";
 import { api, inTauri, type BrowseEntry } from "../../services/api";
 import { useConfirm } from "./ConfirmDialog";
 import { inferTitle } from "../../services/pathNames";
@@ -9,10 +9,15 @@ export default function AddFavoriteModal({
   open,
   onClose,
   onAdded,
+  editing = null,
+  onUpdated,
 }: {
   open: boolean;
   onClose: () => void;
   onAdded: (fav: Favorite) => void;
+  /** When set, the modal EDITS this record instead of creating one (W-1). */
+  editing?: Favorite | null;
+  onUpdated?: (fav: Favorite) => void;
 }) {
   const { t } = useTranslation();
   const confirm = useConfirm();
@@ -33,6 +38,18 @@ export default function AddFavoriteModal({
   const [browseLoading, setBrowseLoading] = useState(false);
 
   const isOpen = open;
+
+  // Load the record being edited. Keyed on the id (not the object) so re-renders
+  // do not stamp the user's half-typed edit back to the stored value.
+  useEffect(() => {
+    if (!open || !editing) return;
+    setTab(editing.kind);
+    setTitle(editing.title);
+    if (editing.kind === "url") { setUrl(editing.pathOrUrl); setPath(""); }
+    else { setPath(editing.pathOrUrl); setUrl(""); }
+    setErr(null);
+  }, [open, editing?.id]);
+
   const canSave = useMemo(() => {
     if (!title.trim()) return false;
     if (tab === "url") return /^https?:\/\//i.test(url.trim());
@@ -115,6 +132,18 @@ export default function AddFavoriteModal({
           setErr(t("addFavorite.errUrl"));
           return;
         }
+        // Editing updates THAT record by id. Never by title: matching on the
+        // title would create a second Favorite the moment it drifted, and the
+        // title is what saved Layouts resolve against.
+        if (editing) {
+          const updated = updateFavorite(editing.id, { pathOrUrl: u });
+          if (!updated) { setErr(t("addFavorite.editTargetGone")); return; }
+          window.dispatchEvent(new CustomEvent("insta:favorites-changed"));
+          onUpdated?.(updated);
+          reset();
+          onClose();
+          return;
+        }
         const fav = addFavorite({ kind: "url", title: ttl, pathOrUrl: u, icon: seedEmoji(ttl) });
         window.dispatchEvent(new CustomEvent("insta:favorites-changed"));
         onAdded(fav);
@@ -130,6 +159,18 @@ export default function AddFavoriteModal({
         if (!/\.(exe|lnk|bat|cmd)$/i.test(p)) {
           const proceed = await confirm({ title: t("addFavorite.confirmExtTitle"), body: t("addFavorite.confirmExt") });
           if (!proceed) return;
+        }
+        // Editing updates THAT record by id. Never by title: matching on the
+        // title would create a second Favorite the moment it drifted, and the
+        // title is what saved Layouts resolve against.
+        if (editing) {
+          const updated = updateFavorite(editing.id, { pathOrUrl: p });
+          if (!updated) { setErr(t("addFavorite.editTargetGone")); return; }
+          window.dispatchEvent(new CustomEvent("insta:favorites-changed"));
+          onUpdated?.(updated);
+          reset();
+          onClose();
+          return;
         }
         const fav = addFavorite({ kind: "app", title: ttl, pathOrUrl: p, icon: seedEmoji(ttl) });
         window.dispatchEvent(new CustomEvent("insta:favorites-changed"));
@@ -189,7 +230,7 @@ export default function AddFavoriteModal({
     >
       <div className="w-[560px] max-w-[calc(100vw-2rem)] rounded-2xl border border-line bg-surface p-4 shadow-xl">
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-base font-semibold text-fg">{t("addFavorite.title")}</div>
+          <div className="text-base font-semibold text-fg">{editing ? t("addFavorite.editTitle", { name: editing.title }) : t("addFavorite.title")}</div>
           <button
             className="h-7 rounded-md border border-line bg-raised px-3 text-xs font-medium text-fg hover:bg-raised"
             onClick={onCancel}
@@ -201,9 +242,12 @@ export default function AddFavoriteModal({
         {/* Tabs */}
         <div className="mb-3 flex items-center gap-2">
           <button
-            onClick={() => setTab("url")}
+            onClick={() => { if (!editing) setTab("url"); }}
+            disabled={!!editing}
+            title={editing ? t("addFavorite.kindFixed") : undefined}
             className={[
               "h-8 rounded-full px-3 text-sm",
+              editing && tab !== "url" ? "cursor-not-allowed opacity-40" : "",
               tab === "url"
                 ? "bg-sky-50 text-sky-700 ring-1 ring-sky-200 dark:bg-primary/15 dark:text-sky-300 dark:ring-primary/40"
                 : "bg-raised text-fg ring-1 ring-slate-200 hover:bg-line",
@@ -212,9 +256,12 @@ export default function AddFavoriteModal({
             URL
           </button>
           <button
-            onClick={() => setTab("app")}
+            onClick={() => { if (!editing) setTab("app"); }}
+            disabled={!!editing}
+            title={editing ? t("addFavorite.kindFixed") : undefined}
             className={[
               "h-8 rounded-full px-3 text-sm",
+              editing && tab !== "app" ? "cursor-not-allowed opacity-40" : "",
               tab === "app"
                 ? "bg-sky-50 text-sky-700 ring-1 ring-sky-200 dark:bg-primary/15 dark:text-sky-300 dark:ring-primary/40"
                 : "bg-raised text-fg ring-1 ring-slate-200 hover:bg-line",
@@ -229,9 +276,14 @@ export default function AddFavoriteModal({
           <div className="flex items-center gap-2">
             <div className="w-12 text-sm text-fg">{t("browseApp.fieldTitle")}</div>
             <input
-              className="h-8 w-full rounded-md border border-line bg-raised px-3 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-ring"
+              className={[
+                "h-8 w-full rounded-md border border-line bg-raised px-3 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-ring",
+                editing ? "cursor-not-allowed opacity-70" : "",
+              ].join(" ")}
               placeholder={tab === "url" ? t("urls.tabTitlePlaceholder") : t("browseApp.titlePlaceholder")}
               value={title}
+              readOnly={!!editing}
+              title={editing ? t("addFavorite.renameNotSupported") : undefined}
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>

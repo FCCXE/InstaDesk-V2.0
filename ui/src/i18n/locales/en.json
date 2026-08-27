@@ -322,7 +322,11 @@
     "title": "Favorites",
     "addFavorite": "+ Add Favorite",
     "none": "No favorites yet. Click “+ Add Favorite” to add an App or a URL.",
-    "addCustom": "+ Add Custom App/URL"
+    "addCustom": "+ Add Custom App/URL",
+    "updated": "Updated \"{{name}}\".",
+    "updatedAndPropagated_one": "Updated \"{{name}}\", and {{layouts}} Layout that uses it.",
+    "updatedAndPropagated_other": "Updated \"{{name}}\", and {{layouts}} Layouts that use it.",
+    "updatedPropagationFailed": "Updated \"{{name}}\", but saved Layouts could not be refreshed — they may still open the old target."
   },
   "help": {
     "title": "Help",
@@ -504,7 +508,11 @@
     "errPath": "Enter an application path (e.g., C:\\Program Files\\App\\app.exe)",
     "confirmExt": "Path does not end with .exe/.lnk/.bat/.cmd. Save anyway?",
     "confirmExtTitle": "Save anyway?",
-    "pickFile": "Pick this file"
+    "pickFile": "Pick this file",
+    "editTitle": "Edit \"{{name}}\"",
+    "renameNotSupported": "The name cannot be changed here, because saved Layouts refer to this favorite by name.",
+    "kindFixed": "URL and App cannot be swapped while editing — delete and re-add instead.",
+    "editTargetGone": "That favorite no longer exists — it was deleted while you were editing it."
   },
   "editLayout": {
     "title": "Edit Layout",

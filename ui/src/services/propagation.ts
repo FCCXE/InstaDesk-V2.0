@@ -37,18 +37,27 @@
 // user and are never touched.
 import type { Assignment } from './api'
 
-/** The parts of an edited URL group that a Layout is allowed to learn about. */
-export type UrlGroupChange = {
+/**
+ * The parts of an edited DEFINITION that a Layout is allowed to learn about.
+ *
+ * Both value fields are optional, and **absent means UNCHANGED — never "clear
+ * it"**. That is not a convenience: a Favorite resolves differently by kind, so
+ * the caller genuinely has only one field to give. `kind: "app"` snapshots
+ * `program`; `kind: "url"` snapshots `urls`. Writing `urls: []` into an app
+ * assignment because the caller had no URLs would corrupt it, and an empty value
+ * that quietly carries two meanings is how data goes missing.
+ */
+export type DefinitionChange = {
   /** Matched against an assignment's `title`, case-insensitively — the same way
-   *  the group store itself matches names, so a group saved as "news" still
-   *  reaches a Layout that recorded "News". */
+   *  the definition stores match names, so one saved as "news" still reaches a
+   *  Layout that recorded "News". */
   name: string
-  urls: string[]
-  /** Only when the group's browser changed. **Absent means unchanged, never
-   *  "clear it"** — an empty value that silently carries two meanings is how data
-   *  goes missing. */
+  urls?: string[]
   program?: string
 }
+
+/** @deprecated Kept as an alias while callers migrate. */
+export type UrlGroupChange = DefinitionChange
 
 export type PropagationResult = {
   /** A NEW array; the input is never mutated, so a dry run and a real write
@@ -66,7 +75,7 @@ const sameList = (a: string[] | undefined, b: string[]): boolean =>
 /** Apply a definition change to one Layout's assignments, field-scoped. */
 export function applyPropagationToAssignments(
   assignments: Assignment[],
-  change: UrlGroupChange,
+  change: DefinitionChange,
 ): PropagationResult {
   const target = change.name.trim().toLowerCase()
   let changed = false
@@ -74,16 +83,17 @@ export function applyPropagationToAssignments(
   const next = assignments.map(entry => {
     if ((entry.title ?? '').trim().toLowerCase() !== target) return entry
 
-    const urlsDiffer = !sameList(entry.urls, change.urls)
+    const urlsDiffer = change.urls !== undefined && !sameList(entry.urls, change.urls)
     const programDiffers = change.program !== undefined && entry.program !== change.program
     if (!urlsDiffer && !programDiffers) return entry
 
     changed = true
-    // Spread first, then overwrite ONLY the owned fields. Every other key —
-    // args, monitor, grid, gridSize, frameMode, activate, topmost, waitReadyMs,
-    // singleInstance — survives untouched, including keys added to Assignment
-    // after this was written.
-    const patched: Assignment = { ...entry, urls: [...change.urls] }
+    // Spread first, then overwrite ONLY the fields actually supplied. Every other
+    // key — args, monitor, grid, gridSize, frameMode, activate, topmost,
+    // waitReadyMs, singleInstance — survives untouched, including keys added to
+    // Assignment after this was written.
+    const patched: Assignment = { ...entry }
+    if (change.urls !== undefined) patched.urls = [...change.urls]
     if (change.program !== undefined) patched.program = change.program
     return patched
   })
@@ -111,7 +121,7 @@ export type PlannedChange = LayoutRef & { assignments: Assignment[] }
  */
 export function planUrlGroupPropagation(
   layouts: LayoutRef[],
-  change: UrlGroupChange,
+  change: DefinitionChange,
 ): PlannedChange[] {
   const planned: PlannedChange[] = []
   for (const layout of layouts) {
