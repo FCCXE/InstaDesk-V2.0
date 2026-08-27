@@ -443,9 +443,9 @@
       }
     },
     {
-      "id": "favorites-row-actions",
+      "id": "favorites-edit",
       "component": "components/RightPane.tsx",
-      "describes": "Edit and Delete on a favorite row, shown while the Favorites list is in edit mode",
+      "describes": "the Edit toggle above the Favorites list, which reveals Edit and Delete on each favorite",
       "reachableWhen": {
         "kind": "tab+sub",
         "tab": "Apps",

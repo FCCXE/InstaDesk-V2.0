@@ -776,7 +776,7 @@
             "title": "Your pinned apps",
             "body": "Favorites appear here and in the Apps list. Worth pinning the four or five you place in almost every Layout."
           },
-          "favorites-row-actions": {
+          "favorites-edit": {
             "title": "Fix a favorite instead of rebuilding it",
             "body": "Press Edit above the list, then Edit on a favorite to change the program or address it points at. The name stays fixed, because saved Layouts find a favorite by its name."
           }

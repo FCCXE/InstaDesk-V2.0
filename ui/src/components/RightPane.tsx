@@ -1205,7 +1205,7 @@ function FavoritesPane() {
         <div className="mb-3 flex items-center justify-between">
           <div className="text-base font-semibold text-fg">{t("favorites.title")}</div>
           <div className="flex items-center gap-2">
-            <GhostBtn onClick={() => setEditMode((v) => !v)}>{editMode ? t("apps.done") : t("apps.edit")}</GhostBtn>
+            <span data-tour="favorites-edit"><GhostBtn onClick={() => setEditMode((v) => !v)}>{editMode ? t("apps.done") : t("apps.edit")}</GhostBtn></span>
             {editMode && favorites.length > 0 && (
               <GhostBtn onClick={onClearAll}>{t("favorites.clearAll")}</GhostBtn>
             )}
@@ -1231,7 +1231,7 @@ function FavoritesPane() {
                 <span className="ml-1 text-amber-500">★</span>
               </div>
               {editMode ? (
-                <div data-tour="favorites-row-actions" className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <GhostBtn onClick={() => setEditingFav(f)}>{t("apps.edit")}</GhostBtn>
                   <GhostBtn onClick={() => onDelete(f.id)}>{t("apps.delete")}</GhostBtn>
                 </div>

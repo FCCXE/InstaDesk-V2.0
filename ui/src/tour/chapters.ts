@@ -105,7 +105,7 @@ const URLS_FAVORITES: TourChapter = {
     { anchor: 'urls-add-tab-group' },
     { anchor: 'urls-save' },
     { anchor: 'favorites-add' },
-    { anchor: 'favorites-row-actions' },
+    { anchor: 'favorites-edit' },
     { anchor: 'favorites-list' },
   ],
 }

@@ -119,10 +119,12 @@ const STEP_ANCHOR_EXEMPT = new Set(['tour/DevTourLauncher.tsx'])
 
 const files = walk(SRC)
 const found = new Map() // id -> [{file, line}]
+const fileLines = new Map() // relative path -> string[], kept for the per-row check
 const stepAnchors = [] // {id, file, line} — anchors named by walkthrough STEPS
 for (const file of files) {
   const r = rel(file)
   const lines = readFileSync(file, 'utf8').split('\n')
+  fileLines.set(r, lines)
   lines.forEach((line, i) => {
     for (const m of line.matchAll(ATTR)) {
       const id = m[1]
@@ -162,6 +164,57 @@ for (const a of anchors) {
     problems.push(
       `"${a.id}" moved: registry says src/${want}, found at ${hits.map((h) => `src/${h.file}`).join(', ')} — reachableWhen is now unverified`,
     )
+  }
+}
+
+// ---- 3c. a per-row anchor cannot promise unconditional reachability ------
+//
+// Added 2026-08-27, after the operator walked the tour and met:
+//   "favorites-row-actions" could not be found where it is registered.
+//
+// It was registered `tab+sub` and placed inside `favorites.map(...)`, so with an
+// empty Favorites list the step arrived with nothing to point at. The engine
+// reported honestly rather than highlighting thin air — but a step that only
+// works once the user happens to own the right data is not taught, it is gambled
+// on.
+//
+// This is F-4 again, and every existing check passed: the anchor genuinely WAS in
+// the source, in the file the registry named. Existence is not reachability.
+// `always` and `tab+sub` both promise "open the right pane and it is there", and
+// an element rendered once per item cannot keep that promise.
+for (const a of anchors) {
+  const kind = a?.reachableWhen?.kind
+  if (kind !== 'always' && kind !== 'tab+sub') continue
+  for (const h of found.get(a.id) ?? []) {
+    const lines = fileLines.get(h.file)
+    if (!lines) continue
+    // Walk the ENCLOSING BLOCKS by indentation, not merely backwards through the
+    // file. The first version scanned back for any `.map(` within 60 lines and
+    // flagged three anchors that are plainly always rendered — `favorites-add`
+    // sits in the pane header, above the list entirely. A check that cries wolf
+    // gets switched off, which is worse than not having it.
+    //
+    // Each step up takes the nearest preceding line indented LESS than the
+    // current threshold: that is the construct containing us. If any of those
+    // ancestors opens a `.map(`, this element is emitted per item.
+    const indentOf = (s) => (s.match(/^\s*/) || [''])[0].length
+    let threshold = indentOf(lines[h.line - 1])
+    let insideMap = false
+    for (let i = h.line - 2; i >= 0 && threshold > 0; i--) {
+      const line = lines[i]
+      if (!line.trim()) continue
+      const ind = indentOf(line)
+      if (ind >= threshold) continue
+      if (/\.map\s*\(/.test(line)) { insideMap = true; break }
+      threshold = ind
+    }
+    if (insideMap) {
+      problems.push(
+        `"${a.id}" sits inside a .map() at src/${h.file}:${h.line} but declares reachableWhen ` +
+          `"${kind}" — a per-row element is ABSENT when the list is empty (F-4). Anchor something ` +
+          `always rendered, or model the data dependency.`,
+      )
+    }
   }
 }
 
