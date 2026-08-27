@@ -112,6 +112,32 @@ omitted: a diagnostics block that silently drops a section reads as *"everything
 workArea}`, not `{id, w, h}` — which is how the **work area** ended up in the report. It governs
 placement, so a block without it would have hidden the more useful half.
 
+### W-5 — ✅ **FIXED 2026-08-27** — clearing part of a grid was a tab away
+
+**Operator, editing a Layout with the 18 Obsidian cells already selected:** *"I need to clear only
+part of the grid… either not built or I ignore how to make it work."*
+
+**It was built.** `unassignSelected` (AppState.tsx:738) clears exactly the selected cells **and their
+per-cell launch arguments**. Its only button lived in **Apps → Apps**, a different TAB from the grid
+being edited — so the operator had done the hard part (the selection) and could not reach the verb.
+
+**This is the defect-B shape a SECOND time.** The first was the *save* affordance sitting a tab away
+from the editing, fixed earlier in this programme by making the editing strip always visible. Nothing
+generalised that lesson, so the *clear* affordance repeated it. Copy, Paste and Unassign all act on one
+thing — the current selection — and two of the three were already under the grid.
+
+**Unassign now sits beside them**, same action and same label root: a second door, not a second
+feature. **No confirm**, matching the existing button — one action must not behave two ways depending
+on which door was used — but a flash reports the count, so it is never silent. Disabled when the
+selection holds nothing to clear.
+
+**Help had no mention of unassigning at all.** Its clear bullet now separates the three scopes: part of
+a monitor, the whole monitor, every monitor.
+
+**Sandbox gate §3.5:** PASSED on `0.5.1-sb.1787867955014` — badge string verified present in the built
+bundle, and both locales' new strings confirmed in the built output rather than assumed from a clean
+compile. Operator: *"Fix implemented succesfully."* Shipping as **v0.5.2**.
+
 ### W-4 — ✅ **FIXED 2026-08-27, operator placed it**
 
 **Copy / Paste** now sit in the Grid pane opposite the *"No selection / Selected:"* line, exactly where

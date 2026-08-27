@@ -10,6 +10,14 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-08-27
+
+### Added
+- **Clear part of a grid.** Select the cells you want emptied and press **Unassign**, under the grid beside Copy and Paste. Only those cells are cleared — along with any launch arguments you had typed for them — and the rest of the monitor is untouched. Previously the only way to clear anything was **Clear Present Grid**, which empties the whole monitor.
+
+### Changed
+- Help now distinguishes the three clearing scopes plainly: part of a monitor, the whole monitor, and every monitor.
+
 ## [0.5.1] - 2026-08-27
 
 ### Added
@@ -207,7 +215,8 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 ### Added
 - First InstaDesk release — establishes the signed auto-update baseline. Windows x64 installer.
 
-[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.5.2
 [0.5.1]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.5.1
 [0.5.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.5.0
 [0.4.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.4.0
