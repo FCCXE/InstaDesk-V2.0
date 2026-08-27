@@ -363,7 +363,7 @@
       },
       "grid": {
         "title": "La cuadrícula y la asignación de apps",
-        "body": "• Arrastra sobre las celdas para seleccionar una región rectangular y luego asígnale una aplicación.\n• Cambia la densidad de la cuadrícula de un monitor con el selector Cuadrícula de la barra inferior (p. ej. 6×6, 8×8, 10×10).\n• Da a una celda argumentos de inicio personalizados en la pestaña Apps —por ejemplo, una ruta de carpeta para el Explorador de archivos— para abrir distintas ventanas de la misma aplicación.\n• «Borrar cuadrícula actual» borra el monitor actual; «Borrar todas las cuadrículas» borra todos los monitores (con confirmación)."
+        "body": "• Arrastra sobre las celdas para seleccionar una región rectangular y luego asígnale una aplicación.\n• Cambia la densidad de la cuadrícula de un monitor con el selector Cuadrícula de la barra inferior (p. ej. 6×6, 8×8, 10×10).\n• Da a una celda argumentos de inicio personalizados en la pestaña Apps —por ejemplo, una ruta de carpeta para el Explorador de archivos— para abrir distintas ventanas de la misma aplicación.\n• «Borrar cuadrícula actual» borra el monitor actual; «Borrar todas las cuadrículas» borra todos los monitores (con confirmación).\n\nCopiar y Pegar, debajo de la cuadrícula, reutilizan un monitor que ya has organizado, incluidos los argumentos de inicio que hayas escrito por celda. Si el destino ya tiene ventanas, se pide confirmación."
       },
       "apps": {
         "title": "Apps, URLs y Favoritos",
@@ -387,11 +387,11 @@
       },
       "troubleshooting": {
         "title": "Consejos y resolución de problemas",
-        "body": "• Algunas apps (ciertas herramientas de CCTV / vídeo) colocan sus propias ventanas y no se ajustan — ciérralas y vuelve a abrirlas, o déjalas fuera del diseño.\n• Las apps de instancia única (p. ej. Outlook, Teams) abren una sola ventana; asignarlas a varias celdas no crea copias.\n• Los accesos directos de Windows (.lnk) no se pueden abrir directamente — apunta al .exe real.\n• Si una app no abre, revisa su ruta en la pestaña Apps y usa Examinar… para corregirla."
+        "body": "• Algunas apps (ciertas herramientas de CCTV / vídeo) colocan sus propias ventanas y no se ajustan — ciérralas y vuelve a abrirlas, o déjalas fuera del diseño.\n• Las apps de instancia única (p. ej. Outlook, Teams) abren una sola ventana; asignarlas a varias celdas no crea copias.\n• Los accesos directos de Windows (.lnk) no se pueden abrir directamente — apunta al .exe real.\n• Si una app no abre, revisa su ruta en la pestaña Apps y usa Examinar… para corregirla.\n\n¿Vas a informar de un problema? La Ayuda termina con Copiar diagnóstico, que pone en el portapapeles tu versión, los tamaños de tus monitores y si el programa auxiliar está instalado, listo para pegar en un mensaje. Solo lee lo que ya se muestra en la app."
       },
       "urlsFavorites": {
         "title": "URLs y Favoritos",
-        "body": "Un grupo de URLs es una ventana del navegador descrita por sus pestañas — no una lista de marcadores. Crea uno en Apps → URLs: elige el navegador, añade un grupo de pestañas, escribe las direcciones y guarda. Se convierte en una entrada que puedes asignar a una región igual que un programa.\n\nCada grupo se abre como una ventana del navegador con sus direcciones como pestañas. Si quieres dos ventanas, crea dos grupos: el grupo es la ventana.\n\nLos Favoritos son sencillamente apps ancladas — las cuatro o cinco que colocas en casi todos los Diseños, a un clic en vez de a una búsqueda.\n\nPara cambiar un grupo más adelante, abre Apps → Apps, pulsa Editar en la parte superior de la lista y luego Editar en el grupo. El creador se abre de nuevo con sus direcciones ya puestas, así que cambias la que querías en vez de reescribir el resto. El nombre no se puede cambiar durante la edición, porque los Diseños guardados se refieren al grupo por su nombre."
+        "body": "Un grupo de URLs es una ventana del navegador descrita por sus pestañas — no una lista de marcadores. Crea uno en Apps → URLs: elige el navegador, añade un grupo de pestañas, escribe las direcciones y guarda. Se convierte en una entrada que puedes asignar a una región igual que un programa.\n\nCada grupo se abre como una ventana del navegador con sus direcciones como pestañas. Si quieres dos ventanas, crea dos grupos: el grupo es la ventana.\n\nLos Favoritos son sencillamente apps ancladas — las cuatro o cinco que colocas en casi todos los Diseños, a un clic en vez de a una búsqueda.\n\nPara cambiar un grupo más adelante, abre Apps → Apps, pulsa Editar en la parte superior de la lista y luego Editar en el grupo. El creador se abre de nuevo con sus direcciones ya puestas, así que cambias la que querías en vez de reescribir el resto. El nombre no se puede cambiar durante la edición, porque los Diseños guardados se refieren al grupo por su nombre.\n\nUn favorito se puede corregir sin rehacerlo: pulsa Editar encima de la lista y luego Editar en el favorito. Borrar todo elimina todos los favoritos de una vez; los Diseños guardados que usen alguno dejarán de encontrarlo."
       }
     },
     "copyDiagnostics": "Copiar diagnóstico",
@@ -663,6 +663,10 @@
           "clear-all-grids-button": {
             "title": "Empezar de nuevo en todo",
             "body": "Borrar todas las cuadrículas vacía todos los monitores a la vez, por eso te pide confirmación. De nuevo: los Diseños y los Preajustes rápidos guardados no se ven afectados."
+          },
+          "grid-clipboard": {
+            "title": "Reutiliza un monitor que ya organizaste",
+            "body": "Copiar toma toda la disposición de este monitor — incluidos los argumentos de inicio que hayas escrito por celda — y Pegar la aplica a otro monitor. Si el destino ya tiene ventanas, se pide confirmación."
           }
         }
       },
@@ -771,6 +775,10 @@
           "favorites-list": {
             "title": "Tus apps ancladas",
             "body": "Los Favoritos aparecen aquí y en la lista de Apps. Merece la pena anclar las cuatro o cinco que colocas en casi todos los Diseños."
+          },
+          "favorites-row-actions": {
+            "title": "Corrige un favorito en vez de rehacerlo",
+            "body": "Pulsa Editar encima de la lista y luego Editar en un favorito para cambiar el programa o la dirección a la que apunta. El nombre no cambia, porque los Diseños guardados encuentran un favorito por su nombre."
           }
         }
       },

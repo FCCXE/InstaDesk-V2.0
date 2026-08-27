@@ -363,7 +363,7 @@
       },
       "grid": {
         "title": "The grid & assigning apps",
-        "body": "• Drag across cells to select a rectangular region, then assign an app to it.\n• Change a monitor's grid density with the Grid selector in the bottom bar (e.g. 6×6, 8×8, 10×10).\n• Give a cell custom launch arguments in the Apps tab — for example a folder path for File Explorer — to open different windows of the same app.\n• Clear Present Grid clears the current monitor; Clear All Grids clears every monitor (with a confirmation)."
+        "body": "• Drag across cells to select a rectangular region, then assign an app to it.\n• Change a monitor's grid density with the Grid selector in the bottom bar (e.g. 6×6, 8×8, 10×10).\n• Give a cell custom launch arguments in the Apps tab — for example a folder path for File Explorer — to open different windows of the same app.\n• Clear Present Grid clears the current monitor; Clear All Grids clears every monitor (with a confirmation).\n\nCopy and Paste, under the grid, reuse a monitor you have already arranged — including any launch arguments you typed per cell. Pasting over a monitor that already has windows asks first."
       },
       "apps": {
         "title": "Apps, URLs & Favorites",
@@ -387,11 +387,11 @@
       },
       "troubleshooting": {
         "title": "Tips & troubleshooting",
-        "body": "• Some apps (certain CCTV / video tools) place their own windows and won't tile — close and relaunch them, or leave them out of the layout.\n• Single-instance apps (e.g. Outlook, Teams) open just one window; assigning them to several cells won't create copies.\n• Windows shortcuts (.lnk) can't be launched directly — point to the real .exe instead.\n• If an app won't launch, check its path in the Apps tab and use Browse… to fix it."
+        "body": "• Some apps (certain CCTV / video tools) place their own windows and won't tile — close and relaunch them, or leave them out of the layout.\n• Single-instance apps (e.g. Outlook, Teams) open just one window; assigning them to several cells won't create copies.\n• Windows shortcuts (.lnk) can't be launched directly — point to the real .exe instead.\n• If an app won't launch, check its path in the Apps tab and use Browse… to fix it.\n\nReporting a problem? Help ends with Copy diagnostics, which puts your version, your monitor sizes and whether the helper program is installed on the clipboard, ready to paste into a message. It reads only what is already shown in the app."
       },
       "urlsFavorites": {
         "title": "URLs & Favorites",
-        "body": "A URL group is a browser window described by its tabs — not a bookmark list. Build one in Apps → URLs: pick the browser, add a tab group, list the addresses, then Save. It becomes an entry you can assign to a region exactly like a program.\n\nEach group opens as one browser window with its addresses as tabs. If you want two windows, make two groups — the group is the window.\n\nFavorites are simply pinned apps — the four or five you place in almost every Layout, kept one click away instead of a search.\n\nTo change a group later, open Apps → Apps, press Edit at the top of the list, then Edit on the group itself. The builder reopens with its addresses already in place, so you change the one you meant instead of retyping the rest. The name stays fixed while editing, because saved Layouts refer to a group by its name."
+        "body": "A URL group is a browser window described by its tabs — not a bookmark list. Build one in Apps → URLs: pick the browser, add a tab group, list the addresses, then Save. It becomes an entry you can assign to a region exactly like a program.\n\nEach group opens as one browser window with its addresses as tabs. If you want two windows, make two groups — the group is the window.\n\nFavorites are simply pinned apps — the four or five you place in almost every Layout, kept one click away instead of a search.\n\nTo change a group later, open Apps → Apps, press Edit at the top of the list, then Edit on the group itself. The builder reopens with its addresses already in place, so you change the one you meant instead of retyping the rest. The name stays fixed while editing, because saved Layouts refer to a group by its name.\n\nA favorite can be corrected without rebuilding it: press Edit above the list, then Edit on the favorite. Clear all removes every favorite at once — saved Layouts using one will no longer find it."
       }
     },
     "copyDiagnostics": "Copy diagnostics",
@@ -663,6 +663,10 @@
           "clear-all-grids-button": {
             "title": "Starting everything over",
             "body": "Clear All Grids wipes every monitor at once, so it asks you to confirm first. Again: saved Layouts and Quick Presets are not affected."
+          },
+          "grid-clipboard": {
+            "title": "Reuse a monitor you already arranged",
+            "body": "Copy takes this monitor’s whole arrangement — including any launch arguments you typed per cell — and Paste puts it on another monitor. Pasting over a monitor that already has windows asks first."
           }
         }
       },
@@ -771,6 +775,10 @@
           "favorites-list": {
             "title": "Your pinned apps",
             "body": "Favorites appear here and in the Apps list. Worth pinning the four or five you place in almost every Layout."
+          },
+          "favorites-row-actions": {
+            "title": "Fix a favorite instead of rebuilding it",
+            "body": "Press Edit above the list, then Edit on a favorite to change the program or address it points at. The name stays fixed, because saved Layouts find a favorite by its name."
           }
         }
       },

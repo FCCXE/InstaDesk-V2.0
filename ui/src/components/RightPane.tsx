@@ -1231,7 +1231,7 @@ function FavoritesPane() {
                 <span className="ml-1 text-amber-500">★</span>
               </div>
               {editMode ? (
-                <div className="flex items-center gap-2">
+                <div data-tour="favorites-row-actions" className="flex items-center gap-2">
                   <GhostBtn onClick={() => setEditingFav(f)}>{t("apps.edit")}</GhostBtn>
                   <GhostBtn onClick={() => onDelete(f.id)}>{t("apps.delete")}</GhostBtn>
                 </div>

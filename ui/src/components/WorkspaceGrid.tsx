@@ -271,7 +271,7 @@ export default function WorkspaceGrid() {
         <div data-tour="grid-status" className="min-w-0 text-[11px] text-muted">
           {gridFlash ?? status}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div data-tour="grid-clipboard" className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={onCopyGrid}

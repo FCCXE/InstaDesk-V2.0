@@ -433,6 +433,24 @@
       "reachableWhen": {
         "kind": "always"
       }
+    },
+    {
+      "id": "grid-clipboard",
+      "component": "components/WorkspaceGrid.tsx",
+      "describes": "the Copy / Paste pair opposite the selection status, under the grid",
+      "reachableWhen": {
+        "kind": "always"
+      }
+    },
+    {
+      "id": "favorites-row-actions",
+      "component": "components/RightPane.tsx",
+      "describes": "Edit and Delete on a favorite row, shown while the Favorites list is in edit mode",
+      "reachableWhen": {
+        "kind": "tab+sub",
+        "tab": "Apps",
+        "sub": "Favorites"
+      }
     }
   ]
 }

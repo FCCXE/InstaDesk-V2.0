@@ -39,6 +39,10 @@ const GRID: TourChapter = {
     { anchor: 'grid-size-picker' },
     { anchor: 'workspace-grid' },
     { anchor: 'grid-status' },
+    // Added 2026-08-27. The grid clipboard was fully built and reachable from
+    // nowhere until the operator placed this affordance; a capability nobody is
+    // told about is not delivered.
+    { anchor: 'grid-clipboard' },
     { anchor: 'clear-current-button' },
     { anchor: 'clear-all-grids-button' },
   ],
@@ -101,6 +105,7 @@ const URLS_FAVORITES: TourChapter = {
     { anchor: 'urls-add-tab-group' },
     { anchor: 'urls-save' },
     { anchor: 'favorites-add' },
+    { anchor: 'favorites-row-actions' },
     { anchor: 'favorites-list' },
   ],
 }
