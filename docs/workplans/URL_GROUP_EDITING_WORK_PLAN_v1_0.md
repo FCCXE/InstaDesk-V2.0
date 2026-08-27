@@ -278,7 +278,42 @@ run that reports what would change before anything is written** (U-1).
 *Alternative considered and rejected:* tell the user to re-save each Layout by hand. Honest, but it
 makes the user maintain a consistency the app is better placed to keep.
 
-### I-8 — OPERATOR CHECKPOINT, installed Sandbox ⚠ **FAILED — see F-3**
+### I-9 — Propagate a definition change across the whole construct ☐ **RISKY** → tag `pre-definition-propagation`
+
+**Operator directive, 2026-08-27:** *"The fix should also traverse into Quick Presets, any change on an
+App (URL, etc), should traverse across the whole Layout + Quick preset construct."*
+
+**Finding P-1 — Quick Presets are ALREADY correct, and need no work.** A Quick Preset stores only
+`{kind, slot}` **references**, and `quickpresets_run` calls `apply_preset(&kind, &lslot, …)`, which
+reads the Layout file fresh at apply time. It never holds a copy. **So the propagation surface is
+exactly one layer — the Layout files — and every Quick Preset follows for free.** Verified in
+`backend.rs`; to be proven behaviourally at the checkpoint rather than left as a code read.
+
+**Finding P-2 — Favorites have the same defect, unreported.** `FavoritesService` already exports
+`updateFavorite(id, patch)`, and `resolveAppTarget` resolves favorites by name exactly as it does URL
+groups. So editing a Favorite is snapshotted into Layouts too. `AppsHistoryService` has no update
+function (add/remove only), so custom apps cannot drift today.
+
+**Finding P-3 — ⛔ propagation MUST be field-scoped, and this nearly went wrong.** The obvious
+implementation is "re-resolve every assignment from its definition". That would **destroy user data**:
+the operator's own `general_A.json` contains
+`{"args":"VsCode 1 - Monitor 3","program":"…Code.exe","title":"VS Code"}` — and that `args` is a
+**per-cell launch-args override they set by hand**, the very feature that lets two VS Code windows
+open different folders. Re-resolving would overwrite it with the catalog default.
+
+> **The rule: propagate only the fields the DEFINITION owns; never touch a field the user can set per
+> cell.** For a URL group that is `urls` (and `program` when the browser changed). `args`, `monitor`,
+> `grid`, `gridSize` and the window flags are the user's and are never written.
+
+**Design.** On a definition edit, walk every saved Layout, patch matching assignments field-scoped,
+re-save, and report the count. `presetsList` / `presetsGet` / `presetsSave` are all on the UI API, and
+`SavedPreset` is only `{kind, slot, name, assignments}`, so patching in place preserves everything
+else.
+
+**Protocol:** tests first and witnessed red; a **dry-run mode that reports what would change and
+writes nothing** (U-1); then the write path; then the Sandbox.
+
+### I-8 — OPERATOR CHECKPOINT, installed Sandbox ⚠ **FAILED — see F-3**, re-run after I-9
 Edit a real group's URLs; confirm the change sticks, the Layout using it still applies, and nothing
 else moved.
 
