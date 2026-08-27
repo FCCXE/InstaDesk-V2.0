@@ -12,9 +12,6 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 
 ## [0.5.0] - 2026-08-27
 
-_Sandbox-validated (RELEASING.md §3.5) — build `0.4.0-sb.1787788836748`, installed from the local
-side-by-side installer and confirmed by the operator._
-
 ### Added
 - **Switch mode — one Quick Preset at a time.** Turn it on beside the Quick Presets picker, and applying a preset first closes the windows the *previous* preset opened, then opens the new one. Leave it off and InstaDesk behaves exactly as before, adding to whatever is already on screen. The setting is remembered, and it applies to every preset rather than being set one by one.
 - **InstaDesk only ever closes windows it opened itself.** A swap touches nothing you started by hand, nothing from a different preset, and nothing left over from a previous Windows session — each window is re-checked immediately before it is asked to close, and anything that no longer matches is left alone.

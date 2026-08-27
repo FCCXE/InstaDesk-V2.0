@@ -65,8 +65,15 @@ steps every time:
 3. **Validate the real product:** install it (an in-place upgrade of the *single*
    Sandbox app — never touches stable) and confirm: the SANDBOX badge shows, the
    version is correct, and the change under test works.
-4. **Record the pass** in the `CHANGELOG.md` `[Unreleased]` notes ("sandbox-validated")
-   — only then proceed to §4.
+4. **Record the pass** in the programme's work plan (the increment's Status line),
+   naming the Sandbox build that was installed — only then proceed to §4.
+   > ⚠ **NOT in `CHANGELOG.md`.** `[Unreleased]` is rolled into the **public release
+   > body** by `bump-version.mjs`, so anything recorded there is published verbatim.
+   > On 2026-08-27 v0.5.0 shipped with *"Sandbox-validated (RELEASING.md §3.5) —
+   > build `0.4.0-sb...`"* as the first line users read. Two steps of this procedure,
+   > each sensible alone, published an internal record together.
+   > `check-changelog-clean.mjs` (a `prebuild` gate) now fails the build if an
+   > internal note reaches a released section.
 
 > This is the InstaDesk reference implementation of the FCLX Studios pre-release
 > Sandbox gate (Platform P1.6 / X.2). New apps inherit it via the bootstrap template.
