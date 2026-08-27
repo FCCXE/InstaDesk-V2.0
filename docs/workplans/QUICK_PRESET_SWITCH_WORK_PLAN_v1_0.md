@@ -280,7 +280,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-9 | UI: the Switch mode control + anchor + EN strings | no | build + Sandbox | ✅ |
 | — | **▶ OPERATOR CHECKPOINT 1** — stamped local installer → desktop icon | — | installed Sandbox | ✅ **PASSED 2026-08-25** — build `0.4.0-sb.1787666839355`, operator: *"working as expected"* |
 | I-10 | UI: the outcome report — what could not be closed, and why | no | build + Sandbox | ✅ |
-| — | **▶ OPERATOR CHECKPOINT 2** — the honest report, incl. the iVMS-4200 case | — | installed Sandbox | ☐ |
+| — | **▶ OPERATOR CHECKPOINT 2** — the honest report, incl. the iVMS-4200 case | — | installed Sandbox | ✅ **CLOSED 2026-08-26.** `IsWindowElevated` proven on the **real** elevated window (`skippedElevated`, named, untouched, no hook). My original instruction was itself wrong — a hand-started app cannot appear, by design. ⚠ **Carried to release:** an elevated window *entering* the record via a real Apply is still a **code read**, not a measurement — see the amendment of 08-26. |
 | I-11 | Tour: anchor registry, chapter step, content truth (F-7) | no | build | ✅ read on screen 08-26 |
 | I-12 | ES parity sweep | no | build | ✅ |
 | I-13 | Telemetry + **a fifth `prebuild` gate** (updater purity) | no | build | ✅ |
@@ -297,7 +297,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-24 | **G-4/G-5/G-6** — autostart, telemetry, licence + tour grouping | no | build | ✅ |
 | I-25 | **Operator-reported** — the launch-args hint was starving the App History pane | no | build + Sandbox | ✅ |
 | I-26 | **Operator-reported** — Settings rows could not yield, so the Spanish label pushed the select out of its card + **a sixth gate** | no | build + Sandbox | ✅ |
-| I-14 | Release v0.5.0 — Sandbox installer gate, CHANGELOG, bump, two-repo push, tag | **yes** | full | ☐ |
+| I-14 | Release v0.5.0 — Sandbox installer gate, CHANGELOG, bump, two-repo push, tag | **yes** | full | ✅ |
 
 ---
 
@@ -1310,7 +1310,7 @@ re-confirm both repos clean.
 **Verification.** The `curl` and `gh release view` output, read from the live release — not from
 the robot's green tick.
 
-**Status. ☐**
+**Status. ✅ DONE 2026-08-27** — authorised by the operator (*"I believe our App is ready to be shipped"*). See the amendment log for the release record.
 
 ---
 

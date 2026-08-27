@@ -10,6 +10,28 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-27
+
+_Sandbox-validated (RELEASING.md §3.5) — build `0.4.0-sb.1787788836748`, installed from the local
+side-by-side installer and confirmed by the operator._
+
+### Added
+- **Switch mode — one Quick Preset at a time.** Turn it on beside the Quick Presets picker, and applying a preset first closes the windows the *previous* preset opened, then opens the new one. Leave it off and InstaDesk behaves exactly as before, adding to whatever is already on screen. The setting is remembered, and it applies to every preset rather than being set one by one.
+- **InstaDesk only ever closes windows it opened itself.** A swap touches nothing you started by hand, nothing from a different preset, and nothing left over from a previous Windows session — each window is re-checked immediately before it is asked to close, and anything that no longer matches is left alone.
+- **Nothing is ever force-closed.** Every window is asked to close politely, so anything holding unsaved work still stops and prompts you, exactly as if you had clicked its X.
+- **A plain report of what stayed open, and why.** After a swap, any window InstaDesk could not close is listed **by name** with the reason in the app's own words — for example that it runs as administrator, so Windows will not let InstaDesk close it. The report stays on screen until you dismiss it.
+- **The Guided Tour now covers what it was missing.** New steps explain launch arguments and how to open two windows of the same app, apps that place several windows from one launch, deleting a Layout and deleting a Quick Preset, the `Ctrl+Alt+1`–`9` preset hotkeys, and the start-up, privacy and licence settings. The tour chooser is now grouped into four short sections so you can find the topic you came for.
+
+### Fixed
+- **Editing a saved Layout now works.** Changing a monitor's arrangement in an existing Layout could leave you with no way to save what you had just done. The save control is now always visible while you are editing, on the same screen where the editing happens.
+- **Editing a Layout can no longer discard part of it.** Some things a Layout can hold — most importantly an app that places several windows from a single launch — cannot be drawn in the grid. Re-saving after an edit used to drop them silently. They are now preserved, and a short note tells you when a Layout contains something the grid cannot show.
+- **Saving a Layout now tells you how many windows it holds**, including a count per app, so two entries quietly becoming one is visible rather than silent.
+- **Spanish: "Layouts" now reads "Diseños" everywhere.** Twenty-five places still used the English word, including the Guided Tour's chapter list.
+- **The Guided Tour no longer covers up the control it is describing.** When the explanation card had nowhere to sit above or below, it could overlap the very thing it was pointing at.
+- **Spanish: the bottom bar's buttons no longer spill out of it.** The longer Spanish labels wrap onto a second line and the bar now grows to fit them.
+- **The App History list is no longer squeezed.** The explanation above it now shows as a single line you can expand, so the list gets the space back — most noticeably in Spanish.
+- **Spanish: the grid-size dropdown in Settings no longer crosses the edge of its panel.**
+
 ## [0.4.0] - 2026-08-24
 
 ### Added
@@ -167,7 +189,8 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 ### Added
 - First InstaDesk release — establishes the signed auto-update baseline. Windows x64 installer.
 
-[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.5.0
 [0.4.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.4.0
 [0.3.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.3.0
 [0.2.1]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.2.1
