@@ -241,7 +241,44 @@ per address."* The app **always** opens one window. So D-1 is not merely an iner
 **documented promise the product does not keep**. The false sentence was left in place rather than
 quietly edited, because removing a documented capability is the operator's decision, not a tidy-up.
 
-### I-8 — OPERATOR CHECKPOINT, installed Sandbox ☐
+### F-3 — **A saved Layout keeps its OWN copy of a group's URLs** ⛔ *found at the I-8 checkpoint*
+
+**Operator report, 2026-08-27:** added a fourth URL to *News*, saved, applied *Monitor 4 - Basic
+Layout* — three tabs opened.
+
+**Measured, not guessed.** The question splits cleanly: did the save drop the URL, or did the launch?
+
+- **The save is fine.** The Sandbox's stored groups contain four News URLs — `eltiempo`,
+  `edition.cnn`, `bloomberg`, and the new fourth. Read from the WebView2 write-ahead log, which holds
+  recent writes uncompressed, so this one is a *complete* read rather than the partial one in I-3.
+- **The Layout is the problem.** `presets/general_A.json` holds:
+  `{"title":"News","program":"chrome.exe","args":"--new-window","urls":[eltiempo, cnn, bloomberg]}` —
+  **three**, frozen at the moment the Layout was saved.
+
+**A saved Layout is a SNAPSHOT, not a reference.** `layoutBuilder.resolveAppTarget` resolves the
+group by name when the grid is turned into assignments, and `presets_save` then persists the resolved
+URL list. Editing a group afterwards therefore reaches **no Layout that already exists**.
+
+**Pre-existing, and NOT caused by I-6** — the old delete-and-rebuild workaround hit it too. But I-6 is
+what makes it harmful: the app now says *"Updated News — 4 URLs"* and the user reasonably expects the
+Layout to open four. **A feature that reports success while achieving nothing the user wanted is worse
+than the gap it replaced.**
+
+**Why it cannot be fixed at apply time.** `presets_run(kind, slot, margin_px)` is handed only the
+slot; **Rust reads the preset file itself** and launches from it. The UI never sees the assignments on
+the way past, and Rust cannot read URL groups — they live in browser localStorage.
+
+**Recommended: propagate on edit.** When a group is edited, patch every saved Layout whose assignment
+`title` matches that group's name, and report how many were updated. Feasible and safe:
+`presetsList` / `presetsGet` / `presetsSave` are all on the UI's API, and `SavedPreset` is only
+`{kind, slot, name, assignments}` — patching `urls` in place inside the existing assignment object
+preserves monitor, grid, gridSize and every other field. Needs its own tag, tests first, and a **dry
+run that reports what would change before anything is written** (U-1).
+
+*Alternative considered and rejected:* tell the user to re-save each Layout by hand. Honest, but it
+makes the user maintain a consistency the app is better placed to keep.
+
+### I-8 — OPERATOR CHECKPOINT, installed Sandbox ⚠ **FAILED — see F-3**
 Edit a real group's URLs; confirm the change sticks, the Layout using it still applies, and nothing
 else moved.
 
