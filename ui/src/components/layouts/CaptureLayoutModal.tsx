@@ -153,7 +153,6 @@ export default function CaptureLayoutModal({ windows, monitorLabel, onCancel, on
         monitor: w.monitor,
         grid: w.grid,
         gridSize: w.gridSize,
-        frameMode: "frameless",
       };
       if (w.isBrowser) {
         // Force a separate window so a captured browser window doesn't merge its

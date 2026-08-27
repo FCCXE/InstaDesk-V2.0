@@ -874,7 +874,6 @@ pub struct LaunchBody {
     pub grid_size: String,
     pub no_move: Option<bool>,
     pub no_dpi: Option<bool>,
-    pub frame_mode: Option<String>,
     pub activate: Option<bool>,
     pub topmost: Option<bool>,
     pub wait_ready_ms: Option<i64>,
@@ -963,10 +962,6 @@ fn agent_flag_args(body: &LaunchBody) -> Vec<String> {
     }
     if body.no_dpi == Some(true) {
         a.push("--no-dpi".into());
-    }
-    if let Some(fm) = nonempty(&body.frame_mode) {
-        a.push("--frameMode".into());
-        a.push(fm);
     }
     if body.activate == Some(false) {
         a.push("--activate".into());
@@ -1367,10 +1362,9 @@ async fn apply_preset(kind: &str, slot: &str, margin_px: Option<i64>) -> Result<
         } else {
             body.program = None;
         }
-        // Preset defaults: gapless (frameless), activate, brief wait-ready.
-        if body.frame_mode.is_none() {
-            body.frame_mode = Some("frameless".into());
-        }
+        // Preset defaults: activate, brief wait-ready. (frame_mode was removed
+        // 2026-08-27 — the agent discarded it, and the behaviour it named was
+        // withdrawn after putting title bars offscreen.)
         if body.activate.is_none() {
             body.activate = Some(true);
         }
@@ -1456,7 +1450,6 @@ async fn apply_multiwindow(a: &Value, margin_px: Option<i64>) -> Value {
             "--grid".into(), grid,
             "--grid-size".into(), grid_size,
             "--activate".into(), "false".into(),
-            "--frameMode".into(), "frameless".into(),
         ];
         if let Some(m) = margin_px {
             if m > 0 {

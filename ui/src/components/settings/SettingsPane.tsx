@@ -78,6 +78,14 @@ export default function SettingsPane() {
   // configured. "On" = sharing = NOT opted out.
   const showUsageToggle = telemetryConfigured();
   const [shareUsage, setShareUsage] = useState(!isOptedOut());
+  // Which global hotkeys Windows refused at startup. Asked once on mount:
+  // registration happens at launch and the answer does not change afterwards.
+  const [hotkeyFailures, setHotkeyFailures] = useState<string[]>([]);
+  useEffect(() => {
+    let alive = true;
+    api.hotkeyFailures().then((f) => { if (alive) setHotkeyFailures(f); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
   const onToggleShareUsage = () => {
     const next = !shareUsage;
     setShareUsage(next);
@@ -361,6 +369,11 @@ export default function SettingsPane() {
 
           {inTauri() && (
             <Section title={t("settings.shortcuts")}>
+              {hotkeyFailures.length > 0 && (
+                <div className="mb-2 rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-[11px] leading-tight text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+                  {t("settings.scUnavailable", { keys: hotkeyFailures.join(", ") })}
+                </div>
+              )}
               <Row>
                 <Label title={t("settings.scHint")}>{t("settings.scShowDashboard")}</Label>
                 <HotkeyRebind action="show" />

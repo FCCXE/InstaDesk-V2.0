@@ -39,7 +39,6 @@ export type LaunchRequest = {
   gridSize: string   // "colsxrows"
   noMove?: boolean
   noDpi?: boolean
-  frameMode?: 'normal' | 'frameless'
   activate?: boolean
   topmost?: boolean
   waitReadyMs?: number
@@ -68,7 +67,6 @@ export type Assignment = {
   monitor: number
   grid: string
   gridSize: string
-  frameMode?: 'normal' | 'frameless'
   activate?: boolean
   topmost?: boolean
   waitReadyMs?: number
@@ -462,4 +460,10 @@ export const api = {
     parts: { ctrl: boolean; alt: boolean; shift: boolean; sup: boolean; code: string },
   ): Promise<void> =>
     inTauri() ? invoke<void>('set_hotkey', { action, ...parts }) : Promise.resolve(),
+
+  /** Global hotkeys Windows refused at startup, by display name. Empty = all work.
+   *  A shortcut another app already owns silently does nothing forever, which is
+   *  indistinguishable from "never wired" — so it has to be askable. */
+  hotkeyFailures: (): Promise<string[]> =>
+    inTauri() ? invoke<string[]>('hotkey_failures') : Promise.resolve([]),
 }

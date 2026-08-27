@@ -65,6 +65,22 @@ static SHOW_HOTKEY: std::sync::LazyLock<std::sync::Mutex<Shortcut>> =
 static SNAP_HOTKEY: std::sync::LazyLock<std::sync::Mutex<Shortcut>> =
   std::sync::LazyLock::new(|| std::sync::Mutex::new(hotkey_snap()));
 
+/// Hotkeys Windows refused to give us at startup, by display name.
+///
+/// A global shortcut can simply be unavailable — another application registered
+/// it first. Startup deliberately does not fail over that, but until 2026-08-27 it
+/// also never SAID so: the key silently did nothing forever, and "nothing happens"
+/// is indistinguishable from "the feature is not wired" (which is exactly how the
+/// operator reported it). Not crashing was right; not telling was not.
+static FAILED_HOTKEYS: std::sync::LazyLock<std::sync::Mutex<Vec<String>>> =
+  std::sync::LazyLock::new(|| std::sync::Mutex::new(Vec::new()));
+
+/// Which global hotkeys could not be registered. Empty means all of them work.
+#[tauri::command]
+fn hotkey_failures() -> Vec<String> {
+  FAILED_HOTKEYS.lock().map(|v| v.clone()).unwrap_or_default()
+}
+
 /// Build a Shortcut from JS-supplied parts (e.code + modifier booleans). None if
 /// the code isn't a known key.
 fn shortcut_from_parts(ctrl: bool, alt: bool, shift: bool, sup: bool, code: &str) -> Option<Shortcut> {
@@ -228,6 +244,7 @@ pub fn run() {
       license::license_activate,
       license::license_deactivate,
       set_hotkey,
+      hotkey_failures,
     ])
     // Launch-on-system-start support (the Settings → General toggle drives this
     // through backend::autostart_set / _is_enabled).
@@ -295,18 +312,23 @@ pub fn run() {
       // the menu offers Show + Quit. Closing the window still exits the app (we
       // don't hide-to-tray) — this just gives InstaDesk a visible tray presence.
       build_tray(app.handle())?;
-      // Register the default global hotkeys. Failures (e.g. a key already claimed
-      // by another app) are ignored so startup never breaks.
+      // Register the default global hotkeys. A failure (e.g. the key is already
+      // claimed by another app) must NOT break startup — but it must be RECORDED,
+      // so Settings can say which keys are unavailable instead of leaving the user
+      // to conclude the feature was never wired.
       let gs = app.global_shortcut();
+      let mut failed: Vec<String> = Vec::new();
       if let Ok(s) = SHOW_HOTKEY.lock() {
-        let _ = gs.register(*s);
+        if gs.register(*s).is_err() { failed.push("Show InstaDesk".into()); }
       }
       if let Ok(s) = SNAP_HOTKEY.lock() {
-        let _ = gs.register(*s);
+        if gs.register(*s).is_err() { failed.push("Snap".into()); }
       }
-      for code in QUICKPRESET_DIGITS {
-        let _ = gs.register(Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), code));
+      for (i, code) in QUICKPRESET_DIGITS.iter().enumerate() {
+        let sc = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), *code);
+        if gs.register(sc).is_err() { failed.push(format!("Ctrl+Alt+{}", i + 1)); }
       }
+      if let Ok(mut f) = FAILED_HOTKEYS.lock() { *f = failed; }
       Ok(())
     })
     .run(tauri::generate_context!())

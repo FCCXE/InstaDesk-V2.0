@@ -89,7 +89,7 @@ export function applyPropagationToAssignments(
 
     changed = true
     // Spread first, then overwrite ONLY the fields actually supplied. Every other
-    // key — args, monitor, grid, gridSize, frameMode, activate, topmost,
+    // key — args, monitor, grid, gridSize, activate, topmost,
     // waitReadyMs, singleInstance — survives untouched, including keys added to
     // Assignment after this was written.
     const patched: Assignment = { ...entry }

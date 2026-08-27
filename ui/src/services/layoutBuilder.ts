@@ -243,7 +243,6 @@ export function buildSaveAssignments(
       monitor: monitorIndex,
       grid: `${region.x},${region.y},${region.w},${region.h}`,
       gridSize: `${gridCols}x${gridRows}`,
-      frameMode: "frameless",
     });
   }
 
