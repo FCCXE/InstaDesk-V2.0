@@ -47,7 +47,6 @@ instadesk-tauri/
 │  └─ tauri.conf.json        # app version (source of truth) + bundle + updater config
 ├─ docs/
 │  ├─ RELEASING.md           # the Build & Release SOP
-│  └─ manual/                # the user-manual source (HTML → bundled PDF)
 ├─ .github/workflows/
 │  └─ release.yml            # the automated release pipeline (the "robot")
 ├─ CHANGELOG.md              # canonical human-readable version history

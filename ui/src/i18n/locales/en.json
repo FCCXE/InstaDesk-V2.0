@@ -350,8 +350,6 @@
     "title": "Help",
     "subtitle": "How InstaDesk works — a quick reference.",
     "version": "InstaDesk v{{version}} — FCLX Studios",
-    "manualNote": "Prefer a full illustrated guide? Open the complete PDF manual, with step-by-step screenshots.",
-    "openManual": "Open manual (PDF)",
     "feedbackNote": "Found a bug or have an idea? Send us anonymous feedback.",
     "sendFeedback": "Send feedback",
     "feedbackBug": "Bug / problem",
@@ -855,10 +853,6 @@
           "bottom-status": {
             "title": "Windows that refuse to move",
             "body": "A few programs reposition themselves after being placed, and some run as administrator and cannot be touched at all. When that happens it is reported here rather than failing silently."
-          },
-          "help-open-manual": {
-            "title": "The full manual",
-            "body": "The complete manual opens as a PDF in your language, for anything this walkthrough does not cover."
           }
         }
       }
@@ -884,7 +878,6 @@
     "qpNeedsLayout": "A Quick Preset must contain at least one Layout.",
     "qpNotFound": "No Quick Preset is saved in that slot.",
     "qpSlotNotFound": "No Quick Preset is saved in slot {{slot}}.",
-    "trialEnded": "Your InstaDesk trial has ended. Enter a licence in Settings → Licence to continue.",
-    "windowsOnly": "Opening files is only supported on Windows."
+    "trialEnded": "Your InstaDesk trial has ended. Enter a licence in Settings → Licence to continue."
   }
 }

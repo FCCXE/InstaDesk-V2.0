@@ -28,6 +28,9 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 ### Changed
 - The Guided Tour and Help now cover editing groups and favorites, the grid clipboard, sending diagnostics, and adding a second rectangle to a selection with Ctrl or Shift.
 
+### Removed
+- **The PDF manual.** InstaDesk now teaches itself: the Guided Tour walks you through the real controls, and the Help tab covers every feature — both kept current in English and Spanish. The PDF had fallen eight releases behind and still described version 0.1.28, so it was more likely to mislead than to help. Nothing it explained is missing; it has moved into the tour and Help.
+
 ## [0.5.0] - 2026-08-27
 
 ### Added

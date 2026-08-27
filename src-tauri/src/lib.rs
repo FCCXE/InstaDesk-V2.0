@@ -229,7 +229,6 @@ pub fn run() {
       backend::snap_popup,
       backend::list_browsers,
       backend::pick_exe,
-      backend::open_manual,
       backend::autostart_is_enabled,
       backend::autostart_set,
       backend::set_telemetry_optout,

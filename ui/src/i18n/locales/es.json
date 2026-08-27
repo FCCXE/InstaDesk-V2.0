@@ -350,8 +350,6 @@
     "title": "Ayuda",
     "subtitle": "Cómo funciona InstaDesk — una guía rápida.",
     "version": "InstaDesk v{{version}} — FCLX Studios",
-    "manualNote": "¿Prefieres una guía ilustrada completa? Abre el manual PDF completo, con capturas paso a paso.",
-    "openManual": "Abrir manual (PDF)",
     "feedbackNote": "¿Encontraste un error o tienes una idea? Envíanos comentarios anónimos.",
     "sendFeedback": "Enviar comentarios",
     "feedbackBug": "Error / problema",
@@ -855,10 +853,6 @@
           "bottom-status": {
             "title": "Ventanas que se niegan a moverse",
             "body": "Algunos programas se recolocan solos después de situarlos, y otros se ejecutan como administrador y no se pueden tocar. Cuando eso ocurre se informa aquí en lugar de fallar en silencio."
-          },
-          "help-open-manual": {
-            "title": "El manual completo",
-            "body": "El manual completo se abre como PDF en tu idioma, para todo lo que esta visita guiada no cubra."
           }
         }
       }
@@ -884,7 +878,6 @@
     "qpNeedsLayout": "Un Preajuste rápido debe contener al menos un Diseño.",
     "qpNotFound": "No hay ningún Preajuste rápido guardado en esa ranura.",
     "qpSlotNotFound": "No hay ningún Preajuste rápido guardado en la ranura {{slot}}.",
-    "trialEnded": "Tu prueba de InstaDesk ha terminado. Introduce una licencia en Configuración → Licencia para continuar.",
-    "windowsOnly": "Abrir archivos solo es compatible con Windows."
+    "trialEnded": "Tu prueba de InstaDesk ha terminado. Introduce una licencia en Configuración → Licencia para continuar."
   }
 }

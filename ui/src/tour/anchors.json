@@ -260,15 +260,6 @@
       }
     },
     {
-      "id": "help-open-manual",
-      "component": "components/RightPane.tsx",
-      "describes": "Open manual - opens the language-matched PDF",
-      "reachableWhen": {
-        "kind": "tab",
-        "tab": "Help"
-      }
-    },
-    {
       "id": "layout-capture-button",
       "component": "components/layouts/LayoutsPane.tsx",
       "describes": "Capture current layout - reads the desktop as it stands, including multi-window apps",

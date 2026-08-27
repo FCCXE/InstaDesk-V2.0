@@ -398,15 +398,6 @@ export const api = {
   // Open the language-matched PDF manual. In the desktop app `window.open` is
   // blocked, so open it natively (OS default PDF viewer); in web preview fall
   // back to a new tab.
-  openManual: (lang: string): Promise<void> => {
-    if (inTauri()) return call<void>('open_manual', { lang })
-    const code = lang.toLowerCase().startsWith('es') ? 'ES' : 'EN'
-    window.open(`/manual/InstaDesk-Manual-${code}.pdf`, '_blank')
-    return Promise.resolve()
-  },
-
-  // Launch-on-system-start (Settings → General). Web preview has no startup
-  // registration, so it reports false / no-ops.
   autostartGet: (): Promise<boolean> =>
     inTauri() ? call<boolean>('autostart_is_enabled') : Promise.resolve(false),
   autostartSet: (enabled: boolean): Promise<void> =>

@@ -144,7 +144,6 @@ const TROUBLESHOOTING: TourChapter = {
   steps: [
     { anchor: 'version-status' },
     { anchor: 'bottom-status' },
-    { anchor: 'help-open-manual' },
   ],
 }
 

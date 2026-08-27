@@ -16,7 +16,7 @@ tampered build is rejected automatically.
 ## 1. Versioning standard (SemVer)
 
 Versions are `MAJOR.MINOR.PATCH`. While **pre-1.0** (`0.MINOR.PATCH`):
-- **PATCH** (`0.1.27 → 0.1.28`) — a bug fix, a docs/manual change, or any user-invisible internal change.
+- **PATCH** (`0.1.27 → 0.1.28`) — a bug fix, a docs change, or any user-invisible internal change.
 - **MINOR** (`0.1.x → 0.2.0`) — a new user-facing feature or capability.
 - **MAJOR** (`0.x → 1.0.0`) — reserved for the first stable/commercial milestone; thereafter, a breaking change.
 
@@ -90,7 +90,7 @@ the release. You only prepare the version and push a tag:
    Updates `tauri.conf.json` + `Cargo.toml` and moves `## [Unreleased]` into a dated
    `## [0.1.29]` section in `CHANGELOG.md`. Review the diff.
 2. **Commit + push** the bump (`tauri.conf.json`, `Cargo.toml`, `CHANGELOG.md`, and any
-   built assets such as bundled manual PDFs) to `main`.
+   built assets) to `main`.
 3. **Tag + push the tag** — this triggers the robot:
    ```bash
    git tag v0.1.29 && git push origin v0.1.29

@@ -25,7 +25,6 @@ use tauri_plugin_autostart::ManagerExt;
 // ----------------------------------------------------------------------------
 static RESOLVED_AGENT: OnceLock<PathBuf> = OnceLock::new();
 static RESOLVED_DATA: OnceLock<PathBuf> = OnceLock::new();
-static RESOLVED_MANUAL_DIR: OnceLock<PathBuf> = OnceLock::new();
 
 /// Resolve and cache the production paths from the bundle. Called once from
 /// `setup()`. Each lookup is gated on the target actually existing, so in a dev
@@ -38,12 +37,6 @@ pub fn init_paths(app: &AppHandle) {
     {
         if p.exists() {
             let _ = RESOLVED_AGENT.set(p);
-        }
-    }
-    // Bundled manuals directory (resource).
-    if let Ok(p) = app.path().resolve("manual", BaseDirectory::Resource) {
-        if p.exists() {
-            let _ = RESOLVED_MANUAL_DIR.set(p);
         }
     }
     // Presets/quick-presets store: the OS per-user app-data dir, in RELEASE only.
@@ -2370,74 +2363,6 @@ pub fn pick_exe(title: Option<String>, extensions: Option<Vec<String>>) -> Optio
         .map(|p| p.to_string_lossy().into_owned())
 }
 
-/// Open the bundled PDF user manual (language-matched) in the OS default PDF
-/// viewer. `window.open` is blocked in the desktop webview, so the UI calls this
-/// instead. A packaged build resolves the manual from the bundled resource dir;
-/// dev falls back to walking up from the exe to `ui/public/manual/`.
-#[tauri::command]
-pub fn open_manual(lang: String) -> Result<(), String> {
-    let l = if lang.to_lowercase().starts_with("es") { "ES" } else { "EN" };
-    let file = format!("InstaDesk-Manual-{}.pdf", l);
-    let path = manual_path(&file).ok_or_else(|| format!("Manual not found: {file}"))?;
-    open_with_default(&path)
-}
-
-fn manual_path(file: &str) -> Option<PathBuf> {
-    if let Ok(dir) = std::env::var("INSTADESK_MANUAL_DIR") {
-        let p = PathBuf::from(dir).join(file);
-        if p.exists() {
-            return Some(p);
-        }
-    }
-    // Packaged build: the manuals ship as bundled resources (set in setup()).
-    if let Some(dir) = RESOLVED_MANUAL_DIR.get() {
-        let p = dir.join(file);
-        if p.exists() {
-            return Some(p);
-        }
-    }
-    let exe = std::env::current_exe().ok()?;
-    for anc in exe.ancestors() {
-        let p = anc.join("ui").join("public").join("manual").join(file);
-        if p.exists() {
-            return Some(p);
-        }
-    }
-    None
-}
-
-#[cfg(windows)]
-fn open_with_default(path: &Path) -> Result<(), String> {
-    // rundll32 FileProtocolHandler opens any file with its associated app —
-    // dependency-free and reliable for PDFs.
-    use windows::core::{w, HSTRING, PCWSTR};
-    use windows::Win32::UI::Shell::ShellExecuteW;
-    use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
-    let file = HSTRING::from(path.as_os_str());
-    // ShellExecuteW returns an HINSTANCE > 32 on success (real signal, unlike a
-    // fire-and-forget spawn); ≤ 32 is an error code.
-    let hinst = unsafe {
-        ShellExecuteW(
-            None,
-            w!("open"),
-            PCWSTR(file.as_ptr()),
-            PCWSTR::null(),
-            PCWSTR::null(),
-            SW_SHOWNORMAL,
-        )
-    };
-    let code = hinst.0 as isize;
-    if code > 32 {
-        Ok(())
-    } else {
-        Err(format!("Could not open the manual (ShellExecute code {code}). Check that a PDF viewer is installed."))
-    }
-}
-
-#[cfg(not(windows))]
-fn open_with_default(_path: &Path) -> Result<(), String> {
-    Err(berr("windowsOnly", "Opening files is only supported on Windows."))
-}
 
 #[cfg(windows)]
 mod browsers {

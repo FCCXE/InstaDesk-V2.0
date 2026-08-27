@@ -1327,10 +1327,9 @@ function HelpPane() {
     window.setTimeout(() => setDiagCopied(false), 2400);
   };
 
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { start: startTour } = useTour();
   const [openId, setOpenId] = useState<string | null>("quickStart");
-  const [manualErr, setManualErr] = useState<string | null>(null);
   // In-app feedback → telemetry (shown only when telemetry keys are configured;
   // sending respects the usage-sharing opt-out, same channel).
   const showFeedback = telemetryConfigured();
@@ -1348,14 +1347,6 @@ function HelpPane() {
     setFbMsg("");
     setFbContact("");
     window.setTimeout(() => { setFbSent(false); setFbOpen(false); }, 2500);
-  };
-  const openManual = () => {
-    // Opens the language-matched PDF in the OS default viewer (native command);
-    // surfaces any failure inline so it isn't silent.
-    setManualErr(null);
-    api.openManual(i18n.language ?? "en").catch((e) => {
-      setManualErr(String((e as Error)?.message ?? e));
-    });
   };
   return (
     <div className="flex h-full flex-col overflow-hidden p-3">
@@ -1405,27 +1396,6 @@ function HelpPane() {
                 </div>
               );
             })}
-          </div>
-          <div className="mt-3 rounded-xl border border-line bg-raised p-3">
-            <div className="flex items-start gap-2">
-              <span className="text-base leading-none" aria-hidden>📖</span>
-              <div className="min-w-0 flex-1">
-                <div className="text-xs text-muted">{t("help.manualNote")}</div>
-                <button
-                  type="button"
-                  data-tour="help-open-manual"
-                  onClick={openManual}
-                  className="mt-2 rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 dark:text-sky-300"
-                >
-                  {t("help.openManual")}
-                </button>
-                {manualErr && (
-                  <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[11px] text-red-700 dark:border-red-500/30 dark:bg-red-500/15 dark:text-red-300">
-                    {manualErr}
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
           {showFeedback && (
             <div className="mt-3 rounded-xl border border-line bg-raised p-3">

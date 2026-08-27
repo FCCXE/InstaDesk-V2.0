@@ -32,9 +32,7 @@
     "targets": "all",
     "createUpdaterArtifacts": true,
     "resources": {
-      "binaries/InstaDesk.WinAgent.exe": "binaries/InstaDesk.WinAgent.exe",
-      "../ui/public/manual/InstaDesk-Manual-EN.pdf": "manual/InstaDesk-Manual-EN.pdf",
-      "../ui/public/manual/InstaDesk-Manual-ES.pdf": "manual/InstaDesk-Manual-ES.pdf"
+      "binaries/InstaDesk.WinAgent.exe": "binaries/InstaDesk.WinAgent.exe"
     },
     "icon": [
       "icons/32x32.png",
