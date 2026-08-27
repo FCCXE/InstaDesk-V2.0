@@ -317,7 +317,10 @@
     "updated_other": "Updated \"{{name}}\" — {{count}} URLs.",
     "editTargetGone": "That URL group no longer exists — it was deleted while you were editing it.",
     "replaced_one": "Replaced {{count}} existing URL group: {{names}}.",
-    "replaced_other": "Replaced {{count}} existing URL groups: {{names}}."
+    "replaced_other": "Replaced {{count}} existing URL groups: {{names}}.",
+    "updatedAndPropagated_one": "Updated \"{{name}}\" — {{count}} URL, and {{layouts}} Layout that uses it.",
+    "updatedAndPropagated_other": "Updated \"{{name}}\" — {{count}} URLs, and {{layouts}} Layouts that use it.",
+    "updatedPropagationFailed": "Updated \"{{name}}\", but saved Layouts could not be refreshed — they may still open the old addresses."
   },
   "favorites": {
     "title": "Favorites",

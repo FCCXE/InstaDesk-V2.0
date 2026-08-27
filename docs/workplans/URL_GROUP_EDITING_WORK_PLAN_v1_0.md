@@ -313,6 +313,32 @@ else.
 **Protocol:** tests first and witnessed red; a **dry-run mode that reports what would change and
 writes nothing** (U-1); then the write path; then the Sandbox.
 
+**Status ✅ CODE DONE** — tag `pre-definition-propagation` pushed first; witnessed red
+(`Cannot find module './propagation'`); **34 tests pass**; 7 gates + `tsc` + `vite` green;
+643 = 643 leaf keys.
+
+`planUrlGroupPropagation` is the dry run — it returns exactly the Layouts that *would* change, with
+their patched assignments ready to save, and **writes nothing**. Only Layouts that genuinely differ
+are re-saved: a no-op write is not harmless, since it rewrites the user's file for nothing and makes
+the report claim work that never happened.
+
+Three assertions carry the safety of this increment, and they exist because the obvious
+implementation would have violated all three:
+
+- **`args` survives.** `{"title":"VS Code","args":"VsCode 1 - Monitor 3"}` is untouched — the
+  per-cell override is never written.
+- **Geometry survives.** `monitor`, `grid`, `gridSize` are asserted unchanged; propagation never
+  moves a window.
+- **The input array is never mutated**, so a dry run cannot be mistaken for a write.
+
+A changed browser reaches the Layout too: the program is re-resolved through `resolveAppTarget`, the
+same path a fresh save uses — but **only `program` is taken from it, never `args`**. `program`
+absent means *unchanged*, never *clear it*.
+
+The message now distinguishes three outcomes: updated only, updated **and N Layouts refreshed**, and
+updated-but-**propagation-failed** — the last says plainly that the Layouts may still open the old
+addresses, rather than implying the whole save failed.
+
 ### I-8 — OPERATOR CHECKPOINT, installed Sandbox ⚠ **FAILED — see F-3**, re-run after I-9
 Edit a real group's URLs; confirm the change sticks, the Layout using it still applies, and nothing
 else moved.

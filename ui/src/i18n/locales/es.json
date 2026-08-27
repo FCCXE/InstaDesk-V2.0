@@ -317,7 +317,10 @@
     "updated_other": "Se actualizó \"{{name}}\": {{count}} URL.",
     "editTargetGone": "Ese grupo de URL ya no existe: se eliminó mientras lo editabas.",
     "replaced_one": "Se reemplazó {{count}} grupo de URL existente: {{names}}.",
-    "replaced_other": "Se reemplazaron {{count}} grupos de URL existentes: {{names}}."
+    "replaced_other": "Se reemplazaron {{count}} grupos de URL existentes: {{names}}.",
+    "updatedAndPropagated_one": "Se actualizó \"{{name}}\": {{count}} URL, y {{layouts}} Diseño que lo usa.",
+    "updatedAndPropagated_other": "Se actualizó \"{{name}}\": {{count}} URL, y {{layouts}} Diseños que lo usan.",
+    "updatedPropagationFailed": "Se actualizó \"{{name}}\", pero no se pudieron refrescar los Diseños guardados: puede que sigan abriendo las direcciones anteriores."
   },
   "favorites": {
     "title": "Favoritos",

@@ -34,6 +34,8 @@ import {
   removeUrlGroup,
   type UrlGroup,
 } from "../services/UrlGroupsService";
+import { planUrlGroupPropagation } from "../services/propagation";
+import { resolveAppTarget } from "../services/layoutBuilder";
 import {
   listHiddenIds,
   hideId as hideCatalogId,
@@ -853,6 +855,47 @@ function UrlsBuilderPane() {
     window.setTimeout(() => setFlash(null), 1500);
   };
 
+  /**
+   * Push an edited URL group's URLs into every saved Layout that references it,
+   * and return how many Layouts changed.
+   *
+   * Field-scoped on purpose (P-3): only `urls` and, when the browser changed,
+   * `program`. The per-cell `args` override — the feature that lets two VS Code
+   * windows open different folders — and every geometry field are the user's, and
+   * are never written. `planUrlGroupPropagation` is a dry run that reports what
+   * would change and writes nothing, so only Layouts that genuinely differ are
+   * re-saved.
+   */
+  const propagateToLayouts = async (name: string, nextUrls: string[]): Promise<number> => {
+    const listed = await api.presetsList();
+    if (!listed?.ok) return 0;
+
+    const loaded = await Promise.all(
+      (listed.presets ?? []).map(async (p) => {
+        const got = await api.presetsGet(p.kind, p.slot);
+        return got?.ok
+          ? { kind: p.kind, slot: p.slot, name: p.name, assignments: got.preset.assignments ?? [] }
+          : null;
+      }),
+    );
+
+    // Re-resolve through the same path a fresh save would use, so a changed
+    // browser reaches the Layout too. Only `program` is taken from it — never
+    // `args`, which would overwrite a per-cell override.
+    const target = resolveAppTarget(name);
+    const program = target && target.kind === "program" ? target.program : undefined;
+
+    const planned = planUrlGroupPropagation(
+      loaded.filter(Boolean) as Parameters<typeof planUrlGroupPropagation>[0],
+      { name, urls: nextUrls, ...(program ? { program } : {}) },
+    );
+
+    for (const layout of planned) {
+      await api.presetsSave(layout.kind as any, layout.slot, layout.assignments, layout.name);
+    }
+    return planned.length;
+  };
+
   const onSave = () => {
     const snap = saveUrlBuilder();
     if (!snap.browser) {
@@ -882,7 +925,25 @@ function UrlsBuilderPane() {
           return;
         }
         window.dispatchEvent(new CustomEvent("insta:url-groups-changed"));
-        showFlash(t("urls.updated", { name: updated.name, count: updated.urls.length }));
+        // A saved Layout keeps its own SNAPSHOT of the resolved URLs, so editing
+        // the group alone reaches nothing that already exists (F-3). Bring every
+        // Layout that references this group up to date; Quick Presets need no
+        // work, since they hold {kind, slot} references and read the Layout file
+        // fresh at apply time (P-1).
+        propagateToLayouts(updated.name, updated.urls)
+          .then((n) => {
+            showFlash(
+              n > 0
+                ? t("urls.updatedAndPropagated", { name: updated.name, count: updated.urls.length, layouts: n })
+                : t("urls.updated", { name: updated.name, count: updated.urls.length }),
+            );
+          })
+          .catch(() => {
+            // The group edit itself succeeded and is already persisted. Say that
+            // plainly rather than implying the whole thing failed — but do NOT
+            // claim the Layouts are current, because they are not.
+            showFlash(t("urls.updatedPropagationFailed", { name: updated.name }));
+          });
         cancelEditUrlGroup();
       } catch (e) {
         showFlash((e as Error).message);
