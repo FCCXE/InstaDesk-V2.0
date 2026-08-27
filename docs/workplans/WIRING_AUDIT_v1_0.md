@@ -229,6 +229,45 @@ in what it reports.
 
 ---
 
+## §4D — **Every backend error message in the app was being thrown away**
+
+Operator, 2026-08-27, after confirming the hotkeys work: *"when I use the hotkey for a Quick preset
+that doesnt exist, only a red text 'error' message appears, it doesnt say what the error is."*
+
+Rust returns a perfectly good message — `Err("Quick Preset not found.")`. It never reached the screen.
+
+**Cause: `invoke` rejects with the RAW STRING**, not an `Error`. The whole app catches with
+`(e as Error).message`, which on a string is `undefined`. The red styling survived; the words did not.
+**27 catch blocks** share the pattern, so this was never one broken message — it was *every* backend
+error in the product.
+
+**Why it hid for so long — two reinforcing reasons:**
+
+1. **The dev fallback throws real Errors.** `request()` does `throw new Error(...)`, so the identical
+   code path **works in the browser and fails only in the packaged app**. The dev loop could not show
+   it.
+2. **It had already been met, and patched in one place.** `CaptureLayoutModal.tsx:180` reads
+   `(e as Error)?.message ?? String(e)` — a read-time workaround at 1 site out of 27, never swept.
+   *Fix the dialect, not the reader:* a read-time fix must be remembered by everyone forever, and it
+   never is.
+
+**Fixed at the boundary.** `services/errors.ts` normalises anything a rejection can carry into a
+readable `Error`, and all **32** `invoke` sites in `api.ts` now go through it. Every existing catch
+block works unchanged and every future one is correct without its author knowing any of this. Nothing
+else in the app calls `invoke` directly — verified, so nothing bypasses the normalisation.
+
+Tests written first and witnessed red (`Cannot find module './errors'`), including the operator's
+exact case and one asserting the message can **never** be empty — *an error the user cannot read is
+indistinguishable from no error at all* — plus one rejecting `[object Object]`, which is non-empty and
+equally useless. **43 tests green.**
+
+> ⚠ **Remaining, and NOT fixed here: backend messages are English only.** `"Quick Preset not found."`
+> comes from Rust, which has no access to the locale files, so a Spanish user now sees an English
+> sentence where before they saw nothing. Better, and still not right. Mapping the handful of known
+> backend errors to translated strings is a separate decision — **operator to rule**.
+
+---
+
 ## §5 — What this audit did NOT cover
 
 Stated so the green result is not read as wider than it is:

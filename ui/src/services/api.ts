@@ -8,6 +8,7 @@
 // preview we keep hitting the Python bridge server over HTTP `fetch`. Both live
 // behind this single seam, so components never change. Ported so far: health.
 import { invoke } from '@tauri-apps/api/core'
+import { toError } from './errors'
 
 const API_BASE: string =
   (import.meta as any)?.env?.VITE_API_BASE ?? 'http://127.0.0.1:17866'
@@ -241,42 +242,56 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return res.json() as Promise<T>
 }
 
+/**
+ * `invoke`, with rejections normalised into real `Error` objects.
+ *
+ * Tauri rejects with the RAW STRING from `Err(...)`, so every
+ * `catch (e) { ...(e as Error).message }` in the app read `undefined` and showed
+ * an empty error box. Normalising here — where the two dialects meet — fixes all
+ * 27 existing catch blocks at once and keeps future ones correct without their
+ * authors needing to know. The dev HTTP fallback already throws real Errors, which
+ * is precisely why this only ever broke in the packaged app.
+ */
+function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  return invoke<T>(cmd, args).catch((e) => { throw toError(e) })
+}
+
 export const api = {
   base: API_BASE,
   // PORTED to Rust (step 2.3): native command in the desktop shell, HTTP in web.
   health: () =>
     inTauri()
-      ? invoke<HealthResponse>('health')
+      ? call<HealthResponse>('health')
       : request<HealthResponse>('GET', '/health'),
   // PORTED to Rust (step 2.3): agent subprocess (`--list-monitors`) in the shell.
   monitors: () =>
     inTauri()
-      ? invoke<MonitorsResponse>('monitors')
+      ? call<MonitorsResponse>('monitors')
       : request<MonitorsResponse>('GET', '/monitors'),
   launch: (req: LaunchRequest) =>
     inTauri()
-      ? invoke<LaunchResponse>('launch', { body: req })
+      ? call<LaunchResponse>('launch', { body: req })
       : request<LaunchResponse>('POST', '/launch', req),
   // PORTED to Rust (step 2.3): file/OS endpoints route to native commands in
   // the desktop shell; the web preview keeps HTTP. The agent-invoking *Run /
   // monitors / launch / snapPopup stay on fetch until the agent-batch port.
   browse: (path?: string) =>
     inTauri()
-      ? invoke<BrowseResponse>('browse', { path: path ?? '' })
+      ? call<BrowseResponse>('browse', { path: path ?? '' })
       : request<BrowseResponse>('GET',
           `/browse${path !== undefined && path !== '' ? `?path=${encodeURIComponent(path)}` : ''}`),
   presetsList: () =>
     inTauri()
-      ? invoke<{ ok: boolean; presets: PresetListItem[] }>('presets_list')
+      ? call<{ ok: boolean; presets: PresetListItem[] }>('presets_list')
       : request<{ ok: boolean; presets: PresetListItem[] }>('GET', '/presets/list'),
   presetsGet: (kind: PresetKind, slot: string) =>
     inTauri()
-      ? invoke<{ ok: boolean; preset: SavedPreset; path: string }>('presets_get', { kind, slot })
+      ? call<{ ok: boolean; preset: SavedPreset; path: string }>('presets_get', { kind, slot })
       : request<{ ok: boolean; preset: SavedPreset; path: string }>(
           'GET', `/presets/get?kind=${encodeURIComponent(kind)}&slot=${encodeURIComponent(slot)}`),
   presetsSave: (kind: PresetKind, slot: string, assignments: Assignment[], name?: string) =>
     inTauri()
-      ? invoke<{ ok: boolean; path: string }>('presets_save', { kind, slot, name, assignments })
+      ? call<{ ok: boolean; path: string }>('presets_save', { kind, slot, name, assignments })
       : request<{ ok: boolean; path: string }>('POST', '/presets/save', { kind, slot, name, assignments }),
 
   // Auto-capture: read the current on-screen window arrangement (per-monitor grid
@@ -284,39 +299,39 @@ export const api = {
   // captured windows for the UI to review and save as a Layout. Desktop-only.
   captureLayout: (gridSizes: string[], marginPx?: number): Promise<CaptureResult> =>
     inTauri()
-      ? invoke<CaptureResult>('capture_layout', { gridSizes, marginPx })
+      ? call<CaptureResult>('capture_layout', { gridSizes, marginPx })
       : Promise.resolve({ ok: false, windows: [] }),
   presetsRun: (kind: PresetKind, slot: string, marginPx?: number) =>
     inTauri()
-      ? invoke<{ ok: boolean; results: LaunchResponse[] }>('presets_run', { kind, slot, marginPx })
+      ? call<{ ok: boolean; results: LaunchResponse[] }>('presets_run', { kind, slot, marginPx })
       : request<{ ok: boolean; results: LaunchResponse[] }>('POST', '/presets/run', { kind, slot, marginPx }),
   presetsDelete: (kind: PresetKind, slot: string) =>
     inTauri()
-      ? invoke<{ ok: boolean; deleted: string }>('presets_delete', { kind, slot })
+      ? call<{ ok: boolean; deleted: string }>('presets_delete', { kind, slot })
       : request<{ ok: boolean; deleted: string }>('DELETE', '/presets/delete', { kind, slot }),
 
   // ---- Quick Presets ----
   quickPresetsList: () =>
     inTauri()
-      ? invoke<{ ok: boolean; quickpresets: QuickPresetListItem[] }>('quickpresets_list')
+      ? call<{ ok: boolean; quickpresets: QuickPresetListItem[] }>('quickpresets_list')
       : request<{ ok: boolean; quickpresets: QuickPresetListItem[] }>('GET', '/quickpresets/list'),
   quickPresetsGet: (slot: string) =>
     inTauri()
-      ? invoke<{ ok: boolean; quickpreset: SavedQuickPreset; path: string }>('quickpresets_get', { slot })
+      ? call<{ ok: boolean; quickpreset: SavedQuickPreset; path: string }>('quickpresets_get', { slot })
       : request<{ ok: boolean; quickpreset: SavedQuickPreset; path: string }>(
           'GET', `/quickpresets/get?slot=${encodeURIComponent(slot)}`),
   quickPresetsSave: (slot: string, name: string, layouts: QuickPresetLayoutRef[]) =>
     inTauri()
-      ? invoke<{ ok: boolean; path: string; missingLayouts: string[] }>('quickpresets_save', { slot, name, layouts })
+      ? call<{ ok: boolean; path: string; missingLayouts: string[] }>('quickpresets_save', { slot, name, layouts })
       : request<{ ok: boolean; path: string; missingLayouts: string[] }>(
           'POST', '/quickpresets/save', { slot, name, layouts }),
   quickPresetsDelete: (slot: string) =>
     inTauri()
-      ? invoke<{ ok: boolean; deleted: string }>('quickpresets_delete', { slot })
+      ? call<{ ok: boolean; deleted: string }>('quickpresets_delete', { slot })
       : request<{ ok: boolean; deleted: string }>('DELETE', '/quickpresets/delete', { slot }),
   quickPresetsRun: (slot: string, marginPx?: number) =>
     inTauri()
-      ? invoke<QuickPresetRunResponse>('quickpresets_run', { slot, marginPx })
+      ? call<QuickPresetRunResponse>('quickpresets_run', { slot, marginPx })
       : request<QuickPresetRunResponse>('POST', '/quickpresets/run', { slot, marginPx }),
   /** Switch mode. Takes down the preset that is currently live, then applies this
    *  one. `kind` is 'quickpreset' for a bundle, or a Layout kind for a single
@@ -324,7 +339,7 @@ export const api = {
    *  Strictly more destructive than quickPresetsRun: it CLOSES windows. */
   quickPresetsSwitch: (kind: string, slot: string, marginPx?: number) =>
     inTauri()
-      ? invoke<SwitchResponse>('quickpresets_switch', { kind, slot, marginPx })
+      ? call<SwitchResponse>('quickpresets_switch', { kind, slot, marginPx })
       : request<SwitchResponse>('POST', '/quickpresets/switch', { kind, slot, marginPx }),
 
   // ---- Quick Snap (Divvy-style ad-hoc) ----
@@ -334,7 +349,7 @@ export const api = {
   // user commits or cancels — give it a long timeout.
   snapPopup: (monitor: number, gridSize = '6x6', marginPx?: number) =>
     inTauri()
-      ? invoke<{
+      ? call<{
           exitCode: number
           result: {
             ok?: boolean
@@ -372,19 +387,19 @@ export const api = {
   // Installed-browser detection. Native (registry) in the desktop shell; in the
   // web preview there's no detection, so return [] (UI falls back to defaults).
   listBrowsers: (): Promise<BrowserInfo[]> =>
-    inTauri() ? invoke<BrowserInfo[]>('list_browsers') : Promise.resolve([]),
+    inTauri() ? call<BrowserInfo[]>('list_browsers') : Promise.resolve([]),
 
   // Native "pick a program file" dialog. Optional title + allowed extensions
   // (default ["exe"]). Returns the chosen path or null (cancelled / web preview
   // where there's no native dialog — callers fall back accordingly).
   pickExe: (title?: string, extensions?: string[]): Promise<string | null> =>
-    inTauri() ? invoke<string | null>('pick_exe', { title, extensions }) : Promise.resolve(null),
+    inTauri() ? call<string | null>('pick_exe', { title, extensions }) : Promise.resolve(null),
 
   // Open the language-matched PDF manual. In the desktop app `window.open` is
   // blocked, so open it natively (OS default PDF viewer); in web preview fall
   // back to a new tab.
   openManual: (lang: string): Promise<void> => {
-    if (inTauri()) return invoke<void>('open_manual', { lang })
+    if (inTauri()) return call<void>('open_manual', { lang })
     const code = lang.toLowerCase().startsWith('es') ? 'ES' : 'EN'
     window.open(`/manual/InstaDesk-Manual-${code}.pdf`, '_blank')
     return Promise.resolve()
@@ -393,32 +408,32 @@ export const api = {
   // Launch-on-system-start (Settings → General). Web preview has no startup
   // registration, so it reports false / no-ops.
   autostartGet: (): Promise<boolean> =>
-    inTauri() ? invoke<boolean>('autostart_is_enabled') : Promise.resolve(false),
+    inTauri() ? call<boolean>('autostart_is_enabled') : Promise.resolve(false),
   autostartSet: (enabled: boolean): Promise<void> =>
-    inTauri() ? invoke<void>('autostart_set', { enabled }) : Promise.resolve(),
+    inTauri() ? call<void>('autostart_set', { enabled }) : Promise.resolve(),
 
   // Mirror the telemetry opt-out to the native crash reporter (writes a marker the
   // Rust side reads at startup). Web preview no-ops.
   setTelemetryOptout: (optedOut: boolean): Promise<void> =>
-    inTauri() ? invoke<void>('set_telemetry_optout', { optedOut }) : Promise.resolve(),
+    inTauri() ? call<void>('set_telemetry_optout', { optedOut }) : Promise.resolve(),
 
   // Drag-to-snap (Settings → General). When on, holding Shift while dragging a
   // window and releasing it snaps the window to the half/quadrant under the
   // cursor. Web preview has no Win32 hook, so it reports false / no-ops.
   dragsnapGet: (): Promise<boolean> =>
-    inTauri() ? invoke<boolean>('get_dragsnap_enabled') : Promise.resolve(false),
+    inTauri() ? call<boolean>('get_dragsnap_enabled') : Promise.resolve(false),
   dragsnapSet: (enabled: boolean): Promise<void> =>
-    inTauri() ? invoke<void>('set_dragsnap_enabled', { enabled }) : Promise.resolve(),
+    inTauri() ? call<void>('set_dragsnap_enabled', { enabled }) : Promise.resolve(),
 
   // Mirror the window-margin setting to native so drag-to-snap (and its live
   // preview overlay) honor the same bezel margin as launch tiling. Web no-ops.
   setSnapMargin: (px: number): Promise<void> =>
-    inTauri() ? invoke<void>('set_snap_margin', { px }) : Promise.resolve(),
+    inTauri() ? call<void>('set_snap_margin', { px }) : Promise.resolve(),
 
   // Flash each monitor's number on its physical screen (Windows-style Identify).
   // Fire-and-forget; the agent self-closes after ~3s. Web preview no-ops.
   identifyMonitors: (): Promise<void> =>
-    inTauri() ? invoke<void>('identify_monitors') : Promise.resolve(),
+    inTauri() ? call<void>('identify_monitors') : Promise.resolve(),
 
   // Minimize or restore every normal top-level window across all monitors (the
   // Snap-bar "show desktop" toggle). Restore brings each window back to the exact
@@ -445,13 +460,13 @@ export const api = {
   // Licensing/trial status (app-side, dormant by default). Returns enabled:false
   // when licensing is off (then the app is unrestricted). Web preview = off.
   licenseStatus: (): Promise<LicenseStatus> =>
-    inTauri() ? invoke<LicenseStatus>('license_status') : Promise.resolve({ enabled: false, state: 'unrestricted' }),
+    inTauri() ? call<LicenseStatus>('license_status') : Promise.resolve({ enabled: false, state: 'unrestricted' }),
   // Activate a license key (throws with a message on failure). Returns the new status.
   licenseActivate: (key: string): Promise<LicenseStatus> =>
-    invoke<LicenseStatus>('license_activate', { key }),
+    call<LicenseStatus>('license_activate', { key }),
   // Deactivate / clear the local license. Returns the new status.
   licenseDeactivate: (): Promise<LicenseStatus> =>
-    invoke<LicenseStatus>('license_deactivate'),
+    call<LicenseStatus>('license_deactivate'),
 
   // Rebind a global hotkey (Settings → Global shortcuts). `code` is a DOM
   // KeyboardEvent.code (e.g. "KeyD", "Digit1"). Web preview no-ops.
@@ -459,11 +474,11 @@ export const api = {
     action: 'show' | 'snap',
     parts: { ctrl: boolean; alt: boolean; shift: boolean; sup: boolean; code: string },
   ): Promise<void> =>
-    inTauri() ? invoke<void>('set_hotkey', { action, ...parts }) : Promise.resolve(),
+    inTauri() ? call<void>('set_hotkey', { action, ...parts }) : Promise.resolve(),
 
   /** Global hotkeys Windows refused at startup, by display name. Empty = all work.
    *  A shortcut another app already owns silently does nothing forever, which is
    *  indistinguishable from "never wired" — so it has to be askable. */
   hotkeyFailures: (): Promise<string[]> =>
-    inTauri() ? invoke<string[]>('hotkey_failures') : Promise.resolve([]),
+    inTauri() ? call<string[]>('hotkey_failures') : Promise.resolve([]),
 }
