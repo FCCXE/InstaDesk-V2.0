@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
     "dev": "vite",
     "checks": "node scripts/check-i18n-parity.mjs && node scripts/check-tour-safety.mjs && node scripts/check-tour-anchors.mjs && node scripts/check-tour-content.mjs && node scripts/check-updater-purity.mjs && node scripts/check-layout-yield.mjs && node scripts/check-changelog-clean.mjs",
     "prebuild": "npm run -s checks",
@@ -43,7 +45,8 @@
     "tailwindcss": "^4.1.13",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
-    "vite": "^7.1.2"
+    "vite": "^7.1.2",
+    "vitest": "^4.1.11"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx,css}": "echo Files OK"

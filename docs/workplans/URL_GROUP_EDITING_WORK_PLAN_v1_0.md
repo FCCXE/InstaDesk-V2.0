@@ -66,18 +66,57 @@ to FAIL when the thing it guards is broken. An instrument nobody has seen fail p
 ### I-0 — Setup ✅ **DONE**
 Rollback tag `pre-urlgroup-edit-v1` pushed. Phase 0 evidence committed `d83aaf9`.
 
-### I-1 — Install the test instrument ☐ *not risky*
-Add vitest to `ui/`. Prove it with **both** controls: a test that passes, and a deliberately broken
-test observed to FAIL and then removed. Wire `npm test`. **Not** added to `prebuild` yet — that
-happens in I-3, once there is something worth gating.
-**Done when:** a green run *and* a witnessed red run are both recorded here.
+### I-1 — Install the test instrument ✅ **DONE**
+vitest 4.1.11 added to `ui/`; `npm test` wired. `src/services/instrument.test.ts` tests the HARNESS,
+not the product.
 
-### I-2 — MEASURE F-1, no fix ☐ *not risky*
-Tests against the REAL `UrlGroupsService` that reproduce the shadow group: add Dashboards/Chrome, add
-Dashboards/Edge, assert what `findUrlGroupByName` returns and that the other record is unreachable.
-**Expected: this test FAILS**, and that failure is the measurement that turns F-1 from a code read
-into a proven defect.
-**Done when:** the failing output is pasted into this plan. **No production code changes.**
+**POSITIVE control — 4 passed.** The positive control deliberately does *not* assert `true === true`:
+it drives the real `UrlGroupsService` through the real `services/storage` (which falls back to a
+module-level Map when `window` is absent, so no jsdom is needed), and checks that an id and a
+timestamp minted *by the service* come back. That is what proves a test in this repo can SEE
+production code rather than a mock of it.
+
+**NEGATIVE control — witnessed RED.** `save(list)` was removed from `addUrlGroup` (a mutation that
+still returns a plausible record, so a caller checking only the return value would never notice):
+
+```
+FAIL  src/services/instrument.test.ts > reaches the real UrlGroupsService and the real storage fallback
+AssertionError: expected [] to have a length of 1 but got +0
+FAIL  src/services/instrument.test.ts > removeUrlGroup actually removes, so cleanup in later tests is trustworthy
+AssertionError: expected [] to have a length of 1 but got +0
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+```
+
+Restored **from a file copy, never `git checkout`** (I-5 rule of the Switch programme, which cost a
+day's work once). Restore verified three ways: mutation marker absent, `save(list)` present again,
+`git diff` clean against HEAD — and then **behaviourally**, 4 passed again. A grep alone would not
+have been enough.
+
+### I-2 — MEASURE F-1, no fix ✅ **DONE — F-1 IS PROVEN**
+`src/services/UrlGroupsService.test.ts`, run against **unchanged** production code (`git diff` clean
+on `UrlGroupsService.ts`, checked before the run):
+
+```
+FAIL  F-1 — one name must mean one group > re-saving a name with a DIFFERENT browser replaces it, instead of making a twin
+AssertionError: expected [ { …(5) }, { …(5) } ] to have a length of 1 but got 2
+FAIL  F-1 — one name must mean one group > the surviving group is the one the user saved LAST
+AssertionError: expected 'Chrome' to be 'Edge' // Object.is equality
+FAIL  F-1 — one name must mean one group > no saved group is unreachable — every stored group can be resolved by name
+AssertionError: expected [ { …(5) } ] to deeply equal []
+ Test Files  1 failed | 1 passed (2)
+      Tests  3 failed | 7 passed (10)
+```
+
+**F-1 is no longer a code read.** The second failure is the sharpest statement of the harm:
+`expected 'Chrome' to be 'Edge'` — the app launches the browser the user believes they changed
+*away from*. The third confirms exactly one stored group is unreachable: listed in App History,
+launchable by nothing.
+
+**7 passed** alongside — the 4 instrument tests plus 3 guards (update-in-place still works, name
+matching stays case-insensitive, distinct names stay distinct). So the suite is not failing
+wholesale; only the three assertions that describe F-1 fail, which is what makes them a measurement
+rather than noise. **No production code was changed in this increment.**
 
 ### I-3 — Fix F-1, one key not two ☐ **RISKY** → tag `pre-urlgroup-onekey`
 The name is ALREADY the identity, because assignments resolve by name (F-2). So the de-dupe must key
