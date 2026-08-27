@@ -347,6 +347,29 @@ else moved.
 
 ---
 
+## §4A — FRONT CLOSED 2026-08-27
+
+Every increment and every open decision is closed. Verified by the operator in the **installed
+Sandbox** (`0.5.0-sb.1787840307247`), not in dev:
+
+| | |
+|---|---|
+| I-0 … I-9 | ✅ including the F-3 propagation fix the first checkpoint caught |
+| I-8 checkpoint | ✅ *"Implemented fix works as expected."* |
+| D-1 / D-2 / D-3 | ✅ closed |
+| P-2 | withdrawn — checked before building, and it was unreachable |
+| Gates | **8** (three added by this front) · **34** UI tests, from zero |
+| Repos | clean, in sync |
+
+**⛔ NOT RELEASED.** All of it sits on `main` at v0.5.0. The release needs explicit operator
+authorisation and has not been given. Until then the published build — and the collaborator's copy —
+still carries the F-3 defect the operator reported.
+
+Rollback tags, newest first: `pre-remove-openmode`, `pre-definition-propagation`,
+`pre-urlgroup-edit-ui`, `pre-urlgroup-onekey`, `pre-urlgroup-edit-v1`.
+
+---
+
 ## §5 — Open decisions for the operator
 
 **D-1 CLOSED 2026-08-27 — the operator ruled: keep the working option, remove the rest.** Their
