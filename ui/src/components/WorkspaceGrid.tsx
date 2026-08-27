@@ -34,6 +34,7 @@ export default function WorkspaceGrid() {
     clipboard,            // null until something has been copied
     clipboardSize,        // the grid size those cells came from
     clipboardBlock,       // set when the copy came from a selection
+    unassignSelected,     // clears the selected cells and their per-cell args
     applyBlockPaste,
   } = useAppState()
   const confirm = useConfirm()
@@ -56,6 +57,19 @@ export default function WorkspaceGrid() {
     } else {
       setGridFlash(t('grid.copied'))
     }
+  }
+
+  // How many of the selected cells actually hold an app. Drives both the disabled
+  // state and the message, so the button never claims work it did not do.
+  const assignedInSelection = useMemo(
+    () => [...selection].filter((k) => assignments[k]).length,
+    [selection, assignments],
+  )
+
+  const onUnassign = () => {
+    if (assignedInSelection === 0) return
+    unassignSelected()
+    setGridFlash(t('grid.unassigned', { count: assignedInSelection }))
   }
 
   const onPasteGrid = async () => {
@@ -348,6 +362,25 @@ export default function WorkspaceGrid() {
           {gridFlash ?? status}
         </div>
         <div data-tour="grid-clipboard" className="flex shrink-0 items-center gap-2">
+          {/* Unassign lives HERE, beside Copy and Paste, because all three act on
+              the same thing — the current selection — and the existing
+              "Unassign Selection" sits on a different TAB from the grid you are
+              editing. That is the defect-B shape a second time: the affordance
+              was a tab away from the work. Same action, same label root, one
+              behaviour; this is a second door, not a second feature. */}
+          <button
+            type="button"
+            onClick={onUnassign}
+            disabled={assignedInSelection === 0}
+            title={
+              assignedInSelection === 0
+                ? t('grid.unassignNothing')
+                : t('grid.unassignTitle', { count: assignedInSelection })
+            }
+            className="h-7 rounded-md border border-line bg-raised px-2 text-[11px] font-medium text-fg hover:bg-line disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {t('grid.unassign')}
+          </button>
           <button
             type="button"
             onClick={onCopyGrid}

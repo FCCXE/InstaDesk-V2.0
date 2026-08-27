@@ -167,7 +167,12 @@
     "copiedBlock": "Selección {{rows}}×{{cols}} copiada",
     "pastedBlock": "Selección {{rows}}×{{cols}} pegada",
     "pasteNeedsSelection": "Selecciona un área de {{rows}}×{{cols}} para pegar.",
-    "pasteShapeMismatch": "Esa selección es {{gotRows}}×{{gotCols}}; el bloque copiado es {{rows}}×{{cols}}. Selecciona un área de la misma forma."
+    "pasteShapeMismatch": "Esa selección es {{gotRows}}×{{gotCols}}; el bloque copiado es {{rows}}×{{cols}}. Selecciona un área de la misma forma.",
+    "unassign": "Quitar",
+    "unassignTitle": "Vacía las {{count}} celdas asignadas de esta selección, y sus argumentos de inicio",
+    "unassignNothing": "Selecciona celdas que contengan una app para vaciarlas",
+    "unassigned_one": "Se vació {{count}} celda",
+    "unassigned_other": "Se vaciaron {{count}} celdas"
   },
   "monitor": {
     "quickPresets": "Preajustes rápidos",
@@ -366,7 +371,7 @@
       },
       "grid": {
         "title": "La cuadrícula y la asignación de apps",
-        "body": "• Arrastra sobre las celdas para seleccionar una región rectangular y luego asígnale una aplicación. Mantén Ctrl o Mayús mientras arrastras para añadir un segundo rectángulo a la misma selección.\n• Cambia la densidad de la cuadrícula de un monitor con el selector Cuadrícula de la barra inferior (p. ej. 6×6, 8×8, 10×10).\n• Da a una celda argumentos de inicio personalizados en la pestaña Apps —por ejemplo, una ruta de carpeta para el Explorador de archivos— para abrir distintas ventanas de la misma aplicación.\n• «Borrar cuadrícula actual» borra el monitor actual; «Borrar todas las cuadrículas» borra todos los monitores (con confirmación).\n\nCopiar y Pegar, debajo de la cuadrícula, trasladan una disposición de un monitor a otro: las apps y los argumentos de inicio por celda. Selecciona primero un área y solo se copia ese bloque; pégalo en un área de la misma forma en cualquier monitor, sea cual sea su tamaño de cuadrícula. Sin nada seleccionado, Copiar toma el monitor entero y Pegar necesita entonces un monitor del mismo tamaño de cuadrícula. Si las celdas de destino ya contienen algo, se pide confirmación."
+        "body": "• Arrastra sobre las celdas para seleccionar una región rectangular y luego asígnale una aplicación. Mantén Ctrl o Mayús mientras arrastras para añadir un segundo rectángulo a la misma selección.\n• Cambia la densidad de la cuadrícula de un monitor con el selector Cuadrícula de la barra inferior (p. ej. 6×6, 8×8, 10×10).\n• Da a una celda argumentos de inicio personalizados en la pestaña Apps —por ejemplo, una ruta de carpeta para el Explorador de archivos— para abrir distintas ventanas de la misma aplicación.\n• Selecciona celdas y pulsa Quitar, debajo de la cuadrícula, para vaciar solo esas celdas; el resto del monitor no se toca. Borrar cuadrícula actual vacía todo el monitor; Borrar todas las cuadrículas vacía todos los monitores (ambos piden confirmación).\n\nCopiar y Pegar, debajo de la cuadrícula, trasladan una disposición de un monitor a otro: las apps y los argumentos de inicio por celda. Selecciona primero un área y solo se copia ese bloque; pégalo en un área de la misma forma en cualquier monitor, sea cual sea su tamaño de cuadrícula. Sin nada seleccionado, Copiar toma el monitor entero y Pegar necesita entonces un monitor del mismo tamaño de cuadrícula. Si las celdas de destino ya contienen algo, se pide confirmación."
       },
       "apps": {
         "title": "Apps, URLs y Favoritos",
@@ -669,7 +674,7 @@
           },
           "grid-clipboard": {
             "title": "Reutiliza un monitor que ya organizaste",
-            "body": "Selecciona un área y Copiar toma solo ese bloque: las apps y los argumentos de inicio por celda. Selecciona un área de la misma forma en cualquier monitor y Pegar lo coloca, sea cual sea el tamaño de cuadrícula de ese monitor. Copiar sin nada seleccionado toma el monitor entero."
+            "body": "Selecciona un área y Copiar toma solo ese bloque: las apps y los argumentos de inicio por celda. Selecciona un área de la misma forma en cualquier monitor y Pegar lo coloca, sea cual sea el tamaño de cuadrícula de ese monitor. Copiar sin nada seleccionado toma el monitor entero. Quitar, al lado, vacía solo las celdas que tengas seleccionadas."
           }
         }
       },
