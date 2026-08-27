@@ -117,6 +117,25 @@ if (appState) {
   const src = text.get(appState)
   const block = /type\s+AppStateContext\s*=\s*\{([\s\S]*?)\n\}/.exec(src)
   if (block) {
+    // ⚠ AND THE THIRD VERSION LOST WHAT THE FIRST ONE CAUGHT. Pivoting to the
+    // write path fixed nested fields and silently stopped examining every member
+    // that is NOT a setter — which is how `copyGrid` / `pasteGrid` slipped
+    // through: declared on the context, implemented, exposed, and referenced by
+    // no component anywhere. Version 1 flagged them; version 3 never looked.
+    // A fix that narrows what a check SEES is a regression even when every test
+    // still passes. Both paths now run.
+    const members = [...block[1].matchAll(/^  ([A-Za-z_$][\w$]*)\s*[?]?\s*:/gm)].map(x => x[1])
+    for (const name of new Set(members)) {
+      if (/^set[A-Z]/.test(name)) continue          // covered by the setter path
+      const re = new RegExp(`\\b${name}\\b`)
+      let seen = false
+      for (const [file, body] of text) {
+        if (file === appState) continue
+        if (re.test(body)) { seen = true; break }
+      }
+      if (!seen) unconsumedState.push({ member: name, why: 'on the context, and no component references it' })
+    }
+
     const setters = [...block[1].matchAll(/^\s*(set[A-Z][\w$]*)\s*[?]?\s*:/gm)].map(x => x[1])
     for (const setter of new Set(setters)) {
       const field = setter[3].toLowerCase() + setter.slice(4)   // setOpenMode -> openMode

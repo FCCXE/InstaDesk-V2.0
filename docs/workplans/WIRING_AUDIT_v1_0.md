@@ -98,6 +98,68 @@ no longer find it.** Probe A drops to **15**.
 called); Favorites does not. An asymmetry between two adjacent lists, not a missing capability in the
 engine.
 
+### W-3 — the information needed to rule
+
+**It was never wired, not un-wired.** `git log --diff-filter=A` puts `clipboard.ts` in the very first
+UI commit (`077a5b5`, *"wire React UI to FastAPI server end-to-end"*), and `git log -S "copyText("`
+returns **that same commit and nothing else** — the only occurrence of the string is the definition
+itself. **`copyText` has never had a caller in the history of the repo.** Speculative code, added and
+forgotten.
+
+**What it does:** writes text to the clipboard via `navigator.clipboard.writeText`, with an
+`execCommand` fallback. ~20 lines, no dependencies, works.
+
+**Where it would earn its place, in descending value:**
+
+1. **Copy diagnostics** — version, monitor layout, agent stamp. The Help tab already prints the
+   version (`RightPane.tsx:1453`) and there is nowhere to copy it from. This is worth most *right
+   now*, because a collaborator is about to start reporting bugs from another PC.
+2. **Copy an error message.** Backend errors only became readable today; being able to copy the exact
+   sentence turns a screenshot into a searchable report.
+3. **Copy a path** from App History or Favorites — useful when the path is wrong and needs pasting
+   elsewhere.
+
+| | |
+|---|---|
+| **A — Delete the module** | Honest and free. Loses a capability nothing uses. |
+| **B — Wire "Copy diagnostics" into Help** | Small, self-contained, and immediately useful for external testing. Uses the existing function. |
+| **C — Wire copy on error messages too** | More surface, more strings, more places to keep consistent. |
+
+**Recommendation: B.** It is the one use with a concrete reason today, and it costs a button.
+**A is the right answer if you would rather not carry it** — what I would not recommend is leaving an
+unreachable module in place indefinitely, which is how it survived unnoticed since the first commit.
+
+### W-4 — ⛔ **NEW: copy/paste a monitor's grid is fully built and unreachable**
+
+Found by restoring a probe path my own instrument had lost (see below). `copyGrid` and `pasteGrid` are
+declared on the context, implemented, exposed in the provider value — and **referenced by no component
+and bound to no keyboard shortcut**. `copyGrid` captures a monitor's assignments *and* its per-cell
+args overrides; `pasteGrid` applies both to the current monitor.
+
+That is a genuinely useful capability — *arrange one monitor, then duplicate it onto another* — and
+there is no way to reach it. Same class as `updateFavorite` (W-1), and larger. **Operator to rule on
+where the affordance belongs** (bottom bar beside *Clear Present Grid*, or the monitor pane).
+
+**Also dead, with no user-facing gap:** `replaceGrid` — superseded by `replaceGridMulti`, which the
+Layout edit path uses; and the **entire pending-preset feature** (`pendingPresetByMonitor`,
+`setPendingPreset`, `getPendingPreset`) which **no component touches at all**.
+
+### ⚠ The instrument failed a FOURTH time, in the way the handbook names
+
+Probe B version 3 pivoted to the write path, fixed nested fields — and **silently stopped examining
+every context member that is not a setter**. Version 1 had flagged `copyGrid`/`pasteGrid`; version 3
+never looked at them. **A fix that narrows what a check SEES is a regression even when nothing fails.**
+
+Restoring that path then produced **59** false positives, because the regex I wrote landed in the file
+as `` `${name}` `` — and in a JS template literal `` is a **BACKSPACE character**, not a word
+boundary. It matched nothing, so every member looked unreferenced. That is the exact trap recorded in
+the handbook, hit again, and caught only by the result being obviously absurd. Repaired by building
+the backslash from `chr(92)` and reading the file back **as bytes**.
+
+One further false positive — `sizeByMonitorId` — was a *parameter name* inside a multi-line signature,
+not a member. Member extraction now requires the two-space indent of a real member.
+
+*(original finding, for the record)*
 ### W-3 — **A clipboard capability with no caller**
 
 `src/services/clipboard.ts` contains exactly one function, `copyText`, and **the entire module is
