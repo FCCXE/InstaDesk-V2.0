@@ -400,16 +400,30 @@ function Section({
   );
 }
 
+// The row must be allowed to WRAP. Four of these hold a select with a hard
+// min-w-[160px] floor, and the label beside it is translated: "Default grid size"
+// is 17 characters in English and 35 in Spanish ("Tamano de cuadricula
+// predeterminado"), whose longest word alone is ~14 characters. Against the 268px
+// the 320px column leaves after padding and the scrollbar, that row sits within a
+// few pixels of the budget - and on 2026-08-26 the operator photographed the
+// select crossing the card border in Spanish.
+//
+// Adding up the widths to find the safe pixel count is what NOT to do: that sum
+// said "fits by 7px" for the very row in the screenshot, because the per-character
+// constant is a guess. flex-wrap removes the budget from the question entirely -
+// when the pair does not fit, the control drops to its own line at full width, in
+// any language. Rows that already fit are untouched, so English is unchanged.
+// Same remedy as the bottom bar, which failed the same way the day before.
 function Row({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-3 first:pt-0 last:pb-0">
       {children}
     </div>
   );
 }
 
 function Label({ children, title }: { children: ReactNode; title?: string }) {
-  return <div className="text-sm text-fg" title={title}>{children}</div>;
+  return <div className="min-w-0 text-sm text-fg" title={title}>{children}</div>;
 }
 
 // Rebind control for a global hotkey: click to capture a new combo. Requires a

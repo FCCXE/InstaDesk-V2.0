@@ -141,14 +141,15 @@ current Windows session. A stale record must degrade to "nothing to take down", 
 ## §3 — The gates
 
 The four `prebuild` gates from v0.4.0 are permanent infrastructure and bind this work unchanged.
-**`prebuild` now runs FIVE checks** — the fifth added by I-13.
-This programme adds three instruments of its own:
+**`prebuild` now runs SIX checks** — the fifth added by I-13, the sixth by I-26.
+This programme adds four instruments of its own:
 
 | Gate | Where it runs | Guards |
 |---|---|---|
 | `check-tour-safety.mjs` **(extended, I-2)** | `npm run build` → `prebuild` | the new teardown verbs can never be fired from walkthrough code |
 | Rust revalidation tests **(new, I-5)** | `cargo test --lib` | a recycled, mismatched or cross-session handle is refused before any close is posted |
 | `check-updater-purity.mjs` **(new, I-13)** | `npm run build` → `prebuild` | a side effect sits inside a React state updater, which React may run more than once |
+| `check-layout-yield.mjs` **(new, I-26)** | `npm run build` → `prebuild` | a control with a hard `min-w-[Npx]` floor sits in a flex row that cannot wrap — guaranteed to overflow at some label length |
 
 **⛔ Never weaken a gate to stop it complaining.** If one fires on a false positive, make it more
 precise and re-bite it in both directions.
@@ -295,6 +296,7 @@ agent-path comment. **Recorded under the parking rule (§0.3); not fixed by this
 | I-23 | **G-11** — the Ctrl+Alt+1–9 hotkeys | no | build | ✅ |
 | I-24 | **G-4/G-5/G-6** — autostart, telemetry, licence + tour grouping | no | build | ✅ |
 | I-25 | **Operator-reported** — the launch-args hint was starving the App History pane | no | build + Sandbox | ✅ |
+| I-26 | **Operator-reported** — Settings rows could not yield, so the Spanish label pushed the select out of its card + **a sixth gate** | no | build + Sandbox | ✅ |
 | I-14 | Release v0.5.0 — Sandbox installer gate, CHANGELOG, bump, two-repo push, tag | **yes** | full | ☐ |
 
 ---
@@ -1742,6 +1744,7 @@ resolved in the increment named.
 | 2026-08-26 | **And measuring the labels caught a defect in MY OWN tour text.** The Spanish Capture button reads **"Capturar disposición actual"**; the step I wrote in I-21 called it *"Capturar diseño actual"* — naming a control the screen does not show. **No gate can see this**: both strings are valid Spanish, present, unique and in parity. It surfaced only because I printed the button label beside the step text. Corrected to quote the real label, and the other quoted labels checked the same way. |
 | 2026-08-24 | **Parked finding (§0.3, not fixed here):** `ui/src/services/version.ts:8-10` claims `IS_SANDBOX` disables auto-update via `services/updater.ts`. It does not — `IS_SANDBOX` appears only in its own definition and `TopChrome.tsx:55`. The isolation is really the endpoint override in `tauri.sandbox.conf.json`. A comment asserting a safety property the code does not implement. |
 | 2026-08-26 | **Operator-reported, and the defect was MINE — introduced by I-20 four increments earlier.** The App History pane was starved, "specially in the spanish version". Cause: the launch-args hint I added renders always-on, and App History directly below it is `flex min-h-0 flex-1` — it receives **whatever vertical space is left**, so every line of that hint is taken out of the history list. The text is **219** characters in English but **287** in Spanish, so the cost was roughly twice as large in the locale the operator uses — the same length-versus-locale asymmetry as the bottom bar, in a different component, found the same way: by a person looking at the screen. **I chose always-on deliberately** (F-4: gating it on `selCount === 0` would leave the tour anchor null half the time) and never measured what it took from its neighbour. *A fix for one finding is a change to a shared budget.* Collapsed into a `<details>` whose summary still **names** the thing ("Two windows of the same app?" / "¿Dos ventanas de la misma app?") with the elaboration one click away: **28** and **30** characters always-on, **87%** and **90%** reclaimed. This is not the "hidden one layer deeper" mistake the audit condemns — the concept stays scannable, only the detail folds, and the detail now also lives in the I-20 tour step, which did not exist when the block was written always-on. The anchor is present in **both** states, so F-4 does not return. |
+| 2026-08-26 | **Operator-reported: the grid-size select crosses its card border in Spanish — and the ARITHMETIC GATE I WROTE FIRST PASSED IT.** Third instance of one class in two days (bottom bar, then this), all three found by a person looking at the screen. The shape is always the same: a row whose children **both refuse to yield**. Here `Row` was `flex items-center justify-between` with no `gap`, no `flex-wrap`, a `Label` with no `min-w-0` (so it cannot shrink below its longest word), and a select pinned at **`min-w-[160px]`**. *"Default grid size"* is **17** characters; *"Tamaño de cuadrícula predeterminado"* is **35**, longest word ~14. Budget: the 320px column less `pr-2`, the scrollbar and the card’s `p-4` = **268px**. **The measurement did not survive contact with the screen:** floor 160 + 14 chars at an assumed 7.2px/char = **261px**, reported as *"fits by 7px"* for the exact row in the operator’s photograph. The per-character constant was mine and unverifiable, so the sum landed in the **reassuring** direction — *a measurement that is not reproducible is not a measurement*, and a gate built on it would have been a false-reassurance machine certifying the live defect. **Rebuilt as a structural property needing no measurement:** a control declaring a hard floor must sit in a row that MAY WRAP. Bitten before the fix (**4 rows flagged**, resolved through the `<Row>` component indirection, including the photographed one) and the fifth floor correctly **not** flagged, being inside a `flex-col` — both directions proven. Fixed at the primitive (`flex-wrap` + `gap-x-3` + `min-w-0`), so all four rows and every future one are covered; English unchanged, because rows that already fit never wrap. |
 
 ---
 
