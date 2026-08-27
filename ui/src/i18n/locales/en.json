@@ -326,7 +326,10 @@
     "updated": "Updated \"{{name}}\".",
     "updatedAndPropagated_one": "Updated \"{{name}}\", and {{layouts}} Layout that uses it.",
     "updatedAndPropagated_other": "Updated \"{{name}}\", and {{layouts}} Layouts that use it.",
-    "updatedPropagationFailed": "Updated \"{{name}}\", but saved Layouts could not be refreshed — they may still open the old target."
+    "updatedPropagationFailed": "Updated \"{{name}}\", but saved Layouts could not be refreshed — they may still open the old target.",
+    "clearAll": "Clear all",
+    "clearConfirmTitle": "Clear all favorites?",
+    "clearConfirm": "Remove every favorite? Saved Layouts that use one will no longer find it. This cannot be undone."
   },
   "help": {
     "title": "Help",

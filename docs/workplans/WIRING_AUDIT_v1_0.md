@@ -84,6 +84,14 @@ Favorites can be added and deleted; a wrong path or a renamed entry can only be 
 > cannot be edited. That reasoning stands, and this is its other half: the gap is not propagation,
 > it is that **editing does not exist at all**.
 
+### W-2 — ✅ **FIXED 2026-08-27** — Favorites can be cleared
+
+`clearFavorites` is wired behind the edit toggle, mirroring the App History pattern exactly — same
+confirm shape, same `danger` flag — so two adjacent lists behave the same way instead of each
+inventing its own. The confirm says what the user cannot see: **saved Layouts that use a favorite will
+no longer find it.** Probe A drops to **15**.
+
+*(original finding, for the record)*
 ### W-2 — **Favorites have no "clear all"**
 
 `clearFavorites()` exists and is unreachable. App History has its clear-all wired (`clearHistory` is
@@ -114,6 +122,42 @@ Read and confirmed harmless — worth deleting for clarity, but nothing is missi
 only inside its own file. `export` is unnecessary; nothing is missing.
 
 **Test-only (1):** `clearUrlGroups` — legitimate test infrastructure.
+
+---
+
+## §4A — The agent sweep ✅ **DONE 2026-08-27** — the blind spot §5 named
+
+§5 flagged the most likely place for another `openMode`: values written into every saved Layout that
+the agent might quietly ignore. Swept end to end — UI → preset file → Rust → agent CLI → **actual
+use** — because the whole lesson of this audit is that presence is not consumption.
+
+**Result: 21 of the agent's 22 arguments are genuinely honoured.**
+
+| Field | Verdict |
+|---|---|
+| `activate` | **honoured** — drives `SetForegroundWindow` and `SWP_NOACTIVATE` |
+| `topmost` | **honoured** — drives `HWND_TOPMOST` at three sites |
+| `waitReadyMs` | **honoured** — a real `Thread.Sleep(args.WaitReadyMs)` |
+| `singleInstance` | **honoured** — gates window reuse at two sites |
+| `cellMarginPx` | **honoured** — real geometry math at three sites. **The Settings "Window margin" control works.** |
+| `targetHwnd`, `gridSize`, `gridSizes` | **honoured** |
+| **`frameMode`** | ⚠ **parsed and DISCARDED** — `case "--frameMode": break; // always style-aware` |
+
+**`frameMode` is dead plumbing, NOT a lying control.** It is hardcoded to `"frameless"` in two UI
+sites (`CaptureLayoutModal`, `layoutBuilder`), defaulted again in Rust, written into every saved
+preset, passed on the agent command line — and dropped. **No user can choose it**, so no promise is
+broken and neither Help nor the tour mentions it.
+
+> The risk is a **trap, not a defect**: the plumbing is complete and inviting. Someone adding a
+> "frameless windows" checkbox later would wire it to what already exists and ship a dead control
+> pre-built — `openMode` a second time. Removing the parameter across UI, Rust and the agent is the
+> cure; it spans **both repos**, so it is recommended rather than done.
+
+**And the detector over-reported again — the third time in this audit.** A single-line scan for
+`case "--x": break;` flagged **four** discarded arguments. Three were false: `--grid-size`,
+`--target-hwnd` and `--cell-margin-px` all assign on a *following* line. Only `frameMode` survived
+reading. Had the four been reported as found, the headline would have been *"the window margin setting
+does nothing"* — alarming, and wrong.
 
 ---
 

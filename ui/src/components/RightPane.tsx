@@ -18,6 +18,7 @@ import { APP_CATALOG } from "../services/appsCatalog";
 import {
   listFavorites,
   removeFavorite,
+  clearFavorites,
   type Favorite,
 } from "../services/FavoritesService";
 import {
@@ -1113,6 +1114,7 @@ function UrlsBuilderPane() {
 
 function FavoritesPane() {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const [editMode, setEditMode] = useState(false);
   const [favorites, setFavorites] = useState<Favorite[]>(() => listFavorites());
   const [showAdd, setShowAdd] = useState(false);
@@ -1182,6 +1184,13 @@ function FavoritesPane() {
     }
   };
 
+  const onClearAll = async () => {
+    if (!(await confirm({ title: t("favorites.clearConfirmTitle"), body: t("favorites.clearConfirm"), danger: true }))) return;
+    clearFavorites();
+    setFavorites(listFavorites());
+    window.dispatchEvent(new CustomEvent("insta:favorites-changed"));
+  };
+
   const onAdded = () => {
     setFavorites(listFavorites());
     // AddFavoriteModal already broadcasts on save; this is a defensive
@@ -1196,6 +1205,9 @@ function FavoritesPane() {
           <div className="text-base font-semibold text-fg">{t("favorites.title")}</div>
           <div className="flex items-center gap-2">
             <GhostBtn onClick={() => setEditMode((v) => !v)}>{editMode ? t("apps.done") : t("apps.edit")}</GhostBtn>
+            {editMode && favorites.length > 0 && (
+              <GhostBtn onClick={onClearAll}>{t("favorites.clearAll")}</GhostBtn>
+            )}
             <span data-tour="favorites-add"><GhostBtn onClick={() => setShowAdd(true)}>{t("favorites.addFavorite")}</GhostBtn></span>
           </div>
         </div>

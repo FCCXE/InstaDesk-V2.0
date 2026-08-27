@@ -326,7 +326,10 @@
     "updated": "Se actualizó \"{{name}}\".",
     "updatedAndPropagated_one": "Se actualizó \"{{name}}\", y {{layouts}} Diseño que lo usa.",
     "updatedAndPropagated_other": "Se actualizó \"{{name}}\", y {{layouts}} Diseños que lo usan.",
-    "updatedPropagationFailed": "Se actualizó \"{{name}}\", pero no se pudieron refrescar los Diseños guardados: puede que sigan abriendo el destino anterior."
+    "updatedPropagationFailed": "Se actualizó \"{{name}}\", pero no se pudieron refrescar los Diseños guardados: puede que sigan abriendo el destino anterior.",
+    "clearAll": "Borrar todo",
+    "clearConfirmTitle": "¿Borrar todos los favoritos?",
+    "clearConfirm": "¿Eliminar todos los favoritos? Los Diseños guardados que usen alguno dejarán de encontrarlo. Esto no se puede deshacer."
   },
   "help": {
     "title": "Ayuda",
