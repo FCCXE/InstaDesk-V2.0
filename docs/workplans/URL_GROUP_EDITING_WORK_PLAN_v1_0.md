@@ -161,9 +161,46 @@ instead of a shadow) but it is destructive, so I-6 must report it.
 **Done when:** the I-2 test passes, a **dry run** over the existing on-disk groups shows what would
 change, and the gate is added to `prebuild`.
 
-### I-4 — `updateUrlGroup(id, patch)` ☐ *not risky*
-Update by **id**, never by name. Tests first, including: unknown id is a no-op, an empty URL list is
-refused (matching `addUrlGroup`), and `id` and `createdAt` survive.
+### I-4 — `updateUrlGroup(id, patch)` ✅ **DONE**
+Tests written first and **witnessed red** — `TypeError: updateUrlGroup is not a function` across 6
+tests — before a line of it existed.
+
+Addressed **by id, never by name**. `addUrlGroup` keys on the name and that is right for a *save*,
+but an edit is a different act: *"change THIS record"*, not *"change whatever currently answers to
+this name"*. Routing an edit through the name would create a new group the moment the name in the
+builder drifted — F-1 arriving through a second door.
+
+`name` is deliberately **not** updatable (U-3: rename is F-2's cascade, out of scope), so I-6 must
+keep the name field read-only while editing. `browser` **is** updatable — the builder shows a browser
+picker, and ignoring a change the user can watch themselves make would be a fresh lie; safe now that
+one name means one group. `createdAt` is preserved so an edit does not reshuffle App History under
+the user mid-task.
+
+Validation is deliberately identical to `addUrlGroup`'s (empty list refused, blanks trimmed):
+**two doors into one store must not disagree about what is valid**, or the rule one of them enforces
+is a single edit away from being void. **18 passed.**
+
+### I-5 — Load a saved group back into the builder ✅ **DONE**
+Witnessed red first (`groupToDraft is not a function` × 4), then implemented. **22 passed.**
+
+`groupToDraft` projects a saved record into the builder's editable shape. The mapping is deliberately
+**faithful** — no padding with blank rows, no normalising, no reordering — because the round trip is
+the entire safety property:
+
+> **`saved → draft → saved` must be the identity on the URL list.** Otherwise opening a group and
+> saving it *unchanged* would quietly alter the user's data — losing configuration while appearing to
+> do nothing, which is the exact complaint this front exists to answer (U-1).
+
+The round-trip test asserts the whole store is byte-identical afterwards, not merely that the URLs
+look similar. A second test round-trips URLs carrying **query strings and fragments**, because real
+groups are dashboards and consoles (`?tab=usage&range=30d`, `#event-1`) and a mapping that mangled a
+query string would corrupt precisely the URLs that matter.
+
+The draft row carries the group's **id**, so I-6's save knows which record to edit without matching
+on a name.
+
+New types are named `UrlGroupDraftRow` / `UrlGroupDraft` rather than the obvious `UrlGroup`,
+because two types already share that name (D-2). Adding a third would have made it worse.
 
 ### I-5 — Load a saved group back into the builder ☐ *not risky*
 Without this, "edit" still means "retype from memory". Maps a saved group onto a `UrlBuilderDraft`
