@@ -162,7 +162,8 @@
     "pasteTitle": "Aplica la disposición copiada a este monitor",
     "pasteNothing": "Copia primero la disposición de un monitor",
     "pasteConfirmTitle": "¿Reemplazar esta cuadrícula?",
-    "pasteConfirm": "Este monitor tiene {{count}} celdas asignadas. Pegar las reemplaza. Esto no se puede deshacer."
+    "pasteConfirm": "Este monitor tiene {{count}} celdas asignadas. Pegar las reemplaza. Esto no se puede deshacer.",
+    "pasteSizeMismatch": "Esa cuadrícula se copió de un monitor {{from}}; este es {{to}}. Las cuadrículas deben coincidir: cambia el tamaño de cuadrícula de este monitor o copia desde un monitor {{to}}."
   },
   "monitor": {
     "quickPresets": "Preajustes rápidos",
@@ -363,7 +364,7 @@
       },
       "grid": {
         "title": "La cuadrícula y la asignación de apps",
-        "body": "• Arrastra sobre las celdas para seleccionar una región rectangular y luego asígnale una aplicación.\n• Cambia la densidad de la cuadrícula de un monitor con el selector Cuadrícula de la barra inferior (p. ej. 6×6, 8×8, 10×10).\n• Da a una celda argumentos de inicio personalizados en la pestaña Apps —por ejemplo, una ruta de carpeta para el Explorador de archivos— para abrir distintas ventanas de la misma aplicación.\n• «Borrar cuadrícula actual» borra el monitor actual; «Borrar todas las cuadrículas» borra todos los monitores (con confirmación).\n\nCopiar y Pegar, debajo de la cuadrícula, reutilizan un monitor que ya has organizado, incluidos los argumentos de inicio que hayas escrito por celda. Si el destino ya tiene ventanas, se pide confirmación."
+        "body": "• Arrastra sobre las celdas para seleccionar una región rectangular y luego asígnale una aplicación.\n• Cambia la densidad de la cuadrícula de un monitor con el selector Cuadrícula de la barra inferior (p. ej. 6×6, 8×8, 10×10).\n• Da a una celda argumentos de inicio personalizados en la pestaña Apps —por ejemplo, una ruta de carpeta para el Explorador de archivos— para abrir distintas ventanas de la misma aplicación.\n• «Borrar cuadrícula actual» borra el monitor actual; «Borrar todas las cuadrículas» borra todos los monitores (con confirmación).\n\nCopiar y Pegar, debajo de la cuadrícula, reutilizan un monitor que ya has organizado, incluidos los argumentos de inicio que hayas escrito por celda. Ambos monitores deben usar el mismo tamaño de cuadrícula, porque una celda solo significa algo dentro de la cuadrícula en la que se colocó. Si el destino ya tiene ventanas, se pide confirmación."
       },
       "apps": {
         "title": "Apps, URLs y Favoritos",
@@ -666,7 +667,7 @@
           },
           "grid-clipboard": {
             "title": "Reutiliza un monitor que ya organizaste",
-            "body": "Copiar toma toda la disposición de este monitor — incluidos los argumentos de inicio que hayas escrito por celda — y Pegar la aplica a otro monitor. Si el destino ya tiene ventanas, se pide confirmación."
+            "body": "Copiar toma toda la disposición de este monitor — incluidos los argumentos de inicio que hayas escrito por celda — y Pegar la aplica a otro monitor del MISMO tamaño de cuadrícula. Si el destino ya tiene ventanas, se pide confirmación."
           }
         }
       },

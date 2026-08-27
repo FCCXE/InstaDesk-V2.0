@@ -162,7 +162,8 @@
     "pasteTitle": "Apply the copied arrangement to this monitor",
     "pasteNothing": "Copy a monitor’s arrangement first",
     "pasteConfirmTitle": "Replace this grid?",
-    "pasteConfirm": "This monitor has {{count}} assigned cells. Pasting replaces them. This cannot be undone."
+    "pasteConfirm": "This monitor has {{count}} assigned cells. Pasting replaces them. This cannot be undone.",
+    "pasteSizeMismatch": "That grid was copied from a {{from}} monitor; this one is {{to}}. Grids must match — change this monitor’s grid size, or copy from a {{to}} monitor."
   },
   "monitor": {
     "quickPresets": "Quick Presets",
@@ -363,7 +364,7 @@
       },
       "grid": {
         "title": "The grid & assigning apps",
-        "body": "• Drag across cells to select a rectangular region, then assign an app to it.\n• Change a monitor's grid density with the Grid selector in the bottom bar (e.g. 6×6, 8×8, 10×10).\n• Give a cell custom launch arguments in the Apps tab — for example a folder path for File Explorer — to open different windows of the same app.\n• Clear Present Grid clears the current monitor; Clear All Grids clears every monitor (with a confirmation).\n\nCopy and Paste, under the grid, reuse a monitor you have already arranged — including any launch arguments you typed per cell. Pasting over a monitor that already has windows asks first."
+        "body": "• Drag across cells to select a rectangular region, then assign an app to it.\n• Change a monitor's grid density with the Grid selector in the bottom bar (e.g. 6×6, 8×8, 10×10).\n• Give a cell custom launch arguments in the Apps tab — for example a folder path for File Explorer — to open different windows of the same app.\n• Clear Present Grid clears the current monitor; Clear All Grids clears every monitor (with a confirmation).\n\nCopy and Paste, under the grid, reuse a monitor you have already arranged — including any launch arguments you typed per cell. Both monitors must use the same grid size, because a cell only means something inside the grid it was placed in. Pasting over a monitor that already has windows asks first."
       },
       "apps": {
         "title": "Apps, URLs & Favorites",
@@ -666,7 +667,7 @@
           },
           "grid-clipboard": {
             "title": "Reuse a monitor you already arranged",
-            "body": "Copy takes this monitor’s whole arrangement — including any launch arguments you typed per cell — and Paste puts it on another monitor. Pasting over a monitor that already has windows asks first."
+            "body": "Copy takes this monitor’s whole arrangement — including any launch arguments you typed per cell — and Paste puts it on another monitor of the SAME grid size. Pasting over a monitor that already has windows asks first."
           }
         }
       },

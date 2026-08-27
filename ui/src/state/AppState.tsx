@@ -382,6 +382,8 @@ type AppStateContext = {
   assignments: Assignments
   selectedApp: AppId | null
   clipboard: Assignments | null
+  /** Grid size the clipboard's cells came from; null until something is copied. */
+  clipboardSize: GridSize | null
 
   setSelectedApp: (app: AppId | null) => void
 
@@ -560,6 +562,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   const [selectedApp, setSelectedApp] = useState<AppId | null>(null)
   const [clipboard, setClipboard] = useState<Assignments | null>(null)
   const [clipboardArgs, setClipboardArgs] = useState<Record<string, string> | null>(null)
+  const [clipboardSize, setClipboardSize] = useState<GridSize | null>(null)
   const [editingLayoutId, setEditingLayoutId] = useState<string | null>(null)
   const [mainTab, setMainTab] = useState<MainTab>('Apps')
   const [appsSubTab, setAppsSubTab] = useState<AppsSubTab>('Apps')
@@ -763,6 +766,11 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   const copyGrid = () => {
     setClipboard({ ...assignments })
     setClipboardArgs({ ...(argsOverridesByMonitor[currentMonitorId] ?? {}) })
+    // Record the SIZE the cells came from. Without it the paste cannot tell a
+    // 6x6 map from an 8x8 one, and pasting across sizes leaves cells outside the
+    // visible grid: invisible, still counted, and written into saved Layouts as
+    // real positions. See services/gridClipboard.ts.
+    setClipboardSize({ cols: currentGridCols, rows: currentGridRows })
   }
   const pasteGrid = () => {
     if (clipboard) setCurrentMonitorAssignments({ ...clipboard })
@@ -997,6 +1005,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     clearAllGrids,
     copyGrid,
     pasteGrid,
+    clipboardSize,
     replaceGrid,
     replaceGridMulti,
     assignmentsByMonitor,

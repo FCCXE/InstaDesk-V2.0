@@ -6,6 +6,7 @@ import {
 } from '../state/AppState'
 import { instanceStyleFor } from '../services/appsCatalog'
 import { useConfirm } from './common/ConfirmDialog'
+import { canPasteGrid } from '../services/gridClipboard'
 import { computeInstanceIndices } from '../services/instanceIndex'
 
 type Cell = { r: number; c: number }
@@ -31,6 +32,7 @@ export default function WorkspaceGrid() {
     copyGrid,             // W-4: capture this monitor's assignments + args overrides
     pasteGrid,            // W-4: apply them to the monitor now selected
     clipboard,            // null until something has been copied
+    clipboardSize,        // the grid size those cells came from
   } = useAppState()
   const confirm = useConfirm()
   const [gridFlash, setGridFlash] = useState<string | null>(null)
@@ -48,6 +50,25 @@ export default function WorkspaceGrid() {
   }
 
   const onPasteGrid = async () => {
+    // Same size, or no paste. The app already depends on this everywhere else:
+    // resizeMonitor WIPES a monitor's assignments when its grid size changes,
+    // because a grid of one size cannot carry cells from another. Pasting across
+    // sizes leaves cells outside the visible grid — invisible, still counted, and
+    // written into saved Layouts as real positions.
+    const verdict = canPasteGrid(clipboardSize, { cols: currentGridCols, rows: currentGridRows })
+    if (!verdict.ok) {
+      // Name BOTH sizes. A refusal that does not say what is wrong leaves the
+      // user with a button that just says no.
+      setGridFlash(
+        verdict.reason === 'nothing-copied'
+          ? t('grid.pasteNothing')
+          : t('grid.pasteSizeMismatch', {
+              from: `${verdict.from!.cols}×${verdict.from!.rows}`,
+              to: `${verdict.to.cols}×${verdict.to.rows}`,
+            }),
+      )
+      return
+    }
     // Paste REPLACES this monitor's grid. That is destructive in the same way
     // Clear is, so it asks first — but only when there is actually something to
     // lose. A confirm on an empty grid is noise that teaches people to click
@@ -284,7 +305,16 @@ export default function WorkspaceGrid() {
             type="button"
             onClick={onPasteGrid}
             disabled={!clipboard}
-            title={clipboard ? t('grid.pasteTitle') : t('grid.pasteNothing')}
+            title={
+              !clipboard
+                ? t('grid.pasteNothing')
+                : clipboardSize && (clipboardSize.cols !== currentGridCols || clipboardSize.rows !== currentGridRows)
+                  ? t('grid.pasteSizeMismatch', {
+                      from: `${clipboardSize.cols}×${clipboardSize.rows}`,
+                      to: `${currentGridCols}×${currentGridRows}`,
+                    })
+                  : t('grid.pasteTitle')
+            }
             className="h-7 rounded-md border border-line bg-raised px-2 text-[11px] font-medium text-fg hover:bg-line disabled:cursor-not-allowed disabled:opacity-40"
           >
             {t('grid.paste')}
