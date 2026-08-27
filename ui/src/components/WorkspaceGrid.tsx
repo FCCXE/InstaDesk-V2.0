@@ -6,7 +6,7 @@ import {
 } from '../state/AppState'
 import { instanceStyleFor } from '../services/appsCatalog'
 import { useConfirm } from './common/ConfirmDialog'
-import { canPasteGrid } from '../services/gridClipboard'
+import { canPasteGrid, planBlockPaste } from '../services/gridClipboard'
 import { computeInstanceIndices } from '../services/instanceIndex'
 
 type Cell = { r: number; c: number }
@@ -33,6 +33,8 @@ export default function WorkspaceGrid() {
     pasteGrid,            // W-4: apply them to the monitor now selected
     clipboard,            // null until something has been copied
     clipboardSize,        // the grid size those cells came from
+    clipboardBlock,       // set when the copy came from a selection
+    applyBlockPaste,
   } = useAppState()
   const confirm = useConfirm()
   const [gridFlash, setGridFlash] = useState<string | null>(null)
@@ -46,7 +48,14 @@ export default function WorkspaceGrid() {
   // reachable from nowhere — no button, no shortcut. This is the affordance.
   const onCopyGrid = () => {
     copyGrid()
-    setGridFlash(t('grid.copied'))
+    // Say WHICH of the two things was copied. "Grid copied" after selecting a
+    // 3x6 block would be a small lie, and the paste rule differs between them.
+    if (selection.size > 0) {
+      const b = boundsOf(selection)
+      setGridFlash(t('grid.copiedBlock', { rows: b.rows, cols: b.cols }))
+    } else {
+      setGridFlash(t('grid.copied'))
+    }
   }
 
   const onPasteGrid = async () => {
@@ -55,6 +64,36 @@ export default function WorkspaceGrid() {
     // because a grid of one size cannot carry cells from another. Pasting across
     // sizes leaves cells outside the visible grid — invisible, still counted, and
     // written into saved Layouts as real positions.
+    // A block copy carries its own shape, so the target monitor's grid size is
+    // irrelevant — only the SELECTION must match. This is the operator's model
+    // and it supersedes the whole-grid rule below for selection copies.
+    if (clipboardBlock) {
+      const plan = planBlockPaste(clipboardBlock, selection)
+      if (!plan.ok) {
+        setGridFlash(
+          plan.reason === 'no-target-selection'
+            ? t('grid.pasteNeedsSelection', { rows: plan.expected.rows, cols: plan.expected.cols })
+            : t('grid.pasteShapeMismatch', {
+                rows: plan.expected.rows, cols: plan.expected.cols,
+                gotRows: plan.got!.rows, gotCols: plan.got!.cols,
+              }),
+        )
+        return
+      }
+      const occupiedInBox = Object.keys(plan.cells).filter((k) => assignments[k]).length
+      if (occupiedInBox > 0) {
+        const ok = await confirm({
+          title: t('grid.pasteConfirmTitle'),
+          body: t('grid.pasteConfirm', { count: occupiedInBox }),
+          danger: true,
+        })
+        if (!ok) return
+      }
+      applyBlockPaste(plan.cells, plan.args)
+      setGridFlash(t('grid.pastedBlock', { rows: clipboardBlock.rows, cols: clipboardBlock.cols }))
+      return
+    }
+
     const verdict = canPasteGrid(clipboardSize, { cols: currentGridCols, rows: currentGridRows })
     if (!verdict.ok) {
       // Name BOTH sizes. A refusal that does not say what is wrong leaves the
@@ -175,6 +214,22 @@ export default function WorkspaceGrid() {
     const count = selection.size
     return t('grid.selected', { range: `${rMin}–${rMax + 1} × ${cMin}–${cMax + 1}`, count })
   }, [selection, assignments, t])
+
+  // Dimensions of a selection, for the copy/paste messages. The status line
+  // computes the same box; this stays separate because that one is a memo tied
+  // to rendering and this is needed inside handlers.
+  const boundsOf = (sel: Set<string>) => {
+    let rMin = Infinity, rMax = -Infinity, cMin = Infinity, cMax = -Infinity
+    sel.forEach((k) => {
+      const [rs, cs] = k.split(',')
+      const r = parseInt(rs, 10), c = parseInt(cs, 10)
+      if (r < rMin) rMin = r
+      if (r > rMax) rMax = r
+      if (c < cMin) cMin = c
+      if (c > cMax) cMax = c
+    })
+    return { rows: rMax - rMin + 1, cols: cMax - cMin + 1 }
+  }
 
   const isHighlighted = (r: number, c: number) => selection.has(cellKey(r, c))
 
@@ -304,7 +359,7 @@ export default function WorkspaceGrid() {
           <button
             type="button"
             onClick={onPasteGrid}
-            disabled={!clipboard}
+            disabled={!clipboard && !clipboardBlock}
             title={
               !clipboard
                 ? t('grid.pasteNothing')

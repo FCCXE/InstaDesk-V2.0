@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { api, type ApiMonitor } from '../services/api'
 import { groupToDraft, type UrlGroup as SavedUrlGroup } from '../services/UrlGroupsService'
+import { extractBlock, type GridBlock } from '../services/gridClipboard'
 
 /* ============================================================================
    Grid constants
@@ -384,6 +385,9 @@ type AppStateContext = {
   clipboard: Assignments | null
   /** Grid size the clipboard's cells came from; null until something is copied. */
   clipboardSize: GridSize | null
+  /** Set when the copy came from a selection; carries its own shape. */
+  clipboardBlock: GridBlock | null
+  applyBlockPaste: (cells: Record<string, string | null>, args: Record<string, string>) => void
 
   setSelectedApp: (app: AppId | null) => void
 
@@ -563,6 +567,10 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   const [clipboard, setClipboard] = useState<Assignments | null>(null)
   const [clipboardArgs, setClipboardArgs] = useState<Record<string, string> | null>(null)
   const [clipboardSize, setClipboardSize] = useState<GridSize | null>(null)
+  // Set when the copy was made from a SELECTION. Takes precedence over the
+  // whole-grid clipboard above, because a block carries its own shape and does
+  // not care what size grid it lands on.
+  const [clipboardBlock, setClipboardBlock] = useState<GridBlock | null>(null)
   const [editingLayoutId, setEditingLayoutId] = useState<string | null>(null)
   const [mainTab, setMainTab] = useState<MainTab>('Apps')
   const [appsSubTab, setAppsSubTab] = useState<AppsSubTab>('Apps')
@@ -771,6 +779,30 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     // visible grid: invisible, still counted, and written into saved Layouts as
     // real positions. See services/gridClipboard.ts.
     setClipboardSize({ cols: currentGridCols, rows: currentGridRows })
+    // A selection means "copy THIS block". No selection keeps the original
+    // whole-grid behaviour, so nothing the operator already verified changes.
+    setClipboardBlock(
+      selection.size > 0
+        ? extractBlock(selection, assignments, argsOverridesByMonitor[currentMonitorId] ?? {})
+        : null,
+    )
+  }
+
+  /** Write a planned block paste onto the current monitor. */
+  const applyBlockPaste = (cells: Record<string, string | null>, args: Record<string, string>) => {
+    setAssignmentsByMonitor((prev) => {
+      const cur = prev[currentMonitorId] ?? makeEmptyAssignments(currentGridCols, currentGridRows)
+      return { ...prev, [currentMonitorId]: { ...cur, ...(cells as Assignments) } }
+    })
+    setArgsOverridesByMonitor((prev) => {
+      const cur = { ...(prev[currentMonitorId] ?? {}) }
+      // Clear the whole target box first, then apply what the block carried —
+      // otherwise a cell that had an override keeps it after being overwritten by
+      // one that did not, and the paste is not what was copied.
+      for (const k of Object.keys(cells)) delete cur[k]
+      for (const [k, v] of Object.entries(args)) cur[k] = v
+      return { ...prev, [currentMonitorId]: cur }
+    })
   }
   const pasteGrid = () => {
     if (clipboard) setCurrentMonitorAssignments({ ...clipboard })
@@ -1006,6 +1038,8 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     copyGrid,
     pasteGrid,
     clipboardSize,
+    clipboardBlock,
+    applyBlockPaste,
     replaceGrid,
     replaceGridMulti,
     assignmentsByMonitor,
