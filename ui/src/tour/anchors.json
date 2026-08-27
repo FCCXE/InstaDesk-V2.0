@@ -397,16 +397,6 @@
       }
     },
     {
-      "id": "urls-open-behavior",
-      "component": "components/RightPane.tsx",
-      "describes": "Open behaviour - one window, one per group, or one per URL",
-      "reachableWhen": {
-        "kind": "tab+sub",
-        "tab": "Apps",
-        "sub": "URLs"
-      }
-    },
-    {
       "id": "urls-save",
       "component": "components/RightPane.tsx",
       "describes": "Save - turns the URL set into an assignable entry",

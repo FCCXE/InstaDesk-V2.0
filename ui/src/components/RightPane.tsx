@@ -842,7 +842,6 @@ function UrlsBuilderPane() {
     resetUrlBuilder,
     saveUrlBuilder,
     previewUrlBuilder,
-    setOpenMode,
     editingUrlGroupId,
     cancelEditUrlGroup,
   } = useAppState();
@@ -1076,30 +1075,6 @@ function UrlsBuilderPane() {
             </div>
           </div>
         ))}
-
-        <div className="mt-3">
-          <div data-tour="urls-open-behavior" className="mb-2 text-sm font-medium text-fg">{t("urls.openBehavior")}</div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Radio
-              name="open"
-              label={t("urls.singleWindow")}
-              checked={urlBuilder.openMode === "single"}
-              onChange={() => setOpenMode("single")}
-            />
-            <Radio
-              name="open"
-              label={t("urls.perTabGroup")}
-              checked={urlBuilder.openMode === "per-group"}
-              onChange={() => setOpenMode("per-group")}
-            />
-            <Radio
-              name="open"
-              label={t("urls.perUrl")}
-              checked={urlBuilder.openMode === "per-url"}
-              onChange={() => setOpenMode("per-url")}
-            />
-          </div>
-        </div>
 
         {/* Save / Preview / Reset — stacked full-width, one per line. A single
             row can't fit longer-language labels (e.g. ES "Guardar / Vista previa
@@ -1437,25 +1412,6 @@ function Input({
         className,
       ].join(" ")}
     />
-  );
-}
-
-function Radio({
-  name,
-  label,
-  checked,
-  onChange,
-}: {
-  name: string;
-  label: string;
-  checked?: boolean;
-  onChange?: () => void;
-}) {
-  return (
-    <label className="flex items-center gap-2 text-xs text-fg">
-      <input type="radio" name={name} className="h-3 w-3" checked={!!checked} onChange={onChange} />
-      <span>{label}</span>
-    </label>
   );
 }
 

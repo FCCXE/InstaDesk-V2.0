@@ -99,7 +99,6 @@ const URLS_FAVORITES: TourChapter = {
     { anchor: 'apps-subtabs' },
     { anchor: 'urls-builder' },
     { anchor: 'urls-add-tab-group' },
-    { anchor: 'urls-open-behavior' },
     { anchor: 'urls-save' },
     { anchor: 'favorites-add' },
     { anchor: 'favorites-list' },

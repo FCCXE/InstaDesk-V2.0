@@ -269,7 +269,6 @@ const SAMPLE_PRESETS: Preset[] = [
 /* ============================================================================
    URL Builder (state-only for Phase A)
    ========================================================================== */
-export type UrlOpenMode = 'single' | 'per-group' | 'per-url'
 // One editable ROW in the URL Builder — not a saved group.
 //
 // Renamed from `UrlGroup` on 2026-08-27 (D-2). services/UrlGroupsService exports
@@ -278,7 +277,7 @@ export type UrlOpenMode = 'single' | 'per-group' | 'per-url'
 // to be importing from. It compiled, and it was a trap for exactly the
 // saved-to-draft mapping the editing feature needed: one concept per name.
 export type UrlBuilderRow = { id: string; title: string; urls: string[] }
-export type UrlBuilderDraft = { browser: string | null; tabGroups: UrlBuilderRow[]; openMode: UrlOpenMode }
+export type UrlBuilderDraft = { browser: string | null; tabGroups: UrlBuilderRow[] }
 
 // A browser the user can pick for a URL group. `path` is the real exe (from
 // native detection or a Browse-for-.exe pick); name-only legacy entries have no
@@ -537,7 +536,6 @@ type AppStateContext = {
   cancelEditUrlGroup: () => void
   saveUrlBuilder: () => UrlBuilderDraft
   previewUrlBuilder: () => UrlBuilderDraft
-  setOpenMode: (mode: UrlOpenMode) => void
 }
 
 const Ctx = createContext<AppStateContext | null>(null)
@@ -881,7 +879,6 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   const [urlBuilder, setUrlBuilder] = useState<UrlBuilderDraft>({
     browser: null,
     tabGroups: [newGroup(1), newGroup(2)],
-    openMode: 'single',
   })
 
   // On mount, detect the browsers actually installed (native registry read) and
@@ -934,7 +931,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     }))
   const resetUrlBuilder = () => {
     setEditingUrlGroupId(null)
-    setUrlBuilder({ browser: null, tabGroups: [newGroup(1), newGroup(2)], openMode: 'single' })
+    setUrlBuilder({ browser: null, tabGroups: [newGroup(1), newGroup(2)] })
   }
   const saveUrlBuilder = () => urlBuilder
   const previewUrlBuilder = () => urlBuilder
@@ -953,12 +950,10 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   const beginEditUrlGroup = (group: SavedUrlGroup) => {
     const draft = groupToDraft(group)
     setEditingUrlGroupId(group.id)
-    setUrlBuilder({ browser: draft.browser, tabGroups: draft.tabGroups, openMode: 'single' })
+    setUrlBuilder({ browser: draft.browser, tabGroups: draft.tabGroups })
     setAppsSubTab('URLs')          // the builder is on another sub-tab; take them there
   }
   const cancelEditUrlGroup = () => resetUrlBuilder()
-  const setOpenMode = (mode: UrlOpenMode) =>
-    setUrlBuilder(prev => ({ ...prev, openMode: mode }))
 
   /* ---------- Context value ---------- */
   /* ---------- Walkthrough snapshot / restore (D-12, I-8) ---------- */
@@ -1064,7 +1059,6 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     cancelEditUrlGroup,
     saveUrlBuilder,
     previewUrlBuilder,
-    setOpenMode,
   }), [
     selection, assignments, assignmentsByMonitor, assignedCountTotal,
     argsOverridesByMonitor, argsForSelection, hasMixedArgsInSelection,

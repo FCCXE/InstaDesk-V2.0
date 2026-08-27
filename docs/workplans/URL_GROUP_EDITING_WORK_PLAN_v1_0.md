@@ -349,7 +349,28 @@ else moved.
 
 ## §5 — Open decisions for the operator
 
-**D-1. The dead "Open behaviour" radios** (found during I-0 investigation). `openMode` —
+**D-1 CLOSED 2026-08-27 — the operator ruled: keep the working option, remove the rest.** Their
+reasoning, and it is the stronger argument: *"if a user decides to create a 1 window or a 10 window
+URL, its up to him, our existing and working option accomodates any direction"* — **the group IS the
+window.** Want two windows, make two groups. The other two modes were never a capability, only a
+second way to express one.
+
+**It was worse than reported: the lie lived in THREE places, not two.** Beyond the inert control and
+the Help sentence, the Guided Tour carried a whole step — *"How they open — One window puts every tab
+together. One per group gives each group its own window. One per URL opens every address in a window
+of its own"* — teaching behaviour the app has never had. Found only because the removal sweep looked
+for every reference rather than the two I already knew about.
+
+Removed: the radios, `UrlOpenMode` / `openMode` / `setOpenMode`, the `urls-open-behavior` tour anchor
+and its chapter step, 4 `urls.*` strings and the tour step's title/body in **both** locales, and the
+`Radio` component itself — which **`tsc` caught as unused, not me**: it existed solely for this
+control. The Help sentence is replaced with the truth: *"Each group opens as one browser window with
+its addresses as tabs. If you want two windows, make two groups — the group is the window."*
+
+Gates confirm the removal is complete rather than partial: tour anchors **50 → 49 registered, 49 in
+source, 48 step references, all agree**; parity **637 = 637**.
+
+~~**D-1. The dead "Open behaviour" radios**~~ (found during I-0 investigation). `openMode` —
 *Single window / Per tab group / Per URL* — is read by three radio buttons, written by a setter, and
 **consumed by nothing**. It is not in the saved `UrlGroup` type, the save path never reads it, and
 launch always opens one window with the URLs as tabs. **The control has no effect whatsoever.** A user

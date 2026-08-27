@@ -302,10 +302,6 @@
     "tabTitle": "Tab Title",
     "tabTitlePlaceholder": "e.g., Research",
     "addUrl": "+ Add URL",
-    "openBehavior": "Open behavior",
-    "singleWindow": "Single window",
-    "perTabGroup": "Per tab group",
-    "perUrl": "Per URL",
     "save": "Save",
     "preview": "Preview",
     "reset": "Reset",
@@ -378,7 +374,7 @@
       },
       "urlsFavorites": {
         "title": "URLs & Favorites",
-        "body": "A URL group is a browser window described by its tabs — not a bookmark list. Build one in Apps → URLs: pick the browser, add a tab group, list the addresses, then Save. It becomes an entry you can assign to a region exactly like a program.\n\nOpen behaviour decides the shape: one window for everything, one window per group, or a separate window per address when each needs its own region.\n\nFavorites are simply pinned apps — the four or five you place in almost every Layout, kept one click away instead of a search.\n\nTo change a group later, open Apps → Apps, press Edit at the top of the list, then Edit on the group itself. The builder reopens with its addresses already in place, so you change the one you meant instead of retyping the rest. The name stays fixed while editing, because saved Layouts refer to a group by its name."
+        "body": "A URL group is a browser window described by its tabs — not a bookmark list. Build one in Apps → URLs: pick the browser, add a tab group, list the addresses, then Save. It becomes an entry you can assign to a region exactly like a program.\n\nEach group opens as one browser window with its addresses as tabs. If you want two windows, make two groups — the group is the window.\n\nFavorites are simply pinned apps — the four or five you place in almost every Layout, kept one click away instead of a search.\n\nTo change a group later, open Apps → Apps, press Edit at the top of the list, then Edit on the group itself. The builder reopens with its addresses already in place, so you change the one you meant instead of retyping the rest. The name stays fixed while editing, because saved Layouts refer to a group by its name."
       }
     }
   },
@@ -740,10 +736,6 @@
           "urls-add-tab-group": {
             "title": "One group, one window",
             "body": "Each tab group becomes its own browser window, with every URL in it opening as a tab. Add a second group when you want two separate windows — say, research on one screen and dashboards on another."
-          },
-          "urls-open-behavior": {
-            "title": "How they open",
-            "body": "One window puts every tab together. One per group gives each group its own window. One per URL opens every address in a window of its own — useful when each needs a region."
           },
           "urls-save": {
             "title": "Save, then assign it like an app",

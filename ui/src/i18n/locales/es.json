@@ -302,10 +302,6 @@
     "tabTitle": "Título de pestaña",
     "tabTitlePlaceholder": "p. ej., Investigación",
     "addUrl": "+ Añadir URL",
-    "openBehavior": "Comportamiento de apertura",
-    "singleWindow": "Una ventana",
-    "perTabGroup": "Por grupo de pestañas",
-    "perUrl": "Por URL",
     "save": "Guardar",
     "preview": "Vista previa",
     "reset": "Restablecer",
@@ -378,7 +374,7 @@
       },
       "urlsFavorites": {
         "title": "URLs y Favoritos",
-        "body": "Un grupo de URLs es una ventana del navegador descrita por sus pestañas — no una lista de marcadores. Crea uno en Apps → URLs: elige el navegador, añade un grupo de pestañas, escribe las direcciones y guarda. Se convierte en una entrada que puedes asignar a una región igual que un programa.\n\nEl comportamiento de apertura decide la forma: una sola ventana para todo, una ventana por grupo, o una ventana por dirección cuando cada una necesita su propia región.\n\nLos Favoritos son sencillamente apps ancladas — las cuatro o cinco que colocas en casi todos los Diseños, a un clic en vez de a una búsqueda.\n\nPara cambiar un grupo más adelante, abre Apps → Apps, pulsa Editar en la parte superior de la lista y luego Editar en el grupo. El creador se abre de nuevo con sus direcciones ya puestas, así que cambias la que querías en vez de reescribir el resto. El nombre no se puede cambiar durante la edición, porque los Diseños guardados se refieren al grupo por su nombre."
+        "body": "Un grupo de URLs es una ventana del navegador descrita por sus pestañas — no una lista de marcadores. Crea uno en Apps → URLs: elige el navegador, añade un grupo de pestañas, escribe las direcciones y guarda. Se convierte en una entrada que puedes asignar a una región igual que un programa.\n\nCada grupo se abre como una ventana del navegador con sus direcciones como pestañas. Si quieres dos ventanas, crea dos grupos: el grupo es la ventana.\n\nLos Favoritos son sencillamente apps ancladas — las cuatro o cinco que colocas en casi todos los Diseños, a un clic en vez de a una búsqueda.\n\nPara cambiar un grupo más adelante, abre Apps → Apps, pulsa Editar en la parte superior de la lista y luego Editar en el grupo. El creador se abre de nuevo con sus direcciones ya puestas, así que cambias la que querías en vez de reescribir el resto. El nombre no se puede cambiar durante la edición, porque los Diseños guardados se refieren al grupo por su nombre."
       }
     }
   },
@@ -740,10 +736,6 @@
           "urls-add-tab-group": {
             "title": "Un grupo, una ventana",
             "body": "Cada grupo de pestañas se convierte en su propia ventana del navegador, y cada URL que contiene se abre como pestaña. Añade un segundo grupo cuando quieras dos ventanas separadas — por ejemplo, documentación en una pantalla y paneles en otra."
-          },
-          "urls-open-behavior": {
-            "title": "Cómo se abren",
-            "body": "Una sola ventana pone todas las pestañas juntas. Una por grupo da a cada grupo su propia ventana. Una por URL abre cada dirección en su propia ventana — útil cuando cada una necesita una región."
           },
           "urls-save": {
             "title": "Guarda y asígnalo como una app",
