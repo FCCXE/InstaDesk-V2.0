@@ -10,6 +10,24 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-08-27
+
+### Added
+- **Edit a URL group instead of rebuilding it.** Open **Apps → Apps**, press **Edit** at the top of the list, then **Edit** on the group. The builder reopens with its addresses already there, so you change the one you meant. The change now also reaches **every saved Layout that uses the group** — and any Quick Preset built from those Layouts — so what you edited is what opens.
+- **Edit a favorite**, and **Clear all** favorites. Same idea: correct the program or address a favorite points at, without deleting and re-adding it. Edits reach saved Layouts too.
+- **Copy and Paste an arrangement between monitors.** Select an area, press **Copy**, then select an area of the same shape on any other monitor and press **Paste** — the apps land in the same arrangement, along with any per-cell launch arguments. The other monitor's grid size does not matter; only the shape you select. With nothing selected, Copy takes the whole monitor.
+- **Copy diagnostics**, at the bottom of Help — your version, monitor sizes and setup, ready to paste into a message when reporting a problem.
+- **Settings now names any keyboard shortcut it could not claim**, when another program on your PC already uses it. Previously such a shortcut simply never worked, and nothing said why.
+
+### Fixed
+- **Error messages actually appear, and in your language.** Messages from InstaDesk's engine were being lost on the way to the screen, leaving a red box with no words — for example when a keyboard shortcut opened a Quick Preset that no longer exists. They are now shown, and translated into English or Spanish.
+- **Editing a URL group used to change nothing you could see.** A saved Layout kept its own copy of the addresses, so an edited group still opened the old ones.
+- **Two URL groups could share a name**, and one of them became permanently unreachable — the app would open the browser you thought you had changed away from. One name now means one group.
+- Removed a **grid "Open behaviour" choice that never did anything**: URL groups always open as one window with their addresses as tabs. If you want two windows, make two groups.
+
+### Changed
+- The Guided Tour and Help now cover editing groups and favorites, the grid clipboard, sending diagnostics, and adding a second rectangle to a selection with Ctrl or Shift.
+
 ## [0.5.0] - 2026-08-27
 
 ### Added
@@ -186,7 +204,8 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 ### Added
 - First InstaDesk release — establishes the signed auto-update baseline. Windows x64 installer.
 
-[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.5.1
 [0.5.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.5.0
 [0.4.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.4.0
 [0.3.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.3.0
