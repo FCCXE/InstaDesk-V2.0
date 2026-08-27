@@ -118,7 +118,40 @@ matching stays case-insensitive, distinct names stay distinct). So the suite is 
 wholesale; only the three assertions that describe F-1 fail, which is what makes them a measurement
 rather than noise. **No production code was changed in this increment.**
 
-### I-3 — Fix F-1, one key not two ☐ **RISKY** → tag `pre-urlgroup-onekey`
+### I-3 — Fix F-1, one key not two ✅ **DONE** → tag `pre-urlgroup-onekey` *(pushed before the change)*
+
+**Dry run against real stored data, before touching the code.** The Sandbox's saved groups live in
+the WebView2 profile at `%LOCALAPPDATA%\com.fcxestudios.instadesk.sandbox\EBWebView\Default\Local
+Storage\leveldb` (**not** in the app data dir — that holds only presets, session and window state).
+Read-only; the stable app's profile was not opened at all.
+
+The block is **Snappy-compressed**, so this is a *partial* read and is labelled as such rather than
+dressed up as a parse: three groups are legible — **News** (eltiempo, cnn, bloomberg),
+**Entertainment** (youtube, lookmovie2, animeonsen), **BTC Mining** (braiins, coinwarz). **All names
+distinct**, so the collapsing behaviour this increment introduces does not fire on the operator's own
+data. That is a *reassuring* reading obtained from an incomplete instrument, so it is not treated as
+proof of safety — the legacy-twin test below is what actually covers the case.
+
+**Two changes, both small:**
+- `addUrlGroup` de-dupes on **name alone** and now updates the browser as well as the URLs. The name
+  is already the identity in saved data (assignments store a name, not an id), so the *de-dupe* was
+  the half that disagreed. Teaching the lookup about browsers instead would need every stored
+  assignment to start carrying one — a data migration, for no gain.
+- `findUrlGroupByName` returns the **most recently saved** match, not the first in insertion order.
+  The fix stops NEW twins; it cannot un-create twins already in a user's storage, and those are the
+  user's data (U-1: nothing deleted behind their back). So the lookup must be deterministic on data
+  it did not create, and "the one I saved last" is the only ordering a user can predict.
+
+**Result: 11 passed, 0 failed.** The four assertions that measured F-1 in I-2 now pass, including
+`LEGACY data that already contains twins still resolves deterministically` (`'old'` → `'new'`), and
+the seven guards still pass — so the fix did not achieve green by collapsing everything.
+
+**Gate wired:** `prebuild` now runs the seven checks **and** the test suite, so this cannot regress
+into a release. Full build verified green: 7 gates + 11 tests + `tsc` + `vite`.
+
+⚠ **Behaviour change that must reach the user in I-6:** re-saving an existing name now replaces that
+group *even when the browser differs*. That is the intended cure, but it is destructive, and today
+the save message says "Saved" for both create and replace.
 The name is ALREADY the identity, because assignments resolve by name (F-2). So the de-dupe must key
 on **name alone**, matching the lookup — not the other way round, which would require assignments to
 carry the browser.

@@ -18,6 +18,7 @@
 // browser, which is a data migration.
 import { describe, it, expect, beforeEach } from 'vitest'
 import { addUrlGroup, listUrlGroups, findUrlGroupByName, clearUrlGroups } from './UrlGroupsService'
+import { safeSet } from './storage'
 
 const CHROME_URL = 'https://chrome.example.com/dashboard'
 const EDGE_URL = 'https://edge.example.com/dashboard'
@@ -76,6 +77,27 @@ describe('F-1 — one name must mean one group', () => {
 
     expect(listUrlGroups()).toHaveLength(1)
     expect(findUrlGroupByName('research')).not.toBeNull()
+  })
+
+  it('LEGACY data that already contains twins still resolves deterministically', () => {
+    // The fix to addUrlGroup stops NEW twins being created. It cannot un-create
+    // the ones already sitting in a user's storage, and deleting them silently
+    // would break invariant U-1 (no group is ever lost without being told).
+    //
+    // So the lookup must be deterministic on data it did not create. Insertion
+    // order is not deterministic in any sense the user can predict — "the one I
+    // saved most recently" is. This writes twins straight past the service, the
+    // way a pre-fix build would have left them.
+    safeSet('insta.urlgroups.v1', [
+      { id: 'old', name: 'Dashboards', browser: 'Chrome', urls: [CHROME_URL], createdAt: 1000 },
+      { id: 'new', name: 'Dashboards', browser: 'Edge', urls: [EDGE_URL], createdAt: 2000 },
+    ])
+
+    const found = findUrlGroupByName('Dashboards')
+    expect(found!.id).toBe('new')            // most recently saved wins
+    expect(found!.browser).toBe('Edge')
+    // and nothing was deleted behind the user's back
+    expect(listUrlGroups()).toHaveLength(2)
   })
 
   it('different names remain different groups', () => {
