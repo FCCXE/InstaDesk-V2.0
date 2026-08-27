@@ -161,6 +161,74 @@ does nothing"* — alarming, and wrong.
 
 ---
 
+## §4B — Global shortcuts: **the chain IS wired; three different failures look identical**
+
+Operator, 2026-08-27: *"the Global shortcuts, they dont seem wired."*
+
+**Traced end to end, and every link is present:** Rust registers Show, Snap and `Ctrl+Alt+1–9`; the
+handler emits `insta://hotkey/quickpreset` / `insta://hotkey/snap` on press; **and both events have
+live listeners** — `MonitorSelector.tsx:244` runs the Quick Preset, `BottomControls.tsx:230` runs
+Snap. Nothing is unwired.
+
+**So why does nothing happen? Because three unrelated causes produce the same silence, and the app
+distinguishes none of them:**
+
+1. **There is no Quick Preset in that slot.** The Sandbox's `quickpresets/` directory is **empty** —
+   the operator deleted every QP on 08-26. Rust returns *"Quick Preset not found."* and the UI
+   flashes the error… **inside the InstaDesk window**.
+2. **Registration failed silently.** Startup does `let _ = gs.register(...)` at all three sites
+   (lib.rs 302, 305, 308), discarding the `Result`, with the comment *"Failures … are ignored so
+   startup never breaks."* If another app already owns `Ctrl+Alt+3`, that key never works and
+   **nothing ever says so**. Note the asymmetry: the *rebind* path (line 115) does return its Result,
+   so a rebind failure surfaces — only the defaults fail quietly.
+3. **It worked.** The confirmation also appears only in the InstaDesk window.
+
+> **A GLOBAL shortcut delivers its feedback in a window that, by definition, is not focused when you
+> use one.** Success, empty slot and dead registration are visually identical from where the user is
+> standing. This is the *empty value asks how it became empty* rule: one observation — "nothing
+> happened" — carrying three meanings whose remedies are completely different.
+
+**Recommended, in order:**
+- **Capture the registration Results at startup** and surface which hotkeys are unavailable (Settings
+  can name them). A silent failure is never the right answer; "ignored so startup never breaks" is
+  right about not crashing and wrong about not telling.
+- **Give a global action global feedback** — the app already ships a native overlay for Snap, so the
+  mechanism exists. *Design decision: operator to rule on what form it takes.*
+
+---
+
+## §4C — `frameMode`: the information needed to rule on it
+
+The operator asked for more before deciding. **It is not merely unwired — it was deliberately
+abandoned, after a user-reported regression.**
+
+**What it was.** InstaDesk used to tile *permanently frameless*: strip `WS_CAPTION` / `WS_THICKFRAME`
+so tiles butt together with no chrome. Pixel-perfect, and it broke windows:
+
+- the **title bar ended up offscreen** — the agent's own comment: *"the title bar lived offscreen
+  anyway"*;
+- combined with `DWMNCRP_DISABLED`, it *"killed the entire non-client paint pipeline"*, which
+  surfaced as **"no close button"** — recorded in the source as a **user-reported regression on Win11
+  File Explorer tiles**.
+
+**What replaced it.** `SimpleTilePosition` keeps the title bar inside the cell, and DWM rendering is
+restored to `USEWINDOWSTYLE`. The frameless trick survives **only as a transient**:
+`AtomicFramelessThenRestore` strips the styles *for the duration of the move* to stop border fights,
+then puts them back. The window always ends up normal — and the agent hardcodes `frameMode = "normal"`
+in what it reports.
+
+**So the three options are:**
+
+| | |
+|---|---|
+| **A — Delete the parameter** (UI hardcodes, Rust field, agent arg) | It names a behaviour that was removed **on purpose** after breaking real windows. Keeping complete plumbing for it is a loaded gun: the next person to add a "frameless" checkbox wires it to what exists and ships a dead control. Spans **both repos**. |
+| **B — Re-implement it as a real option** | A genuine feature (chrome-free tiling), but it reintroduces exactly what was rolled back unless the geometry keeps the title bar on-screen and DWM paint intact. Real work, and it re-opens a closed regression. |
+| **C — Leave it, documented** | Costs nothing today; the trap stays. |
+
+**Recommendation: A.** The behaviour was withdrawn for cause, and nothing in the product offers it.
+
+---
+
 ## §5 — What this audit did NOT cover
 
 Stated so the green result is not read as wider than it is:
