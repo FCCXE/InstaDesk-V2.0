@@ -153,7 +153,16 @@
     "noSelectionAssigned_one": "Sin selección • {{count}} celda asignada",
     "noSelectionAssigned_other": "Sin selección • {{count}} celdas asignadas",
     "selected_one": "Seleccionado: {{range}} • {{count}} celda",
-    "selected_other": "Seleccionado: {{range}} • {{count}} celdas"
+    "selected_other": "Seleccionado: {{range}} • {{count}} celdas",
+    "copy": "Copiar",
+    "paste": "Pegar",
+    "copied": "Cuadrícula copiada",
+    "pasted": "Cuadrícula pegada",
+    "copyTitle": "Copia la disposición de este monitor, incluidos los argumentos de inicio por celda",
+    "pasteTitle": "Aplica la disposición copiada a este monitor",
+    "pasteNothing": "Copia primero la disposición de un monitor",
+    "pasteConfirmTitle": "¿Reemplazar esta cuadrícula?",
+    "pasteConfirm": "Este monitor tiene {{count}} celdas asignadas. Pegar las reemplaza. Esto no se puede deshacer."
   },
   "monitor": {
     "quickPresets": "Preajustes rápidos",
@@ -384,7 +393,9 @@
         "title": "URLs y Favoritos",
         "body": "Un grupo de URLs es una ventana del navegador descrita por sus pestañas — no una lista de marcadores. Crea uno en Apps → URLs: elige el navegador, añade un grupo de pestañas, escribe las direcciones y guarda. Se convierte en una entrada que puedes asignar a una región igual que un programa.\n\nCada grupo se abre como una ventana del navegador con sus direcciones como pestañas. Si quieres dos ventanas, crea dos grupos: el grupo es la ventana.\n\nLos Favoritos son sencillamente apps ancladas — las cuatro o cinco que colocas en casi todos los Diseños, a un clic en vez de a una búsqueda.\n\nPara cambiar un grupo más adelante, abre Apps → Apps, pulsa Editar en la parte superior de la lista y luego Editar en el grupo. El creador se abre de nuevo con sus direcciones ya puestas, así que cambias la que querías en vez de reescribir el resto. El nombre no se puede cambiar durante la edición, porque los Diseños guardados se refieren al grupo por su nombre."
       }
-    }
+    },
+    "copyDiagnostics": "Copiar diagnóstico",
+    "diagnosticsCopied": "Copiado ✓"
   },
   "layouts": {
     "title": "Diseños",

@@ -54,6 +54,7 @@ import { useConfirm } from "./common/ConfirmDialog";
 
 /* Helper */
 import TruncateText from "./common/TruncateText";
+import { copyText } from "../services/clipboard";
 
 /* -------------------------------------------------------------------------- */
 /*                                    Shell                                   */
@@ -1284,6 +1285,48 @@ const HELP_SECTIONS = [
 ] as const;
 
 function HelpPane() {
+  const [diagCopied, setDiagCopied] = useState(false);
+
+  /**
+   * Build a plain-text diagnostics block and put it on the clipboard.
+   *
+   * Everything here is READ-ONLY and already visible somewhere in the app — the
+   * version, the monitors, whether the helper program is present. Nothing is
+   * collected that the user could not read off their own screen; this only saves
+   * them transcribing it.
+   */
+  const onCopyDiagnostics = async () => {
+    const lines: string[] = [`InstaDesk ${APP_VERSION}`];
+    try {
+      const h = await api.health();
+      lines.push(`mode: ${h.mode}`);
+      lines.push(`agent: ${h.agentExists ? "present" : "MISSING"} (${h.agentPath})`);
+      lines.push(`data: ${h.dataDir}`);
+    } catch (e) {
+      // Say the check failed rather than omitting the line: a diagnostics block
+      // that silently drops a section reads as "everything fine here".
+      lines.push(`health: unavailable — ${(e as Error).message}`);
+    }
+    try {
+      const m = await api.monitors();
+      lines.push(`monitors: ${m.monitors.length}`);
+      for (const mon of m.monitors) {
+        lines.push(
+          `  #${mon.index}${mon.primary ? " (primary)" : ""}: ` +
+          `${mon.bounds.w}x${mon.bounds.h} at ${mon.bounds.x},${mon.bounds.y} ` +
+          `| work ${mon.workArea.w}x${mon.workArea.h}`,
+        );
+      }
+    } catch (e) {
+      lines.push(`monitors: unavailable — ${(e as Error).message}`);
+    }
+    lines.push(`ua: ${navigator.userAgent}`);
+
+    const ok = await copyText(lines.join("\n"));
+    setDiagCopied(ok);
+    window.setTimeout(() => setDiagCopied(false), 2400);
+  };
+
   const { t, i18n } = useTranslation();
   const { start: startTour } = useTour();
   const [openId, setOpenId] = useState<string | null>("quickStart");
@@ -1450,7 +1493,16 @@ function HelpPane() {
               </div>
             </div>
           )}
-          <div className="mt-3 px-1 text-[10px] text-muted">{t("help.version", { version: APP_VERSION })}</div>
+          {/* W-3. `copyText` had sat in the codebase since the FIRST UI commit with
+              no caller. Operator ruling: give it the one job worth doing —
+              diagnostics a tester on another PC can paste into a report, instead
+              of describing their setup in prose. */}
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1">
+            <div className="min-w-0 text-[10px] text-muted">{t("help.version", { version: APP_VERSION })}</div>
+            <GhostBtn onClick={onCopyDiagnostics} className="h-7 shrink-0 whitespace-nowrap px-2">
+              {diagCopied ? t("help.diagnosticsCopied") : t("help.copyDiagnostics")}
+            </GhostBtn>
+          </div>
         </div>
       </div>
     </div>

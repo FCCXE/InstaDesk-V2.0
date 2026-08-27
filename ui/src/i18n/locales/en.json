@@ -153,7 +153,16 @@
     "noSelectionAssigned_one": "No selection • {{count}} cell assigned",
     "noSelectionAssigned_other": "No selection • {{count}} cells assigned",
     "selected_one": "Selected: {{range}} • {{count}} cell",
-    "selected_other": "Selected: {{range}} • {{count}} cells"
+    "selected_other": "Selected: {{range}} • {{count}} cells",
+    "copy": "Copy",
+    "paste": "Paste",
+    "copied": "Grid copied",
+    "pasted": "Grid pasted",
+    "copyTitle": "Copy this monitor's arrangement, including any per-cell launch arguments",
+    "pasteTitle": "Apply the copied arrangement to this monitor",
+    "pasteNothing": "Copy a monitor’s arrangement first",
+    "pasteConfirmTitle": "Replace this grid?",
+    "pasteConfirm": "This monitor has {{count}} assigned cells. Pasting replaces them. This cannot be undone."
   },
   "monitor": {
     "quickPresets": "Quick Presets",
@@ -384,7 +393,9 @@
         "title": "URLs & Favorites",
         "body": "A URL group is a browser window described by its tabs — not a bookmark list. Build one in Apps → URLs: pick the browser, add a tab group, list the addresses, then Save. It becomes an entry you can assign to a region exactly like a program.\n\nEach group opens as one browser window with its addresses as tabs. If you want two windows, make two groups — the group is the window.\n\nFavorites are simply pinned apps — the four or five you place in almost every Layout, kept one click away instead of a search.\n\nTo change a group later, open Apps → Apps, press Edit at the top of the list, then Edit on the group itself. The builder reopens with its addresses already in place, so you change the one you meant instead of retyping the rest. The name stays fixed while editing, because saved Layouts refer to a group by its name."
       }
-    }
+    },
+    "copyDiagnostics": "Copy diagnostics",
+    "diagnosticsCopied": "Copied ✓"
   },
   "layouts": {
     "title": "Layouts",

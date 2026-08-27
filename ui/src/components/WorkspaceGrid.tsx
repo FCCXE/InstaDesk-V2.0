@@ -5,6 +5,7 @@ import {
   cellKey,
 } from '../state/AppState'
 import { instanceStyleFor } from '../services/appsCatalog'
+import { useConfirm } from './common/ConfirmDialog'
 import { computeInstanceIndices } from '../services/instanceIndex'
 
 type Cell = { r: number; c: number }
@@ -27,7 +28,42 @@ export default function WorkspaceGrid() {
     updateDrag,           // (r, c) => void
     endDrag,              // () => void
     clearSelection,       // () => void
+    copyGrid,             // W-4: capture this monitor's assignments + args overrides
+    pasteGrid,            // W-4: apply them to the monitor now selected
+    clipboard,            // null until something has been copied
   } = useAppState()
+  const confirm = useConfirm()
+  const [gridFlash, setGridFlash] = useState<string | null>(null)
+  useEffect(() => {
+    if (!gridFlash) return
+    const id = window.setTimeout(() => setGridFlash(null), 2400)
+    return () => window.clearTimeout(id)
+  }, [gridFlash])
+
+  // W-4. copyGrid/pasteGrid were fully implemented, exposed on the context, and
+  // reachable from nowhere — no button, no shortcut. This is the affordance.
+  const onCopyGrid = () => {
+    copyGrid()
+    setGridFlash(t('grid.copied'))
+  }
+
+  const onPasteGrid = async () => {
+    // Paste REPLACES this monitor's grid. That is destructive in the same way
+    // Clear is, so it asks first — but only when there is actually something to
+    // lose. A confirm on an empty grid is noise that teaches people to click
+    // through the ones that matter.
+    const occupied = Object.values(assignments).filter(Boolean).length
+    if (occupied > 0) {
+      const ok = await confirm({
+        title: t('grid.pasteConfirmTitle'),
+        body: t('grid.pasteConfirm', { count: occupied }),
+        danger: true,
+      })
+      if (!ok) return
+    }
+    pasteGrid()
+    setGridFlash(t('grid.pasted'))
+  }
 
   // Build the cell list dynamically from the current monitor's grid size.
   // Memo keyed on the dimensions so we don't re-allocate on every selection
@@ -228,7 +264,33 @@ export default function WorkspaceGrid() {
         </div>
       </div>
 
-      <div data-tour="grid-status" className="mt-3 text-[11px] text-muted">{status}</div>
+      {/* Status on the left, the grid clipboard opposite it (W-4, operator-placed).
+          flex-wrap because the status string is translated and Spanish runs
+          longer — the bottom bar taught this lesson the hard way. */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <div data-tour="grid-status" className="min-w-0 text-[11px] text-muted">
+          {gridFlash ?? status}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={onCopyGrid}
+            title={t('grid.copyTitle')}
+            className="h-7 rounded-md border border-line bg-raised px-2 text-[11px] font-medium text-fg hover:bg-line"
+          >
+            {t('grid.copy')}
+          </button>
+          <button
+            type="button"
+            onClick={onPasteGrid}
+            disabled={!clipboard}
+            title={clipboard ? t('grid.pasteTitle') : t('grid.pasteNothing')}
+            className="h-7 rounded-md border border-line bg-raised px-2 text-[11px] font-medium text-fg hover:bg-line disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {t('grid.paste')}
+          </button>
+        </div>
+      </div>
     </section>
   )
 }

@@ -98,6 +98,31 @@ no longer find it.** Probe A drops to **15**.
 called); Favorites does not. An asymmetry between two adjacent lists, not a missing capability in the
 engine.
 
+### W-3 — ✅ **FIXED 2026-08-27, operator ruled Option B**
+
+**Copy diagnostics** sits beside the version line in Help. It gathers only what is already visible
+somewhere in the app — version, mode, whether the helper program is present, the data directory, and
+each monitor with its bounds AND work area — then puts it on the clipboard as plain text. Nothing is
+collected the user could not read off their own screen; this saves them transcribing it, which is the
+point now that a collaborator will be reporting from another PC.
+
+Two deliberate details. A failed section **says so** (`health: unavailable — …`) rather than being
+omitted: a diagnostics block that silently drops a section reads as *"everything fine here"*. And
+`tsc` caught my guess at the monitor shape — `ApiMonitor` is `{index, primary, device, bounds,
+workArea}`, not `{id, w, h}` — which is how the **work area** ended up in the report. It governs
+placement, so a block without it would have hidden the more useful half.
+
+### W-4 — ✅ **FIXED 2026-08-27, operator placed it**
+
+**Copy / Paste** now sit in the Grid pane opposite the *"No selection / Selected:"* line, exactly where
+the operator asked. Paste is disabled until something has been copied, and **confirms before
+overwriting — but only when the target grid actually holds something**. A confirm on an empty grid is
+noise that teaches people to click through the ones that matter.
+
+The row is `flex-wrap`: the status string is translated and Spanish runs longer. The bottom bar taught
+that lesson the hard way, and `check-layout-yield.mjs` now enforces it.
+
+*(original brief, for the record)*
 ### W-3 — the information needed to rule
 
 **It was never wired, not un-wired.** `git log --diff-filter=A` puts `clipboard.ts` in the very first
