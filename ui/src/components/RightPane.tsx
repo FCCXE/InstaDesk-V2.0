@@ -29,6 +29,8 @@ import {
 import {
   listUrlGroups,
   addUrlGroup,
+  updateUrlGroup,
+  findUrlGroupByName,
   removeUrlGroup,
   type UrlGroup,
 } from "../services/UrlGroupsService";
@@ -205,6 +207,7 @@ function AppsAppsPane() {
     assignSelected, unassignSelected,
     argsForSelection, hasMixedArgsInSelection, setArgsForSelection,
     assignments,
+    beginEditUrlGroup,
   } = useAppState();
 
   /* ---------------------------------------------------------------------- */
@@ -682,6 +685,21 @@ function AppsAppsPane() {
                     </button>
                   )}
 
+                  {/* Edit a saved URL group. Before this existed the only verbs
+                      were "use it as configured" or "delete it" — the operator's
+                      report of 2026-08-27. It sits beside Delete because that is
+                      already where a user goes to change a saved thing, and it is
+                      gated on the same editMode so the row stays calm otherwise. */}
+                  {editMode && isUrlGroup && (
+                    <GhostBtn
+                      onClick={() => beginEditUrlGroup(r.urlGroup!)}
+                      className="ml-2 h-7 whitespace-nowrap px-2"
+                      title={t("apps.editUrlGroupTitle", { label: r.label })}
+                    >
+                      {t("apps.editUrlGroup")}
+                    </GhostBtn>
+                  )}
+
                   {editMode && (isCustom || isUrlGroup || isFavorite) ? (
                     <GhostBtn onClick={() => onDeleteCustom(r)} className="ml-2 h-7 whitespace-nowrap px-2">
                       {t("apps.delete")}
@@ -823,6 +841,8 @@ function UrlsBuilderPane() {
     saveUrlBuilder,
     previewUrlBuilder,
     setOpenMode,
+    editingUrlGroupId,
+    cancelEditUrlGroup,
   } = useAppState();
   const { t } = useTranslation();
 
@@ -839,31 +859,79 @@ function UrlsBuilderPane() {
       showFlash(t("urls.pickBrowser"));
       return;
     }
+
+    // EDIT path. `editingUrlGroupId` is the only thing separating the two, and it
+    // is an id rather than a name on purpose: matching on the name would create a
+    // second group the moment the title in the builder drifted, which is the
+    // shadow-group defect (F-1) arriving through a second door.
+    if (editingUrlGroupId) {
+      const tg = snap.tabGroups[0];
+      const urls = (tg?.urls ?? []).filter(Boolean);
+      if (urls.length === 0) {
+        showFlash(t("urls.addUrlFirst"));
+        return;
+      }
+      try {
+        const updated = updateUrlGroup(editingUrlGroupId, { urls, browser: snap.browser });
+        if (!updated) {
+          // The record vanished under us — deleted in the other pane while this
+          // edit was open. Say so rather than silently re-creating it, which
+          // would resurrect something the user chose to remove.
+          showFlash(t("urls.editTargetGone"));
+          cancelEditUrlGroup();
+          return;
+        }
+        window.dispatchEvent(new CustomEvent("insta:url-groups-changed"));
+        showFlash(t("urls.updated", { name: updated.name, count: updated.urls.length }));
+        cancelEditUrlGroup();
+      } catch (e) {
+        showFlash((e as Error).message);
+      }
+      return;
+    }
+
+    // CREATE path (unchanged), except that it now reports replacement honestly:
+    // since the F-1 fix, saving a name that already exists REPLACES that group
+    // even when the browser differs. That is the cure for shadow groups, but it
+    // is destructive, and "Saved" alone would not tell the user it happened.
     const created: string[] = [];
+    const replaced: string[] = [];
     const errors: string[] = [];
     for (const tg of snap.tabGroups) {
       const urls = tg.urls.filter(Boolean);
       if (urls.length === 0) continue;
-      const name = tg.title.trim() || t("urls.tabsDefault", { n: created.length + 1 });
+      const name = tg.title.trim() || t("urls.tabsDefault", { n: created.length + replaced.length + 1 });
+      // Ask BEFORE saving: afterwards the group exists either way and the two
+      // cases are indistinguishable.
+      const existed = findUrlGroupByName(name) !== null;
       try {
         addUrlGroup({ name, browser: snap.browser, urls });
-        created.push(name);
+        (existed ? replaced : created).push(name);
       } catch (e) {
         errors.push((e as Error).message);
       }
     }
-    if (created.length === 0) {
+    if (created.length === 0 && replaced.length === 0) {
       showFlash(errors[0] ?? t("urls.addUrlFirst"));
       return;
     }
     // Notify the Apps list (and anywhere else) so URL groups appear immediately.
     window.dispatchEvent(new CustomEvent("insta:url-groups-changed"));
-    showFlash(t("urls.saved", { count: created.length, names: created.join(", ") }));
+    if (replaced.length > 0) {
+      showFlash(t("urls.replaced", { count: replaced.length, names: replaced.join(", ") }));
+    } else {
+      showFlash(t("urls.saved", { count: created.length, names: created.join(", ") }));
+    }
   };
 
   const onReset = () => {
     resetUrlBuilder();
     showFlash(t("urls.resetDone"));
+  };
+
+  const onCancelEdit = () => {
+    cancelEditUrlGroup();
+    showFlash(t("urls.editCancelled"));
   };
 
   const onPreview = () => {
@@ -875,6 +943,21 @@ function UrlsBuilderPane() {
     <div className="flex flex-col gap-3">
       <div className="rounded-2xl border border-line bg-surface p-4">
         <div className="mb-2 text-base font-semibold text-fg">{t("urls.title")}</div>
+
+        {/* Editing banner. The builder looks identical whether it is composing a
+            new group or editing a saved one, and the difference decides whether
+            Save creates a record or overwrites one — so it has to be visible, and
+            it has to offer a way out that is not "guess which button is safe". */}
+        {editingUrlGroupId && (
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary/40 bg-primary/10 px-2 py-1.5 text-[11px] leading-tight text-fg">
+            <span className="min-w-0 flex-1">
+              {t("urls.editingBanner", { name: urlBuilder.tabGroups[0]?.title ?? "" })}
+            </span>
+            <GhostBtn onClick={onCancelEdit} className="h-7 whitespace-nowrap px-2">
+              {t("urls.cancelEdit")}
+            </GhostBtn>
+          </div>
+        )}
 
         <div className="mb-3 flex items-center gap-2">
           <Label>{t("urls.browser")}</Label>
@@ -909,7 +992,13 @@ function UrlsBuilderPane() {
           <div key={g.id} className="mb-3 rounded-xl border border-line p-3">
             <div className="mb-2 flex items-center gap-2">
               <Label>{t("urls.tabTitle")}</Label>
-              <Input value={g.title} onChange={(v) => setTabTitle(g.id, v)} placeholder={t("urls.tabTitlePlaceholder")} />
+              <Input
+                value={g.title}
+                onChange={(v) => setTabTitle(g.id, v)}
+                placeholder={t("urls.tabTitlePlaceholder")}
+                readOnly={!!editingUrlGroupId}
+                title={editingUrlGroupId ? t("urls.renameNotSupported") : undefined}
+              />
             </div>
             <div className="flex flex-col gap-2">
               {g.urls.map((u, i) => (
@@ -1260,20 +1349,30 @@ function Input({
   className = "",
   value,
   onChange,
+  readOnly = false,
+  title,
 }: {
   placeholder?: string;
   className?: string;
   value?: string;
   onChange?: (val: string) => void;
+  /** Locks the field while keeping it readable. Used for the group name during
+   *  an edit: renaming is a cascade across every Layout that references the old
+   *  name (F-2), so it is refused visibly rather than accepted and half-applied. */
+  readOnly?: boolean;
+  title?: string;
 }) {
   return (
     <input
       value={value}
       onChange={(e) => onChange?.(e.target.value)}
       placeholder={placeholder}
+      readOnly={readOnly}
+      title={title}
       className={[
         "h-8 w-full rounded-md border border-line bg-raised px-3 text-xs text-fg placeholder:text-muted",
         "focus:outline-none focus:ring-2 focus:ring-ring",
+        readOnly ? "cursor-not-allowed opacity-70" : "",
         className,
       ].join(" ")}
     />

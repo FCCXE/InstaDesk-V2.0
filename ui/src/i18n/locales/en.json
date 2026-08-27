@@ -275,7 +275,9 @@
     "restoreAll": "↺ Restore all",
     "restoreAllConfirm": "Restore all {{count}} hidden apps to the list?",
     "launchArgsHintIdle": "Two regions of the SAME app need different \"Launch args\" to open as two separate windows — e.g. a different folder for each VS Code or File Explorer. Select cells to set them. With identical args they become one window.",
-    "launchArgsHintSummary": "Two windows of the same app?"
+    "launchArgsHintSummary": "Two windows of the same app?",
+    "editUrlGroup": "Edit",
+    "editUrlGroupTitle": "Edit the URLs in \"{{label}}\""
   },
   "urls": {
     "pickBrowser": "Pick a browser first.",
@@ -306,7 +308,16 @@
     "perUrl": "Per URL",
     "save": "Save",
     "preview": "Preview",
-    "reset": "Reset"
+    "reset": "Reset",
+    "editingBanner": "Editing \"{{name}}\" — Save will update this group.",
+    "cancelEdit": "Cancel",
+    "editCancelled": "Edit cancelled. Nothing was changed.",
+    "renameNotSupported": "The name cannot be changed while editing, because saved Layouts refer to this group by name.",
+    "updated_one": "Updated \"{{name}}\" — {{count}} URL.",
+    "updated_other": "Updated \"{{name}}\" — {{count}} URLs.",
+    "editTargetGone": "That URL group no longer exists — it was deleted while you were editing it.",
+    "replaced_one": "Replaced {{count}} existing URL group: {{names}}.",
+    "replaced_other": "Replaced {{count}} existing URL groups: {{names}}."
   },
   "favorites": {
     "title": "Favorites",
@@ -364,7 +375,7 @@
       },
       "urlsFavorites": {
         "title": "URLs & Favorites",
-        "body": "A URL group is a browser window described by its tabs — not a bookmark list. Build one in Apps → URLs: pick the browser, add a tab group, list the addresses, then Save. It becomes an entry you can assign to a region exactly like a program.\n\nOpen behaviour decides the shape: one window for everything, one window per group, or a separate window per address when each needs its own region.\n\nFavorites are simply pinned apps — the four or five you place in almost every Layout, kept one click away instead of a search."
+        "body": "A URL group is a browser window described by its tabs — not a bookmark list. Build one in Apps → URLs: pick the browser, add a tab group, list the addresses, then Save. It becomes an entry you can assign to a region exactly like a program.\n\nOpen behaviour decides the shape: one window for everything, one window per group, or a separate window per address when each needs its own region.\n\nFavorites are simply pinned apps — the four or five you place in almost every Layout, kept one click away instead of a search.\n\nTo change a group later, open Apps → Apps, press Edit at the top of the list, then Edit on the group itself. The builder reopens with its addresses already in place, so you change the one you meant instead of retyping the rest. The name stays fixed while editing, because saved Layouts refer to a group by its name."
       }
     }
   },

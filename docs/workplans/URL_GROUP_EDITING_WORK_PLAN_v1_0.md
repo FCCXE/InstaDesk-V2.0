@@ -208,16 +208,38 @@ Without this, "edit" still means "retype from memory". Maps a saved group onto a
 **Dry run first:** a test that round-trips saved → draft → saved and asserts the URLs are identical,
 before anything is wired to a button.
 
-### I-6 — Wire the Edit affordance ☐ **RISKY** → tag `pre-urlgroup-edit-ui`
-An Edit control on the App History URL-group row, beside delete. Entering edit loads the group; saving
-calls `updateUrlGroup` **by id**. The save message must distinguish **updated** from **created**
-(today both say "Saved").
-**Done when:** proven in the **installed Sandbox**, not in dev.
+### I-6 — Wire the Edit affordance ✅ **CODE DONE** → tag `pre-urlgroup-edit-ui` *(pushed first)*
+*Awaiting the I-8 Sandbox checkpoint before it counts as proven.*
 
-### I-7 — EN/ES parity and teach it ☐ *not risky*
-New strings in both locales. A capability nobody is told about is not delivered — that is the
-discoverability audit's finding, and it applies here too: a Help entry, and a tour step if it earns
-one.
+- **Edit sits beside Delete** on the App History URL-group row, behind the same `editMode` toggle —
+  that is already where a user goes to change a saved thing, and the row stays calm otherwise.
+- **`editingUrlGroupId` in AppState is the entire difference between the two save paths**, and it is
+  an **id, not a name**: matching on the name would spawn a second group the moment the title in the
+  builder drifted — F-1 through a second door.
+- **The name field is locked while editing** (`Input` gained a `readOnly` prop), with a tooltip
+  saying why. Renaming is F-2's cascade across every Layout that references the old name, so it is
+  refused *visibly* rather than accepted and half-applied.
+- **An editing banner** names the group and offers Cancel. The builder looks identical whether it is
+  composing or editing, and that difference decides whether Save creates or overwrites — so it has to
+  be visible, and the way out must not be "guess which button is safe".
+- **The record vanishing under an open edit is handled**: if it was deleted in the other pane while
+  editing, the save says so and closes the edit, rather than silently re-creating something the user
+  chose to remove.
+- **The save now reports replacement honestly.** Since the I-3 fix, saving an existing name replaces
+  that group even across browsers. "Saved" alone would not say so, so the create path now checks
+  `findUrlGroupByName` **before** writing (afterwards the two cases are indistinguishable) and reports
+  *Replaced* rather than *Saved*.
+
+### I-7 — EN/ES parity and teach it ✅ **DONE**
+11 new strings in **each** locale (640 = 640 leaf keys, parity gate green), including plural forms for
+the updated/replaced messages. The `urlsFavorites` Help section now explains where Edit lives and why
+the name is fixed.
+
+⚠ **While writing that Help text I found the same section documents D-1's dead control**: *"Open
+behaviour decides the shape: one window for everything, one window per group, or a separate window
+per address."* The app **always** opens one window. So D-1 is not merely an inert control — it is a
+**documented promise the product does not keep**. The false sentence was left in place rather than
+quietly edited, because removing a documented capability is the operator's decision, not a tidy-up.
 
 ### I-8 — OPERATOR CHECKPOINT, installed Sandbox ☐
 Edit a real group's URLs; confirm the change sticks, the Layout using it still applies, and nothing

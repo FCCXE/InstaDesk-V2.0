@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { api, type ApiMonitor } from '../services/api'
+import { groupToDraft, type UrlGroup as SavedUrlGroup } from '../services/UrlGroupsService'
 
 /* ============================================================================
    Grid constants
@@ -524,6 +525,9 @@ type AppStateContext = {
   setUrlLine: (groupId: string, index: number, value: string) => void
   addUrlLine: (groupId: string) => void
   resetUrlBuilder: () => void
+  editingUrlGroupId: string | null
+  beginEditUrlGroup: (group: SavedUrlGroup) => void
+  cancelEditUrlGroup: () => void
   saveUrlBuilder: () => UrlBuilderDraft
   previewUrlBuilder: () => UrlBuilderDraft
   setOpenMode: (mode: UrlOpenMode) => void
@@ -864,6 +868,9 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
   /* ---------- URL Builder ---------- */
   const [browsers, setBrowsers] = useState<BrowserEntry[]>(loadBrowsers)
   const [groupSeed, setGroupSeed] = useState(2)
+  // null = the builder is composing a NEW group; a string = it is editing that
+  // saved record. See beginEditUrlGroup below for why this is an id, not a name.
+  const [editingUrlGroupId, setEditingUrlGroupId] = useState<string | null>(null)
   const [urlBuilder, setUrlBuilder] = useState<UrlBuilderDraft>({
     browser: null,
     tabGroups: [newGroup(1), newGroup(2)],
@@ -918,10 +925,31 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
       ...prev,
       tabGroups: prev.tabGroups.map(g => g.id !== groupId ? g : { ...g, urls: [...g.urls, ''] })
     }))
-  const resetUrlBuilder = () =>
+  const resetUrlBuilder = () => {
+    setEditingUrlGroupId(null)
     setUrlBuilder({ browser: null, tabGroups: [newGroup(1), newGroup(2)], openMode: 'single' })
+  }
   const saveUrlBuilder = () => urlBuilder
   const previewUrlBuilder = () => urlBuilder
+
+  // --- Editing an existing URL group (URL Group Editing programme, I-6) --------
+  //
+  // Until now a saved group could only be deleted or used as configured: the
+  // builder draft is in-memory and was never loadable from a saved record, so
+  // "editing" meant retyping every URL from memory.
+  //
+  // `editingUrlGroupId` is the whole difference between the two save paths. When
+  // it is set, the save updates THAT record by id; when it is null, the save
+  // creates (or replaces by name, per the F-1 fix). Keying the edit on the id
+  // rather than the name is what stops a name typed during editing from silently
+  // spawning a second group.
+  const beginEditUrlGroup = (group: SavedUrlGroup) => {
+    const draft = groupToDraft(group)
+    setEditingUrlGroupId(group.id)
+    setUrlBuilder({ browser: draft.browser, tabGroups: draft.tabGroups, openMode: 'single' })
+    setAppsSubTab('URLs')          // the builder is on another sub-tab; take them there
+  }
+  const cancelEditUrlGroup = () => resetUrlBuilder()
   const setOpenMode = (mode: UrlOpenMode) =>
     setUrlBuilder(prev => ({ ...prev, openMode: mode }))
 
@@ -1024,6 +1052,9 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     setUrlLine,
     addUrlLine,
     resetUrlBuilder,
+    editingUrlGroupId,
+    beginEditUrlGroup,
+    cancelEditUrlGroup,
     saveUrlBuilder,
     previewUrlBuilder,
     setOpenMode,
@@ -1035,7 +1066,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     monitors, currentMonitorId, presets, pendingPresetByMonitor,
     gridSizeByMonitor, currentGridCols, currentGridRows, defaultGridSize,
     windowMargin, switchMode, preservedAssignments, previewedLayoutId,
-    urlBuilder, browsers
+    urlBuilder, editingUrlGroupId, browsers
   ])
 
   /* ---------- Dev console hook (localhost/Vite dev only) ---------- */

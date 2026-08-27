@@ -275,7 +275,9 @@
     "restoreAll": "↺ Restaurar todo",
     "restoreAllConfirm": "¿Restaurar las {{count}} apps ocultas a la lista?",
     "launchArgsHintIdle": "Dos regiones de la MISMA app necesitan «Argumentos de inicio» distintos para abrirse como dos ventanas separadas: por ejemplo, una carpeta diferente para cada VS Code o Explorador de archivos. Selecciona celdas para definirlos. Con argumentos idénticos se convierten en una sola ventana.",
-    "launchArgsHintSummary": "¿Dos ventanas de la misma app?"
+    "launchArgsHintSummary": "¿Dos ventanas de la misma app?",
+    "editUrlGroup": "Editar",
+    "editUrlGroupTitle": "Editar las URL de \"{{label}}\""
   },
   "urls": {
     "pickBrowser": "Elige primero un navegador.",
@@ -306,7 +308,16 @@
     "perUrl": "Por URL",
     "save": "Guardar",
     "preview": "Vista previa",
-    "reset": "Restablecer"
+    "reset": "Restablecer",
+    "editingBanner": "Editando \"{{name}}\": Guardar actualizará este grupo.",
+    "cancelEdit": "Cancelar",
+    "editCancelled": "Edición cancelada. No se cambió nada.",
+    "renameNotSupported": "El nombre no se puede cambiar durante la edición, porque los Diseños guardados se refieren a este grupo por su nombre.",
+    "updated_one": "Se actualizó \"{{name}}\": {{count}} URL.",
+    "updated_other": "Se actualizó \"{{name}}\": {{count}} URL.",
+    "editTargetGone": "Ese grupo de URL ya no existe: se eliminó mientras lo editabas.",
+    "replaced_one": "Se reemplazó {{count}} grupo de URL existente: {{names}}.",
+    "replaced_other": "Se reemplazaron {{count}} grupos de URL existentes: {{names}}."
   },
   "favorites": {
     "title": "Favoritos",
@@ -364,7 +375,7 @@
       },
       "urlsFavorites": {
         "title": "URLs y Favoritos",
-        "body": "Un grupo de URLs es una ventana del navegador descrita por sus pestañas — no una lista de marcadores. Crea uno en Apps → URLs: elige el navegador, añade un grupo de pestañas, escribe las direcciones y guarda. Se convierte en una entrada que puedes asignar a una región igual que un programa.\n\nEl comportamiento de apertura decide la forma: una sola ventana para todo, una ventana por grupo, o una ventana por dirección cuando cada una necesita su propia región.\n\nLos Favoritos son sencillamente apps ancladas — las cuatro o cinco que colocas en casi todos los Diseños, a un clic en vez de a una búsqueda."
+        "body": "Un grupo de URLs es una ventana del navegador descrita por sus pestañas — no una lista de marcadores. Crea uno en Apps → URLs: elige el navegador, añade un grupo de pestañas, escribe las direcciones y guarda. Se convierte en una entrada que puedes asignar a una región igual que un programa.\n\nEl comportamiento de apertura decide la forma: una sola ventana para todo, una ventana por grupo, o una ventana por dirección cuando cada una necesita su propia región.\n\nLos Favoritos son sencillamente apps ancladas — las cuatro o cinco que colocas en casi todos los Diseños, a un clic en vez de a una búsqueda.\n\nPara cambiar un grupo más adelante, abre Apps → Apps, pulsa Editar en la parte superior de la lista y luego Editar en el grupo. El creador se abre de nuevo con sus direcciones ya puestas, así que cambias la que querías en vez de reescribir el resto. El nombre no se puede cambiar durante la edición, porque los Diseños guardados se refieren al grupo por su nombre."
       }
     }
   },
