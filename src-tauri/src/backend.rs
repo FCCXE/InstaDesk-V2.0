@@ -64,6 +64,41 @@ pub fn init_paths(app: &AppHandle) {
 // ----------------------------------------------------------------------------
 
 /// Whether InstaDesk is registered to launch at Windows sign-in.
+/// A backend error the UI can TRANSLATE.
+///
+/// Tauri's `Err(String)` is the wire format, so the code travels inside it as
+/// JSON: `{"code":"presetNotFound","message":"Preset not found.","args":{...}}`.
+///
+/// Why a code rather than prose: until 2026-08-27 no backend message reached the
+/// user at all (the UI read `.message` on what is really a raw string). Fixing
+/// that immediately exposed the next layer — these sentences are written in Rust,
+/// which cannot see the locale files, so a Spanish user got English. Prose cannot
+/// be translated downstream without matching on the English text, and matching on
+/// prose breaks silently the first time someone rewords it.
+///
+/// `message` is kept as the English fallback so an untranslated or older code is
+/// still READABLE rather than showing a bare identifier — never worse than before.
+/// `check-backend-errors.mjs` fails the build if any code lacks a translation.
+pub fn berr(code: &str, message: impl Into<String>) -> String {
+    berr_args(code, message, serde_json::Map::new())
+}
+
+pub fn berr_args(code: &str, message: impl Into<String>, args: serde_json::Map<String, Value>) -> String {
+    serde_json::to_string(&json!({
+        "code": code,
+        "message": message.into(),
+        "args": Value::Object(args),
+    }))
+    .unwrap_or_else(|_| "Unknown error".into())
+}
+
+/// Convenience for the common single-placeholder cases.
+pub fn berr1(code: &str, message: impl Into<String>, key: &str, value: impl Into<String>) -> String {
+    let mut m = serde_json::Map::new();
+    m.insert(key.to_string(), Value::String(value.into()));
+    berr_args(code, message, m)
+}
+
 #[tauri::command]
 pub fn autostart_is_enabled(app: AppHandle) -> Result<bool, String> {
     app.autolaunch().is_enabled().map_err(|e| e.to_string())
@@ -532,14 +567,14 @@ fn check_kind(kind: &str) -> Result<(), String> {
     if kind == "general" || kind == "single" {
         Ok(())
     } else {
-        Err(format!("Invalid kind: {kind}"))
+        Err(berr1("invalidKind", format!("Invalid kind: {kind}"), "kind", kind.to_string()))
     }
 }
 fn check_slot(slot: &str) -> Result<(), String> {
     let mut chars = slot.chars();
     match (chars.next(), chars.next()) {
         (Some(c), None) if c.is_ascii_alphabetic() => Ok(()),
-        _ => Err(format!("Invalid slot: {slot}")),
+        _ => Err(berr1("invalidSlot", format!("Invalid slot: {slot}"), "slot", slot.to_string())),
     }
 }
 
@@ -547,14 +582,19 @@ fn check_slot(slot: &str) -> Result<(), String> {
 #[tauri::command]
 pub fn presets_get(kind: String, slot: String) -> Result<Value, String> {
     if kind != "general" && kind != "single" {
-        return Err(format!("Invalid kind: {kind}"));
+        return Err(berr1("invalidKind", format!("Invalid kind: {kind}"), "kind", kind.to_string()));
     }
     if slot.len() != 1 || !slot.chars().next().unwrap().is_ascii_alphabetic() {
-        return Err(format!("Invalid slot: {slot}"));
+        return Err(berr1("invalidSlot", format!("Invalid slot: {slot}"), "slot", slot.to_string()));
     }
     let path = presets_dir().join(format!("{}_{}.json", kind, slot.to_uppercase()));
     if !path.exists() {
-        return Err(format!("Preset {}/{} not found.", kind, slot.to_uppercase()));
+        return Err(berr_args("presetSlotNotFound", format!("Preset {}/{} not found.", kind, slot.to_uppercase()), {
+            let mut m = serde_json::Map::new();
+            m.insert("kind".into(), Value::String(kind.to_string()));
+            m.insert("slot".into(), Value::String(slot.to_uppercase()));
+            m
+        }));
     }
     let mut raw: Value = fs::read_to_string(&path)
         .map_err(|e| e.to_string())
@@ -625,7 +665,7 @@ pub fn presets_delete(kind: String, slot: String) -> Result<Value, String> {
     check_slot(&slot)?;
     let path = presets_dir().join(format!("{}_{}.json", kind, slot.to_uppercase()));
     if !path.exists() {
-        return Err("Preset not found.".into());
+        return Err(berr("presetNotFound", "Preset not found."));
     }
     fs::remove_file(&path).map_err(|e| e.to_string())?;
     Ok(json!({ "ok": true, "deleted": path.to_string_lossy() }))
@@ -686,11 +726,11 @@ pub fn quickpresets_list() -> Result<Value, String> {
 #[tauri::command]
 pub fn quickpresets_get(slot: String) -> Result<Value, String> {
     if slot.len() != 1 || !slot.chars().next().unwrap().is_ascii_alphabetic() {
-        return Err(format!("Invalid slot: {slot}"));
+        return Err(berr1("invalidSlot", format!("Invalid slot: {slot}"), "slot", slot.to_string()));
     }
     let path = quickpresets_dir().join(format!("QP_{}.json", slot.to_uppercase()));
     if !path.exists() {
-        return Err(format!("Quick Preset {} not found.", slot.to_uppercase()));
+        return Err(berr1("qpSlotNotFound", format!("Quick Preset {} not found.", slot.to_uppercase()), "slot", slot.to_uppercase()));
     }
     let mut raw: Value = fs::read_to_string(&path)
         .map_err(|e| e.to_string())
@@ -707,7 +747,7 @@ pub fn quickpresets_get(slot: String) -> Result<Value, String> {
 pub fn quickpresets_save(slot: String, name: String, layouts: Vec<Value>) -> Result<Value, String> {
     check_slot(&slot)?;
     if layouts.is_empty() {
-        return Err("A Quick Preset must reference at least one Layout.".into());
+        return Err(berr("qpNeedsLayout", "A Quick Preset must reference at least one Layout."));
     }
     let pdir = presets_dir();
     let mut missing: Vec<String> = Vec::new();
@@ -753,7 +793,7 @@ pub fn quickpresets_delete(slot: String) -> Result<Value, String> {
     check_slot(&slot)?;
     let path = quickpresets_dir().join(format!("QP_{}.json", slot.to_uppercase()));
     if !path.exists() {
-        return Err("Quick Preset not found.".into());
+        return Err(berr("qpNotFound", "Quick Preset not found."));
     }
     fs::remove_file(&path).map_err(|e| e.to_string())?;
     Ok(json!({ "ok": true, "deleted": path.to_string_lossy() }))
@@ -781,10 +821,10 @@ pub fn browse(path: Option<String>) -> Result<Value, String> {
 
     let p = PathBuf::from(expand_env_vars(&path));
     if !p.exists() {
-        return Err(format!("Path not found: {}", p.display()));
+        return Err(berr1("pathNotFound", format!("Path not found: {}", p.display()), "path", p.display().to_string()));
     }
     if !p.is_dir() {
-        return Err(format!("Not a directory: {}", p.display()));
+        return Err(berr1("notADirectory", format!("Not a directory: {}", p.display()), "path", p.display().to_string()));
     }
 
     let mut entries: Vec<Value> = Vec::new();
@@ -830,13 +870,13 @@ pub fn browse(path: Option<String>) -> Result<Value, String> {
 pub async fn monitors() -> Result<Value, String> {
     let agent = agent_path();
     if !agent.exists() {
-        return Err(format!("Agent not found at {}", agent.display()));
+        return Err(berr1("agentMissing", format!("Agent not found at {}", agent.display()), "path", agent.display().to_string()));
     }
     let fut = agent_command(&["--list-monitors".to_string()]).output();
     let out = match tokio::time::timeout(std::time::Duration::from_secs(10), fut).await {
         Ok(Ok(o)) => o,
         Ok(Err(e)) => return Err(format!("Failed to run agent: {e}")),
-        Err(_) => return Err("Agent timed out enumerating monitors".into()),
+        Err(_) => return Err(berr("agentTimeoutMonitors", "Agent timed out enumerating monitors")),
     };
     let stdout = String::from_utf8_lossy(&out.stdout);
     let line = stdout.lines().map(str::trim).filter(|l| !l.is_empty()).last().unwrap_or("");
@@ -1331,7 +1371,7 @@ async fn apply_preset(kind: &str, slot: &str, margin_px: Option<i64>) -> Result<
     check_slot(slot)?;
     let path = presets_dir().join(format!("{}_{}.json", kind, slot.to_uppercase()));
     if !path.exists() {
-        return Err("Preset not found.".into());
+        return Err(berr("presetNotFound", "Preset not found."));
     }
     let raw: Value = fs::read_to_string(&path)
         .map_err(|e| e.to_string())
@@ -1544,7 +1584,7 @@ fn spawn_program_detached(_program: &str, _args_line: &str) -> std::io::Result<(
 // unlicensed). Dormant unless licensing is enabled, so this is a no-op by default.
 fn locked_guard() -> Result<(), String> {
     if crate::license::locked() {
-        Err("Your InstaDesk trial has ended. Enter a license in Settings → License to continue.".into())
+        Err(berr("trialEnded", "Your InstaDesk trial has ended. Enter a license in Settings → License to continue."))
     } else {
         Ok(())
     }
@@ -1570,7 +1610,7 @@ pub async fn quickpresets_run(slot: String, margin_px: Option<i64>) -> Result<Va
     check_slot(&slot)?;
     let path = quickpresets_dir().join(format!("QP_{}.json", slot.to_uppercase()));
     if !path.exists() {
-        return Err("Quick Preset not found.".into());
+        return Err(berr("qpNotFound", "Quick Preset not found."));
     }
     let raw: Value = fs::read_to_string(&path)
         .map_err(|e| e.to_string())
@@ -1794,7 +1834,7 @@ pub async fn capture_layout(grid_sizes: Vec<String>, margin_px: Option<i64>) -> 
     locked_guard()?;
     let agent = agent_path();
     if !agent.exists() {
-        return Err(format!("Agent not found at {}", agent.display()));
+        return Err(berr1("agentMissing", format!("Agent not found at {}", agent.display()), "path", agent.display().to_string()));
     }
     let mut args = vec!["--capture-layout".to_string()];
     if !grid_sizes.is_empty() {
@@ -1829,7 +1869,7 @@ pub async fn snap_popup(monitor: i64, grid_size: Option<String>, margin_px: Opti
     locked_guard()?;
     let agent = agent_path();
     if !agent.exists() {
-        return Err(format!("Agent not found at {}", agent.display()));
+        return Err(berr1("agentMissing", format!("Agent not found at {}", agent.display()), "path", agent.display().to_string()));
     }
     let grid_size = grid_size.unwrap_or_else(|| "6x6".into());
     let mut args: Vec<String> = vec![
@@ -2396,7 +2436,7 @@ fn open_with_default(path: &Path) -> Result<(), String> {
 
 #[cfg(not(windows))]
 fn open_with_default(_path: &Path) -> Result<(), String> {
-    Err("Opening files is only supported on Windows.".into())
+    Err(berr("windowsOnly", "Opening files is only supported on Windows."))
 }
 
 #[cfg(windows)]

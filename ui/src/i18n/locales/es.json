@@ -845,5 +845,22 @@
       "daily": "El día a día",
       "trouble": "Cuando algo va mal"
     }
+  },
+  "backendErrors": {
+    "agentMissing": "Falta el programa auxiliar de InstaDesk. Reinstalar debería restaurarlo. ({{path}})",
+    "agentTimeoutMonitors": "Se agotó el tiempo al detectar tus monitores. Inténtalo de nuevo.",
+    "invalidKind": "Tipo de Diseño no válido: {{kind}}.",
+    "invalidSlot": "Ranura no válida: {{slot}}. Las ranuras son letras sueltas de la A a la Z.",
+    "licenseKeyRequired": "Introduce una clave de licencia.",
+    "licensingDisabled": "Las licencias no están habilitadas en esta versión.",
+    "notADirectory": "Esa ruta no es una carpeta: {{path}}",
+    "pathNotFound": "Esa ruta ya no existe: {{path}}",
+    "presetNotFound": "Ese Diseño ya no existe: puede que se haya eliminado.",
+    "presetSlotNotFound": "El Diseño {{kind}}/{{slot}} ya no existe: puede que se haya eliminado.",
+    "qpNeedsLayout": "Un Preajuste rápido debe contener al menos un Diseño.",
+    "qpNotFound": "No hay ningún Preajuste rápido guardado en esa ranura.",
+    "qpSlotNotFound": "No hay ningún Preajuste rápido guardado en la ranura {{slot}}.",
+    "trialEnded": "Tu prueba de InstaDesk ha terminado. Introduce una licencia en Configuración → Licencia para continuar.",
+    "windowsOnly": "Abrir archivos solo es compatible con Windows."
   }
 }

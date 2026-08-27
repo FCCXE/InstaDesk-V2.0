@@ -212,11 +212,11 @@ fn parse_dev_key(key: &str) -> Option<&'static str> {
 #[tauri::command]
 pub fn license_activate(app: AppHandle, key: String) -> Result<Value, String> {
     if !licensing_enabled(&app) {
-        return Err("Licensing is not enabled.".into());
+        return Err(crate::backend::berr("licensingDisabled", "Licensing is not enabled."));
     }
     let key = key.trim().to_string();
     if key.is_empty() {
-        return Err("Enter a license key.".into());
+        return Err(crate::backend::berr("licenseKeyRequired", "Enter a license key."));
     }
     let now = now_secs();
     let kind = match parse_dev_key(&key) {

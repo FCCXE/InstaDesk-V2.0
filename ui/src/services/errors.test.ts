@@ -23,6 +23,7 @@
 // is correct without knowing any of this.
 import { describe, it, expect } from 'vitest'
 import { toError } from './errors'
+import i18n from '../i18n'
 
 describe('toError — one dialect at the boundary', () => {
   it('turns a raw string rejection into an Error carrying that text', () => {
@@ -47,6 +48,58 @@ describe('toError — one dialect at the boundary', () => {
       const e = toError(weird)
       expect(e).toBeInstanceOf(Error)
       expect(e.message.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('translates a coded backend error', () => {
+    // The operator's case, end to end: Rust emits the code, the UI supplies the
+    // words. Asserting it is NOT the raw English fallback proves the translation
+    // actually fired rather than the fallback quietly carrying it.
+    const raw = JSON.stringify({ code: 'qpNotFound', message: 'Quick Preset not found.', args: {} })
+    const msg = toError(raw).message
+    expect(msg).toBe('No Quick Preset is saved in that slot.')
+    expect(msg).not.toBe('Quick Preset not found.')
+  })
+
+  it('interpolates the values Rust supplied', () => {
+    const raw = JSON.stringify({ code: 'qpSlotNotFound', message: 'Quick Preset B not found.', args: { slot: 'B' } })
+    expect(toError(raw).message).toBe('No Quick Preset is saved in slot B.')
+  })
+
+  it('falls back to the English sentence for a code with no string', () => {
+    // The prebuild gate makes this unreachable in a shipped build, but a bare
+    // identifier on screen would be worse than the defect this replaced.
+    const raw = JSON.stringify({ code: 'notATranslatedCode', message: 'Something specific went wrong.', args: {} })
+    expect(toError(raw).message).toBe('Something specific went wrong.')
+  })
+
+  it('leaves a plain (uncoded) string error alone', () => {
+    // 25 map_err pass-throughs carry OS and serde text we do not author.
+    expect(toError('The system cannot find the file specified.').message)
+      .toBe('The system cannot find the file specified.')
+  })
+
+  it('SPANISH: the same code produces the Spanish sentence', async () => {
+    // The operator's requirement is that both locales are COMPLETELY deployed.
+    // Asserting only the English path would prove translation fires, not that the
+    // Spanish half exists — and a missing Spanish string falls back to English
+    // silently, which looks identical to success.
+    const raw = JSON.stringify({ code: 'qpNotFound', message: 'Quick Preset not found.', args: {} })
+    await i18n.changeLanguage('es')
+    try {
+      expect(toError(raw).message).toBe('No hay ningún Preajuste rápido guardado en esa ranura.')
+    } finally {
+      await i18n.changeLanguage('en')
+    }
+  })
+
+  it('SPANISH: interpolation works in the second locale too', async () => {
+    const raw = JSON.stringify({ code: 'qpSlotNotFound', message: 'Quick Preset B not found.', args: { slot: 'B' } })
+    await i18n.changeLanguage('es')
+    try {
+      expect(toError(raw).message).toBe('No hay ningún Preajuste rápido guardado en la ranura B.')
+    } finally {
+      await i18n.changeLanguage('en')
     }
   })
 

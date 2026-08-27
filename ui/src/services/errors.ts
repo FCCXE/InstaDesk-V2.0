@@ -20,12 +20,53 @@
 // Every catch block in the app therefore keeps working unchanged, and any future
 // one is correct without its author knowing any of this.
 
+import i18n from '../i18n'
+
+/**
+ * A coded error from the Rust side, carried inside Tauri's `Err(String)` as JSON.
+ * `message` is the English fallback, so an unknown or newly-added code is still
+ * READABLE rather than showing a bare identifier — never worse than before.
+ */
+type CodedError = { code?: unknown; message?: unknown; args?: unknown }
+
+/**
+ * Translate a coded backend error, or return null if this is not one.
+ *
+ * Rust cannot see the locale files, so it emits a stable CODE and the words are
+ * chosen here. Matching on the English prose instead would break silently the
+ * first time somebody reworded a sentence — the same read-time-fix trap that left
+ * `CaptureLayoutModal` as the only file in the app handling string rejections.
+ */
+function translateCoded(raw: string): string | null {
+  if (!raw.startsWith('{')) return null
+  let parsed: CodedError
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return null
+  }
+  if (typeof parsed?.code !== 'string') return null
+
+  const fallback = typeof parsed.message === 'string' && parsed.message.length > 0
+    ? parsed.message
+    : 'Unknown error'
+  const args = (parsed.args && typeof parsed.args === 'object') ? parsed.args as Record<string, unknown> : {}
+  const key = `backendErrors.${parsed.code}`
+  // defaultValue keeps the English sentence when a code has no string yet. The
+  // prebuild gate makes that state unreachable in a shipped build, but a fallback
+  // that shows a bare code would be worse than the defect this replaced.
+  const translated = i18n.t(key, { ...args, defaultValue: fallback })
+  return typeof translated === 'string' && translated.length > 0 ? translated : fallback
+}
+
 /** Coerce anything a rejected promise can carry into a readable `Error`. */
 export function toError(e: unknown): Error {
   if (e instanceof Error) return e
 
   // The Tauri case, and the reason this file exists.
-  if (typeof e === 'string') return new Error(e || 'Unknown error')
+  if (typeof e === 'string') {
+    return new Error(translateCoded(e) ?? (e || 'Unknown error'))
+  }
 
   if (typeof e === 'object' && e !== null) {
     const msg = (e as { message?: unknown }).message

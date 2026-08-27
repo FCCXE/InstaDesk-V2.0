@@ -845,5 +845,22 @@
       "daily": "Using them day to day",
       "trouble": "When something looks wrong"
     }
+  },
+  "backendErrors": {
+    "agentMissing": "InstaDesk’s helper program is missing. Reinstalling should restore it. ({{path}})",
+    "agentTimeoutMonitors": "Timed out while detecting your monitors. Try again.",
+    "invalidKind": "Invalid Layout type: {{kind}}.",
+    "invalidSlot": "Invalid slot: {{slot}}. Slots are single letters A–Z.",
+    "licenseKeyRequired": "Enter a licence key.",
+    "licensingDisabled": "Licensing is not enabled in this build.",
+    "notADirectory": "That path is not a folder: {{path}}",
+    "pathNotFound": "That path no longer exists: {{path}}",
+    "presetNotFound": "That Layout no longer exists — it may have been deleted.",
+    "presetSlotNotFound": "Layout {{kind}}/{{slot}} no longer exists — it may have been deleted.",
+    "qpNeedsLayout": "A Quick Preset must contain at least one Layout.",
+    "qpNotFound": "No Quick Preset is saved in that slot.",
+    "qpSlotNotFound": "No Quick Preset is saved in slot {{slot}}.",
+    "trialEnded": "Your InstaDesk trial has ended. Enter a licence in Settings → Licence to continue.",
+    "windowsOnly": "Opening files is only supported on Windows."
   }
 }
