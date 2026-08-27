@@ -368,7 +368,7 @@
       },
       "grid": {
         "title": "La cuadrícula y la asignación de apps",
-        "body": "• Arrastra sobre las celdas para seleccionar una región rectangular y luego asígnale una aplicación.\n• Cambia la densidad de la cuadrícula de un monitor con el selector Cuadrícula de la barra inferior (p. ej. 6×6, 8×8, 10×10).\n• Da a una celda argumentos de inicio personalizados en la pestaña Apps —por ejemplo, una ruta de carpeta para el Explorador de archivos— para abrir distintas ventanas de la misma aplicación.\n• «Borrar cuadrícula actual» borra el monitor actual; «Borrar todas las cuadrículas» borra todos los monitores (con confirmación).\n\nCopiar y Pegar, debajo de la cuadrícula, trasladan una disposición de un monitor a otro: las apps y los argumentos de inicio por celda. Selecciona primero un área y solo se copia ese bloque; pégalo en un área de la misma forma en cualquier monitor, sea cual sea su tamaño de cuadrícula. Sin nada seleccionado, Copiar toma el monitor entero y Pegar necesita entonces un monitor del mismo tamaño de cuadrícula. Si las celdas de destino ya contienen algo, se pide confirmación."
+        "body": "• Arrastra sobre las celdas para seleccionar una región rectangular y luego asígnale una aplicación. Mantén Ctrl o Mayús mientras arrastras para añadir un segundo rectángulo a la misma selección.\n• Cambia la densidad de la cuadrícula de un monitor con el selector Cuadrícula de la barra inferior (p. ej. 6×6, 8×8, 10×10).\n• Da a una celda argumentos de inicio personalizados en la pestaña Apps —por ejemplo, una ruta de carpeta para el Explorador de archivos— para abrir distintas ventanas de la misma aplicación.\n• «Borrar cuadrícula actual» borra el monitor actual; «Borrar todas las cuadrículas» borra todos los monitores (con confirmación).\n\nCopiar y Pegar, debajo de la cuadrícula, trasladan una disposición de un monitor a otro: las apps y los argumentos de inicio por celda. Selecciona primero un área y solo se copia ese bloque; pégalo en un área de la misma forma en cualquier monitor, sea cual sea su tamaño de cuadrícula. Sin nada seleccionado, Copiar toma el monitor entero y Pegar necesita entonces un monitor del mismo tamaño de cuadrícula. Si las celdas de destino ya contienen algo, se pide confirmación."
       },
       "apps": {
         "title": "Apps, URLs y Favoritos",
@@ -655,7 +655,7 @@
           },
           "workspace-grid": {
             "title": "Seleccionar una región",
-            "body": "Haz clic en una celda, o arrastra sobre varias, para seleccionar la región que ocupará una ventana. Ctrl+clic añade una región aparte a la selección."
+            "body": "Haz clic en una celda, o arrastra sobre varias, para seleccionar la región que ocupará una ventana. Mantén Ctrl o Mayús mientras arrastras para añadir otro rectángulo a la misma selección: útil cuando quieres copiar una disposición que no es un bloque sólido."
           },
           "grid-status": {
             "title": "Qué está seleccionado ahora mismo",

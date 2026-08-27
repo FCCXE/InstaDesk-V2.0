@@ -368,7 +368,7 @@
       },
       "grid": {
         "title": "The grid & assigning apps",
-        "body": "• Drag across cells to select a rectangular region, then assign an app to it.\n• Change a monitor's grid density with the Grid selector in the bottom bar (e.g. 6×6, 8×8, 10×10).\n• Give a cell custom launch arguments in the Apps tab — for example a folder path for File Explorer — to open different windows of the same app.\n• Clear Present Grid clears the current monitor; Clear All Grids clears every monitor (with a confirmation).\n\nCopy and Paste, under the grid, move an arrangement from one monitor to another — apps and any per-cell launch arguments. Select an area first and only that block is copied; paste it into an area of the same shape on any monitor, whatever grid size that monitor uses. With nothing selected, Copy takes the whole monitor and Paste then needs a monitor of the same grid size. Pasting over cells that already hold something asks first."
+        "body": "• Drag across cells to select a rectangular region, then assign an app to it. Hold Ctrl or Shift while dragging to add a second rectangle to the same selection.\n• Change a monitor's grid density with the Grid selector in the bottom bar (e.g. 6×6, 8×8, 10×10).\n• Give a cell custom launch arguments in the Apps tab — for example a folder path for File Explorer — to open different windows of the same app.\n• Clear Present Grid clears the current monitor; Clear All Grids clears every monitor (with a confirmation).\n\nCopy and Paste, under the grid, move an arrangement from one monitor to another — apps and any per-cell launch arguments. Select an area first and only that block is copied; paste it into an area of the same shape on any monitor, whatever grid size that monitor uses. With nothing selected, Copy takes the whole monitor and Paste then needs a monitor of the same grid size. Pasting over cells that already hold something asks first."
       },
       "apps": {
         "title": "Apps, URLs & Favorites",
@@ -655,7 +655,7 @@
           },
           "workspace-grid": {
             "title": "Selecting a region",
-            "body": "Click a cell, or drag across several, to select the region a window should fill. Ctrl-click adds a separate region to the selection."
+            "body": "Click a cell, or drag across several, to select the region a window should fill. Hold Ctrl or Shift while dragging to add another rectangle to the same selection — useful when you want to copy an arrangement that is not one solid block."
           },
           "grid-status": {
             "title": "What is selected right now",
