@@ -7,7 +7,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "dev": "vite",
-    "checks": "node scripts/check-i18n-parity.mjs && node scripts/check-tour-safety.mjs && node scripts/check-tour-anchors.mjs && node scripts/check-tour-content.mjs && node scripts/check-updater-purity.mjs && node scripts/check-layout-yield.mjs && node scripts/check-changelog-clean.mjs",
+    "checks": "node scripts/check-i18n-parity.mjs && node scripts/check-tour-safety.mjs && node scripts/check-tour-anchors.mjs && node scripts/check-tour-content.mjs && node scripts/check-updater-purity.mjs && node scripts/check-layout-yield.mjs && node scripts/check-changelog-clean.mjs && node scripts/check-source-bytes.mjs",
     "prebuild": "npm run -s checks && npm run -s test",
     "build": "tsc -b && vite build",
     "lint": "eslint .",

@@ -339,7 +339,9 @@ The message now distinguishes three outcomes: updated only, updated **and N Layo
 updated-but-**propagation-failed** — the last says plainly that the Layouts may still open the old
 addresses, rather than implying the whole save failed.
 
-### I-8 — OPERATOR CHECKPOINT, installed Sandbox ⚠ **FAILED — see F-3**, re-run after I-9
+### I-8 — OPERATOR CHECKPOINT, installed Sandbox ✅ **PASSED 2026-08-27**
+First run FAILED and produced F-3. Re-run after I-9 on build `0.5.0-sb.1787838513810`; operator:
+*"Implemented fix works as expected."*
 Edit a real group's URLs; confirm the change sticks, the Layout using it still applies, and nothing
 else moved.
 
@@ -353,6 +355,24 @@ else moved.
 launch always opens one window with the URLs as tabs. **The control has no effect whatsoever.** A user
 who picks "Per URL" gets a single window and is told nothing. Adjacent to the reported problem and
 arguably more visible, but NOT in the authorised scope. Fold in, or its own front?
+
+**D-3 CLOSED 2026-08-27 — the NUL byte, and a gate for its whole class.** `layoutBuilder.ts:146` held
+a raw `0x00` where the author had written ` `. Replaced with the escape and proven identical at
+runtime (`  === String.fromCharCode(0)`, length 3), 0 raw NULs on byte-level read-back, and `grep`
+now reads the file as text instead of refusing it as binary.
+
+A gate came first and was **bitten on the real defect** before the fix:
+`source bytes: FAIL - src/services/layoutBuilder.ts:146 byte 0x00`. `check-source-bytes.mjs` is now
+the **eighth** `prebuild` check. It guards a class that has bitten this codebase twice — this NUL
+(invisible since 2026-06-06, and behaviourally correct, which is why nobody noticed) and the heredoc
+that ate a regex's `` into literal BACKSPACE bytes, leaving a gate that matched nothing and
+reported OK.
+
+**P-2 WITHDRAWN — I was wrong, and checked before building.** I recommended fixing Favorites for the
+same snapshot defect on the strength of `updateFavorite` existing. **It has no callers anywhere.**
+Favorites cannot be edited through any UI, so the snapshot can never drift and the defect is
+unreachable. Building propagation for it would have been machinery for a road that does not go
+anywhere. It becomes real only if Favorites ever gain an edit path.
 
 **D-2. Two different types both named `UrlGroup`.** `AppState.tsx:272` is `{id, title, urls}` (a
 builder draft row); `UrlGroupsService.ts:7` is `{id, name, browser, urls, createdAt}` (a saved group).
