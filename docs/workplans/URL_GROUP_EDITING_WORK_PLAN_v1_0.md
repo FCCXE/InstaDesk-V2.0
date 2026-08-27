@@ -374,7 +374,14 @@ Favorites cannot be edited through any UI, so the snapshot can never drift and t
 unreachable. Building propagation for it would have been machinery for a road that does not go
 anywhere. It becomes real only if Favorites ever gain an edit path.
 
-**D-2. Two different types both named `UrlGroup`.** `AppState.tsx:272` is `{id, title, urls}` (a
+**D-2 CLOSED 2026-08-27.** AppState's `UrlGroup` is renamed **`UrlBuilderRow`** — it is one editable
+row in the URL Builder, not a saved group. The collision was contained to three lines inside AppState
+(nothing imported it; `RightPane` was importing the *service's* `UrlGroup` all along), so the rename
+was mechanical and `tsc` would have caught any miss. Recorded because it was a live trap: it is the
+reason `groupToDraft` had to invent the awkward name `UrlGroupDraftRow` rather than the obvious one.
+One concept per name.
+
+~~**D-2. Two different types both named `UrlGroup`.**~~ `AppState.tsx:272` is `{id, title, urls}` (a
 builder draft row); `UrlGroupsService.ts:7` is `{id, name, browser, urls, createdAt}` (a saved group).
 One name, two meanings, resolved only by import scope. It compiles, and it is a trap for exactly the
 mapping work I-5 does. Rename one?

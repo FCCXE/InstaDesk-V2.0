@@ -270,8 +270,15 @@ const SAMPLE_PRESETS: Preset[] = [
    URL Builder (state-only for Phase A)
    ========================================================================== */
 export type UrlOpenMode = 'single' | 'per-group' | 'per-url'
-export type UrlGroup = { id: string; title: string; urls: string[] }
-export type UrlBuilderDraft = { browser: string | null; tabGroups: UrlGroup[]; openMode: UrlOpenMode }
+// One editable ROW in the URL Builder — not a saved group.
+//
+// Renamed from `UrlGroup` on 2026-08-27 (D-2). services/UrlGroupsService exports
+// a different type of the same name — `{ id, name, browser, urls, createdAt }`,
+// a saved record — and the two were told apart only by which file you happened
+// to be importing from. It compiled, and it was a trap for exactly the
+// saved-to-draft mapping the editing feature needed: one concept per name.
+export type UrlBuilderRow = { id: string; title: string; urls: string[] }
+export type UrlBuilderDraft = { browser: string | null; tabGroups: UrlBuilderRow[]; openMode: UrlOpenMode }
 
 // A browser the user can pick for a URL group. `path` is the real exe (from
 // native detection or a Browse-for-.exe pick); name-only legacy entries have no
@@ -324,7 +331,7 @@ function mergeBrowsers(existing: BrowserEntry[], incoming: BrowserEntry[]): Brow
   return [...byKey.values()].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()))
 }
 
-const newGroup = (idSeed: number): UrlGroup => ({ id: `g${idSeed}`, title: '', urls: ['', ''] })
+const newGroup = (idSeed: number): UrlBuilderRow => ({ id: `g${idSeed}`, title: '', urls: ['', ''] })
 
 /* ============================================================================
    Context surface (superset so existing components keep working)
