@@ -1,4 +1,4 @@
-# InstaDesk — installing v0.5.0 for testing
+# InstaDesk — installing for testing
 
 > A short guide you can forward to anyone testing InstaDesk on their own Windows PC.
 > Nothing here needs a GitHub account: the release is public.
@@ -9,7 +9,11 @@
 
 **https://github.com/FCCXE/InstaDesk-V2.0/releases/latest**
 
-Download **`InstaDesk_0.5.0_x64-setup.exe`** (about 70 MB).
+Download the **`InstaDesk_…_x64-setup.exe`** file (about 66 MB).
+
+> The page always shows the newest version. The details below were captured for **v0.5.2**; if the
+> page offers something newer, take that instead — the checksum will simply not match, which is
+> expected rather than a problem.
 
 Your browser may say the file *"isn't commonly downloaded"*. Choose **Keep**. InstaDesk is new
 and very few people have downloaded it yet, which is the whole reason for that message.
@@ -17,11 +21,11 @@ and very few people have downloaded it yet, which is the whole reason for that m
 **To check you got the right file** (optional), run this in PowerShell and compare:
 
 ```powershell
-Get-FileHash "$HOME\Downloads\InstaDesk_0.5.0_x64-setup.exe" -Algorithm SHA256
+Get-FileHash "$HOME\Downloads\InstaDesk_0.5.2_x64-setup.exe" -Algorithm SHA256
 ```
 
 ```
-5BE3D6957E7AD1A6DC10B37061CAE00765FB99B81AD538E43F552B195C09A7F6
+0B764790FB7804C9F55A14F390A5DEAE0452A3851858119C7C76C9C0623FF5A3
 ```
 
 ---
