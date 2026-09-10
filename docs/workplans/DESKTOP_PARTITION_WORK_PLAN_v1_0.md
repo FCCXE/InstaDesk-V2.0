@@ -153,7 +153,31 @@ count 65 · unmapped 0 · virtualOrigin (0,-768) · classes sum to 65
 folder 9 · folder-shortcut 1 · app-shortcut 24 · file 20 · ambiguous 9 · shell-virtual 2
 ```
 
-**POSITIVE CONTROL — OWED, and it needs the operator.** Move one desktop icon by hand, re-run the
+**POSITIVE CONTROL — RUN 2026‑09‑10, INCONCLUSIVE: 2 of 3 moves detected.**
+
+Operator moved three icons (2 app, 1 folder). The scan detected **two**, both with deltas that are
+**exact whole-cell multiples** of the measured snap grid:
+
+```
+snap grid (derived from all 65 positions): 116 x 142
+MAria colegio  folder     lv (  31,1196) -> (2235,1054)   delta (+2204,-142) = +19 cells, -1 cell
+RigMatrix      ambiguous  lv ( 611,1196) -> (1423, 912)   delta ( +812,-284) =  +7 cells, -2 cells
+63 items unchanged · count 65 -> 65 · unmapped 0 · classes sum 65
+```
+
+Whole-cell alignment is strong evidence the scan reads **real snapped coordinates**, not plausible
+noise. But **the third move was not detected, and that is not yet explained.**
+
+Two readings, and they have different remedies — so they must not be collapsed:
+- **Benign:** the third drag was shorter than one cell (116 x 142), so snap-to-grid returned the icon
+  to identical coordinates. Genuinely invisible to any position-based comparison, and not a defect.
+- **A defect:** the scan missed a real change.
+
+⛔ **I‑1 is NOT accepted while this is open.** Settling it needs one fact only the operator has: **which
+third icon was moved.** If that item's coordinates are identical in both scans and the drag was short,
+the benign reading is confirmed by measurement rather than assumed.
+
+*(superseded wording)* **POSITIVE CONTROL — OWED, and it needs the operator.** Move one desktop icon by hand, re-run the
 scan, confirm the reported position changed by the expected delta. Until then the scan is **not
 accepted**: nothing yet proves these coordinates track the real desktop rather than being internally
 consistent nonsense. **No icon has been moved by InstaDesk.**
