@@ -492,10 +492,37 @@ receive → debounce → apply — which then reported `stage:"move", error:"no 
 > in‑flight debounce and with it the very re‑apply about to happen**. The UI now asks
 > `desktop_watch_status` first.
 
-> ⛔ **STILL UNPROVEN: A REAL RESTORE.** Every run so far ended in a legitimate refusal — *"monitor 2
-> holds no icons"*, *"already correct"*. **The watcher has never actually put a disturbed layout back.**
-> That needs a disturbance Explorer will not undo by itself: a **resolution change**. Owed, and it is
-> the operator’s check — recorded here as NOT done rather than implied by the increment being built.
+**Operator ran the resolution test, 2026‑09‑10.** The watcher **fired correctly** on both events
+(the change and the change back) — and then **refused, rightly**:
+
+> ⭐⭐ **THE GRID CHECK CAUGHT A DEFECT ITS AUTHOR HAD NOT IMAGINED.**
+> *"66 of 66 icons are not on the 116×142 lattice anchored at (31,770) — e.g. Recycle Bin at (33,770)."*
+> **`MarginX = 31` was measured at ONE resolution and treated as a constant of Windows.** It is not: at
+> another resolution every icon sat at `x = left + 33 + 116k`, and changing back returned it to 31. A plan
+> built on the wrong phase would have moved **all 66 icons onto a two‑pixel‑wrong lattice** — plausible
+> looking, and wrong. The check was written **before** the code it guards and proven to bite; here it
+> earned that discipline outright.
+
+*Fix.* The phase is now **DERIVED per run** from the icons on that monitor, using the **modal** remainder
+so one icon dragged off‑grid by a user cannot redefine the grid for the other 65. The constants survive
+only as a last resort for a monitor with no icons, and their doc says plainly that they are not fixed.
+The check is **sharpened, not removed**: it no longer asks *"do the icons match my assumption"* but
+*"do the icons agree with EACH OTHER"*, and a disagreement now means the desktop is genuinely
+mid‑re‑flow — a real reason to wait for the next event. Bite‑tested by forcing the derived phase off by
+one: **66 of 66 rejected, 0 placements**.
+
+> ⚠ **THE LAYOUT IS NOT STABLE ACROSS A RESOLUTION CHANGE, and the reason is structural.** The operator
+> reported *"the Desktop partition survives all"* and visually it does — folders left, apps right. But 59
+> icons are a **full cell** out of what the plan now computes, because the resolution change **moved the
+> untouched items** (the Recycle Bin is no longer at `(147,770)`), and the layout **flows around them**, so
+> everything downstream shifts by one slot. ⇒ **An arrangement that depends on where fixed items sit
+> inherits their instability.** Recorded, not yet solved — anchoring zones to cells rather than to a fill
+> order would remove it.
+
+> ⛔ **STILL UNPROVEN: A REAL RESTORE.** Every run to date has ended in a legitimate refusal — *"monitor 2
+> holds no icons"*, *"already correct"*, *"the icons do not agree on one grid"*. **The watcher has never
+> actually put a disturbed layout back**, and `moved` has never once been above zero. Recorded as NOT
+> done rather than implied by the increment being built.
 
 ### I‑6 — Visual panels ☐ **RISKY** → tag `pre-desktop-panels`
 `WorkerW` re‑parenting, panels painted behind native icons. **Last**, because it is the only piece
@@ -522,6 +549,7 @@ that mutates Explorer's window tree, and everything above is useful without it.
 | 2026‑09‑10 | **My own first gate count read EIGHT** — a sloppy `grep -o` pattern, not the file. Reading `package.json` as JSON gave nine. Recorded because it is the fourth time in this project that the instrument, not the artifact, was the wrong part. |
 | 2026‑09‑10 | **I‑1's own defects were found by checking the operator's RULING, not the scan's numbers.** Every total reconciled — 65 items, classes summing to 65, unmapped 0 — while 36 icons were mapped to the wrong monitor and 9 were misclassified. What exposed both was asking *"where did the three shortcuts R-1 was made about actually go?"* and finding the answer implausible. **A self-consistent report is not a correct one.** |
 | 2026‑09‑10 | **A POST‑CONDITION THAT EXCLUDED HALF THE BOARD PASSED A COLLISION.** The first zone plan was internally perfect — 65 accounted for, counts reconciling, `ok=true` — and put a folder on the Recycle Bin. The distinct‑cell check ran over *placed* items only, so the untouched items it skipped were precisely where the one collision was. **A check that excludes a category cannot find a defect in that category**, and the summary will look flawless while it does so. Both the engine and the check were fixed, and the check was bite‑proven against the original defect. |
+| 2026‑09‑10 | ⭐⭐ **A CHECK CAUGHT A DEFECT ITS AUTHOR HAD NOT IMAGINED.** The grid check existed to catch a wrong *model*; what it actually caught was a **constant that is not constant** — Windows moves the icon‑grid inset when the resolution changes (31 → 33 → 31). Measuring it once and calling it measured is the same error as assuming it. ⇒ **A value read from one configuration is a SAMPLE, not a constant** — derive it per run where the cost is trivial. And note what made this survivable: the check was written before the code it guards, so the wrong grid produced a refusal instead of 66 plausible‑looking wrong positions. |
 | 2026‑09‑10 | ⛔ **A BEHAVIOURAL TEST IS WORTHLESS WHEN THE ENVIRONMENT PRODUCES THE SAME BEHAVIOUR BY ITSELF.** I asked the operator to prove the watcher stops with the app by closing it and restarting Explorer — but Explorer restores icon positions across its own restart, so the layout survives either way. The test had no failing branch. ⇒ **Measure the invariant directly** (is the process running?) rather than inferring it from behaviour the environment also produces. The operator reported the observation accurately; the instrument was mine and it was incapable of disagreeing. |
 | 2026‑09‑10 | ⛔⛔ **A SAFETY NET BUILT FROM THE SAME FLAWED PRIMITIVE AS THE THING IT GUARDS.** Apply displaced four untouched icons; the undo, which exists to repair exactly that, displaced them too and left 23 of 65 unrestored. **And it had been declared proven** — by a test that restored an undisturbed desktop, so it moved nothing and the failure mode could not appear. ⇒ **Test the undo against a desktop the apply has actually disturbed**, and ask what PRIMITIVE the safety net shares with the operation: if they share the flaw, the net cannot catch it. The visible trace was one number — a settled desktop reading *"15 icons would move"* instead of 0 — in a result the operator had already accepted as correct. |
 | 2026‑09‑10 | **F‑3 is SETTLED by identity, and the seed was wrong.** `FcXe Drive.lnk` and `FCLX Drive.lnk` resolve to executables → `app-shortcut`; the folders `FcXe Drive`, `FCLX DRIVE`, `RIGMATRIX` are separate real directories that merely share a name. **R‑1's only true subject on this desktop is `Dropbox`.** The operator question about the Drive shortcuts is answered by evidence rather than by ruling. |
