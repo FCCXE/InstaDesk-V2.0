@@ -5,7 +5,7 @@
 > truth for *how we work*; live *version* facts are in `CHANGELOG.md` / `gh release list`
 > (if this doc and the repo disagree on a version, **the repo wins**).
 >
-> Last updated: **2026‑08‑24**, at the close of the **v0.4.0** release (the Guided Tour).
+> Last updated: **2026‑09‑10**, at the opening of the **Desktop Partition** front (live: **v0.5.2**).
 
 ---
 
@@ -125,7 +125,7 @@ cd "C:/FcXe Studios/Instadesk/instadesk-tauri/ui" && npm run build      # = tsc 
 ```
 > `tsc --noEmit` is a **no‑op** here — `npm run build` is the real typecheck gate.
 
-**⚠ `npm run build` NOW CARRIES FOUR AUTOMATIC GATES (added v0.4.0). Do not bypass them.**
+**⚠ `npm run build` NOW CARRIES NINE AUTOMATIC GATES **and the vitest suite**. Do not bypass them.**
 `ui/package.json` defines `prebuild` → `checks`, and npm runs `pre<script>` automatically. They
 therefore fire at **three** points that already exist and are already mandatory: every local
 `npm run build`, every Sandbox build, **and every release‑robot build** (`npx tauri build` →
@@ -138,6 +138,14 @@ fails.**
 | `check-tour-safety.mjs` | any file under `src/tour/**` references an action that mutates the desktop, destroys saved data, or is a destructive `AppState` mutator — or calls `invoke()` directly |
 | `check-tour-anchors.mjs` | the anchor registry and the `data-tour` attributes disagree **in either direction**, an anchor moved component, or a walkthrough step names an unregistered anchor |
 | `check-tour-content.mjs` | the walkthrough states something untrue (e.g. a grid size the app does not offer), or a chapter/step has no text key |
+| `check-updater-purity.mjs` | a side effect sits inside a React state updater, which React may run more than once |
+| `check-layout-yield.mjs` | a control with a hard `min-w-[Npx]` floor sits in a flex row that cannot wrap — it will overflow at some label length |
+| `check-changelog-clean.mjs` | an internal engineering note sits in a RELEASED CHANGELOG section, which is published verbatim as the release body |
+| `check-source-bytes.mjs` | a source file contains a raw control character (an escape eaten at authoring time) |
+| `check-backend-errors.mjs` | a backend error code has no translation in BOTH locales |
+
+`prebuild` is `checks && test`, so the **64‑test vitest suite** runs at the same three points. The UI
+had **zero** tests before 2026‑08‑27.
 
 Each was **proven to bite** before being trusted. `npm run build:check` and a bare `vite build`
 **bypass** `prebuild` — they are dev conveniences, not gates. Husky is installed but **inert**
@@ -242,7 +250,7 @@ updater follows `latest.json`); or re‑point Latest to the previous good releas
 ## §7 — Rollback points & safety invariants
 
 **Safe rollback point:** the **current release tag is the rollback point.** As of this
-handoff that is **`v0.4.0`**.
+handoff that is **`v0.5.2`**.
 
 **Per‑increment `pre-*` tags.** `docs/RELEASING.md §7` defines `pre-<slug>` as disposable local
 safety markers cut before risky edits — distinct from the `vX.Y.Z` version record, kept **local**,
@@ -267,47 +275,59 @@ abandoned, `git reset`/checkout back to the last good tag.
 
 ## §8 — Current state (verify before trusting)
 
-- **Live: v0.4.0** (2026‑08‑24) — shipped the **Guided Tour**: an in‑app guided walkthrough of nine
-  chapters, an **Express Tour** offered on every start‑up (with a *Don't show this again* opt‑out),
-  a **"Show me"** button beside every Help topic, code‑drawn schematic animations for the four
-  actions a walkthrough must never perform, in **English and Spanish**. Verified from the live
-  `latest.json`, not from the robot's tick.
-- Both repos clean on `main`; robot run `32785117123` succeeded (10m49s); 3 signed assets published.
-- **`Program.cs` was untouched for the whole v0.4.0 programme**, so the two‑repo sequencing trap did
-  not apply. It will apply again the moment the WinAgent changes.
-- **The four `prebuild` gates (§4) are now permanent infrastructure**, not scaffolding for that
-  feature. They guard the walkthrough today; treat them as part of the build.
-- **The v0.4.0 programme is closed.** Its record: `docs/workplans/ASSISTED_HELP_WORK_PLAN_v1_0.md`
-  (16/16 increments, each with its verification) and the evidence base
-  `ASSISTED_HELP_INVESTIGATION_v1_0.md`. Read them for *how* that work was governed — they are the
-  worked example of the §0 method, including the eleven defects it caught.
+- **Live: v0.5.2** (2026‑08‑27). Verified from the published `latest.json` **through `gh api`, not
+  `curl`** — the CDN served stale bytes on 08‑27 and nearly convinced a session that a good upload
+  had failed. Both repos clean on `main`.
+- Three releases shipped on 2026‑08‑27: **v0.5.0** Quick Preset Switch mode, **v0.5.1** editable URL
+  groups + favorites, the grid clipboard, and readable **translated** backend errors, **v0.5.2** the
+  grid‑pane *Unassign*.
+- **The PDF manual was removed in v0.5.1.** The app teaches itself: Guided Tour + Help, both locales,
+  both gated. The PDF was the one teaching surface with **no gate** and the only one that rotted —
+  eight releases behind, still printing v0.1.28 on its own pages.
+- **`prebuild` is now nine gates plus the vitest suite** (§4). The UI had zero tests before 08‑27.
+- **Backend errors are CODED, not prose.** Rust emits a stable code; the UI translates it. A lookup
+  keyed on the English sentence would break on the first reword.
+- Closed programme records, each with its amendment log — **read those logs, they carry the traps
+  paid for**: `QUICK_PRESET_SWITCH_WORK_PLAN_v1_0.md`, `URL_GROUP_EDITING_WORK_PLAN_v1_0.md`,
+  `WIRING_AUDIT_v1_0.md`.
+- **Carried open, deliberately:** whether an elevated window *enters* the ownership record via a real
+  Apply is a **code read, not a measurement**. Worst case is benign (a swap omits it from the
+  "left open" list); *never closing what it shouldn't* **is** proven on a real elevated window.
 
-### ⚑ NEXT FEATURE — PHASE 0 CLOSED, PHASE 1 PLANNED, implementation open
+> ⚠ **This section was two releases stale until 2026‑09‑10** — it still named v0.4.0 as live and
+> Quick Preset Switch as the open front, three weeks after that shipped. A session following it
+> literally would have rebuilt a shipped feature. **One place per fact: this section is state, the
+> work plans hold increment status, and `gh release list` outranks both.**
 
-> **Quick Preset Switch Mode** — one preset live at a time; applying a new one takes the
-> current one down first. Operator's settled reading, 2026‑08‑24.
+### ⚑ ACTIVE FRONT — DESKTOP PARTITION (opened 2026‑09‑10)
 
-**Do not re-investigate this.** Phase 0 is complete and the reading is settled. The two documents
-of record, in `docs/workplans/`:
+> **Desktop icon zoning.** Select a monitor, define zones, and keep desktop **folders** on one side
+> and **app icons** on the other — and *keep* them there. Operator‑ruled, 2026‑09‑10.
 
-- `QUICK_PRESET_TOGGLE_INVESTIGATION_v1_0.md` — the evidence base. Read it **before** the plan.
-  Carries the measured baseline, the enumerated Quick Preset surface, ten findings, and the
-  operator's rulings. Note especially **F-8** (the agent already resolves the window handle but
-  emits an unusable `processId` instead) and **F-10** (today's close is fire-and-forget, and
-  `affected` counts requests, not closures).
-- `QUICK_PRESET_SWITCH_WORK_PLAN_v1_0.md` — the single document of record for the build.
-  **It holds increment status; this handbook does not.** Target release **v0.5.0**.
+**Phase 0 is CLOSED and its evidence is not to be re‑derived:**
+`docs/workplans/DESKTOP_PARTITION_INVESTIGATION_v1_0.md` — measured live on 2026‑09‑09 by a
+non‑InstaDesk session. Carries the desktop topology, the 65‑item reconciliation, the four repo traps
+and the feasibility verdict. **Read it before the plan.**
 
-Three things a resuming session must know before touching anything:
+**Four operator rulings that govern the build (2026‑09‑10):**
+1. **Folder‑shortcuts count as FOLDERS**, not apps — a drive shortcut opens a folder. This overrides
+   the seed's unruled default (§9.1 of the seed).
+2. **Built on v0.5.2**, the current standing release.
+3. **The re‑apply watcher ships in the FIRST version** — *"keep it tidy is a must"*. Windows persists
+   no icon positions at all, so without it the feature un‑tidies itself the first time Explorer
+   restarts.
+4. **The whole feature is a selectable ON/OFF**, and when OFF it must do genuinely nothing to the
+   desktop — no watcher, no re‑apply, no Explorer window‑tree mutation.
 
-1. **This programme changes `Program.cs`.** The two-repo sequencing rule (§2) is live again — it
-   was dormant through all of v0.4.0.
-2. **It closes windows.** No test fixture may name `Code.exe`, in **either** Sandbox data dir —
-   they read different ones, and both carried offending fixtures. See the plan §2.1.
-3. **Nothing in it is uploaded.** Operator builds are local installers, version-stamped so they
-   can be told apart. `--publish` was assessed and rejected; the plan §4A.1 records why.
+**Three things a resuming session must know:**
+1. **This programme changes `Program.cs`.** The two‑repo sequencing rule (§2) is live.
+2. **It writes into `explorer.exe`'s address space** to move icons. That is the standard technique,
+   but it is the most invasive thing InstaDesk has ever done. Undo (`--desktop-restore`) is built and
+   proven **before** apply.
+3. **`--capture-layout` already means *window* layout.** The new verbs are namespaced
+   `--desktop-scan` / `--desktop-apply` / `--desktop-restore` / `--desktop-watch`.
 
-Rollback point for the programme: **`v0.4.0`**. Programme tag: `pre-qp-switch-v1`.
+Rollback point: **`v0.5.2`**. Programme tag: **`pre-desktop-partition-v1`** (both repos).
 
 ## §9 — Command quick‑reference (WHERE = app repo root `C:\FcXe Studios\Instadesk\instadesk-tauri` unless noted)
 
