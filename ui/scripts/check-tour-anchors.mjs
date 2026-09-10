@@ -182,9 +182,27 @@ for (const a of anchors) {
 // the source, in the file the registry named. Existence is not reachability.
 // `always` and `tab+sub` both promise "open the right pane and it is there", and
 // an element rendered once per item cannot keep that promise.
+// EXTENDED 2026-09-10, twice over, after a bite test the gate FAILED.
+//
+// Adding the Desktop partition anchors, I deliberately placed them outside the
+// `desktopPartitionOn && (...)` block so the walkthrough would not point at
+// buttons that do not exist while the feature is off. Then I tested whether the
+// gate would have caught the mistake if I had got it wrong. IT DID NOT - it
+// passed with the anchor inside the conditional. Two holes:
+//
+//   1. `kind: "tab"` anchors were skipped entirely. But "tab" makes the SAME
+//      promise as "always", merely scoped to a pane: open that tab and it is
+//      there. A per-row or conditional element cannot keep that promise either.
+//   2. Only `.map(` was detected. Conditional rendering - `{flag && (` or
+//      `{flag ? (` - hides an element just as completely, and for a feature that
+//      ships OFF it hides it on exactly the first run a new user takes the tour.
+//
+// The original defect was found by the operator walking the tour. This one was
+// found by testing the check itself, which is the only reason it is fixed before
+// it could bite anybody.
 for (const a of anchors) {
   const kind = a?.reachableWhen?.kind
-  if (kind !== 'always' && kind !== 'tab+sub') continue
+  if (kind !== 'always' && kind !== 'tab+sub' && kind !== 'tab') continue
   for (const h of found.get(a.id) ?? []) {
     const lines = fileLines.get(h.file)
     if (!lines) continue
@@ -197,15 +215,47 @@ for (const a of anchors) {
     // Each step up takes the nearest preceding line indented LESS than the
     // current threshold: that is the construct containing us. If any of those
     // ancestors opens a `.map(`, this element is emitted per item.
+    // ENVIRONMENT GUARDS ARE NOT STATE. `{inTauri() && ...}` hides an element in
+    // the web preview only; inside the packaged app - the only place the
+    // walkthrough ever runs - it is always true. Flagging those would fail the
+    // build on three anchors that are, for every user, always present. The first
+    // version of this extension did exactly that, and the comment above about a
+    // check that cries wolf getting switched off is the reason it does not now.
+    //
+    // Variables assigned straight from inTauri() count too: SettingsPane holds
+    // `const showUpdates = inTauri()`, so testing the identifier is testing the
+    // environment by another name.
+    const envGuards = new Set(['inTauri'])
+    for (const m of (lines.join('\n').matchAll(/const\s+(\w+)\s*=\s*inTauri\s*\(\s*\)/g) ?? [])) {
+      envGuards.add(m[1])
+    }
+    const isEnvironmentGuard = (line) => {
+      const test = line.replace(/^[\s{(]*/, '').replace(/(&&|\?)\s*\(\s*$/, '').trim()
+      // Only a BARE guard is exempt. `flag && inTauri() && (` still depends on
+      // flag, so it stays a state condition and is still reported.
+      return /^\w+\s*\(?\s*\)?$/.test(test) && envGuards.has(test.replace(/\(\s*\)$/, '').trim())
+    }
+
     const indentOf = (s) => (s.match(/^\s*/) || [''])[0].length
     let threshold = indentOf(lines[h.line - 1])
     let insideMap = false
+    let insideConditional = null
     for (let i = h.line - 2; i >= 0 && threshold > 0; i--) {
       const line = lines[i]
       if (!line.trim()) continue
       const ind = indentOf(line)
       if (ind >= threshold) continue
       if (/\.map\s*\(/.test(line)) { insideMap = true; break }
+      // A JSX conditional wrapper: `{flag && (`, `{flag ? (`. Anchored to the END
+      // of the line so that an `&&` inside a completed expression on one line -
+      // a disabled={a && b} prop, say - is not mistaken for a wrapper. The
+      // existing comment here is right that a check which cries wolf gets
+      // switched off, so this stays deliberately narrow.
+      if (/(&&|\?)\s*\(\s*$/.test(line)) {
+        if (!isEnvironmentGuard(line)) { insideConditional = line.trim(); break }
+        threshold = ind
+        continue
+      }
       threshold = ind
     }
     if (insideMap) {
@@ -213,6 +263,13 @@ for (const a of anchors) {
         `"${a.id}" sits inside a .map() at src/${h.file}:${h.line} but declares reachableWhen ` +
           `"${kind}" — a per-row element is ABSENT when the list is empty (F-4). Anchor something ` +
           `always rendered, or model the data dependency.`,
+      )
+    } else if (insideConditional) {
+      problems.push(
+        `"${a.id}" sits inside a conditional at src/${h.file}:${h.line} — \`${insideConditional}\` — ` +
+          `but declares reachableWhen "${kind}", which promises it is there once the pane is open. ` +
+          `A conditionally rendered element is ABSENT whenever that condition is false (F-4). ` +
+          `Anchor something always rendered, or model the dependency.`,
       )
     }
   }

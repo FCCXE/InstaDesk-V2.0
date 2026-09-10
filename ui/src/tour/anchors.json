@@ -442,6 +442,24 @@
         "tab": "Apps",
         "sub": "Favorites"
       }
+    },
+    {
+      "id": "desktop-partition-toggle",
+      "component": "components/settings/DesktopPartitionSection.tsx",
+      "describes": "the Desktop partition on/off switch, in Settings",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Settings"
+      }
+    },
+    {
+      "id": "desktop-partition",
+      "component": "components/settings/DesktopPartitionSection.tsx",
+      "describes": "the Desktop partition section - preview, apply and undo a tidy desktop layout",
+      "reachableWhen": {
+        "kind": "tab",
+        "tab": "Settings"
+      }
     }
   ]
 }

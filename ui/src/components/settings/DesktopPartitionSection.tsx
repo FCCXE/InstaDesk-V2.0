@@ -179,9 +179,18 @@ export default function DesktopPartitionSection() {
   const zones = plan?.zoneCounts ?? {};
 
   return (
-    <div className="flex flex-col gap-3">
+    // Both tour anchors sit OUTSIDE the `desktopPartitionOn &&` block on purpose.
+    // Preview / Apply / Undo only exist while the feature is on, and the feature
+    // ships OFF, so anchoring them would give the walkthrough a target that is
+    // absent exactly when a new user first runs it -- the "could not be found
+    // where it is registered" defect the operator photographed on 2026-08-28.
+    // The steps describe those buttons in words instead.
+    <div className="flex flex-col gap-3" data-tour="desktop-partition">
       {/* ---- the switch, and what OFF means, stated on screen ---- */}
-      <label className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+      <label
+        className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1"
+        data-tour="desktop-partition-toggle"
+      >
         <span className="min-w-0">
           <span className="block text-sm text-fg">{t("desktopPartition.enable")}</span>
           <span

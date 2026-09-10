@@ -848,6 +848,19 @@
           }
         }
       },
+      "desktopPartition": {
+        "title": "Ordena los iconos del escritorio",
+        "steps": {
+          "desktop-partition-toggle": {
+            "title": "Apagado hasta que tú digas",
+            "body": "Esta es la única función que toca los iconos de tu escritorio real, así que viene desactivada: mientras esté apagada, InstaDesk ni los lee ni los mueve. Activarla no cambia nada por sí sola; solo habilita los controles de abajo."
+          },
+          "desktop-partition": {
+            "title": "Vista previa, aplicar, deshacer",
+            "body": "La vista previa muestra exactamente qué se movería: las carpetas a un lado, los documentos en el centro y las aplicaciones al otro, cada grupo en orden alfabético. Aplicar solo aparece cuando has visto una vista previa sin problemas, y antes guarda una copia de tu disposición actual, así que Deshacer devuelve cada icono a su sitio. La Papelera y los archivos del sistema nunca se mueven, ni tampoco los iconos que hayas colocado tú: una vez aplicado, InstaDesk restaura tu disposición tras un cambio de resolución o un reinicio del Explorador, pero nunca discute con un icono que moviste a propósito."
+          }
+        }
+      },
       "troubleshooting": {
         "title": "Cuando algo va mal",
         "steps": {

@@ -138,6 +138,23 @@ const MONITORS_SETTINGS: TourChapter = {
   ],
 }
 
+// Desktop partition (2026-09-10). Its own chapter rather than a step inside
+// Monitors and settings: it rearranges the user's actual desktop icons, which is
+// a different kind of act from choosing a default grid size, and a capability
+// nobody is told about is not delivered.
+//
+// Both steps anchor to always-rendered elements. Preview / Apply / Undo appear
+// only once the feature is switched on, and it ships off, so a step pointing at
+// them would find nothing on a first run.
+const DESKTOP_PARTITION: TourChapter = {
+  id: 'desktopPartition',
+  group: 'daily',
+  steps: [
+    { anchor: 'desktop-partition-toggle' },
+    { anchor: 'desktop-partition' },
+  ],
+}
+
 const TROUBLESHOOTING: TourChapter = {
   id: 'troubleshooting',
   group: 'trouble',
@@ -157,6 +174,7 @@ export const CHAPTERS: readonly TourChapter[] = [
   URLS_FAVORITES,
   SNAP,
   MONITORS_SETTINGS,
+  DESKTOP_PARTITION,
   TROUBLESHOOTING,
 ]
 

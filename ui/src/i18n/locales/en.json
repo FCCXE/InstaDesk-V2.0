@@ -848,6 +848,19 @@
           }
         }
       },
+      "desktopPartition": {
+        "title": "Tidy your desktop icons",
+        "steps": {
+          "desktop-partition-toggle": {
+            "title": "Off until you say so",
+            "body": "This is the only feature that touches the icons on your actual desktop, so it ships switched off - and while it is off InstaDesk does not read or move them at all. Switching it on changes nothing by itself; it just makes the controls below available."
+          },
+          "desktop-partition": {
+            "title": "Preview, apply, undo",
+            "body": "Preview shows exactly what would move - folders to one side, documents in the middle, apps to the other, each group in alphabetical order. Apply only appears once you have seen a clean preview, and it saves a copy of your current arrangement first, so Undo puts every icon back. The Recycle Bin and system files are never moved, and neither are icons you have placed yourself: once applied, InstaDesk restores your layout after a screen resolution change or an Explorer restart, but it never argues with an icon you moved on purpose."
+          }
+        }
+      },
       "troubleshooting": {
         "title": "When something looks wrong",
         "steps": {
