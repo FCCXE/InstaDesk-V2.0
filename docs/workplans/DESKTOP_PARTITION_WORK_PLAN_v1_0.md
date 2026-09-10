@@ -39,6 +39,7 @@ the other — and **keep them there** across Explorer restarts, resolution chang
 | R‑3 | **The re‑apply watcher ships in the FIRST version.** *"Keep it tidy is a must."* |
 | R‑4 | **The whole feature is a selectable ON/OFF**, and when OFF it does *genuinely nothing* to the desktop. |
 | R‑5 | **Items are ordered ALPHABETICALLY within their zone.** Operator, 2026‑09‑10. Implemented with `StrCmpLogicalW` — Explorer’s own *Sort by > Name*, which is digit‑aware, so "Item 2" precedes "Item 10". |
+| R‑6 | **The feature is implemented and tried thoroughly inside the SANDBOX InstaDesk app BEFORE any release.** Operator, 2026‑09‑10: *"we should first implement this new feature inside our Sandbox Instadesk App, try it thoroughly and only then release a new Instadesk version."* The agent CLI is a build layer beneath the product, **not** the place the feature gets validated. |
 
 ---
 
@@ -52,7 +53,7 @@ the other — and **keep them there** across Explorer restarts, resolution chang
 | **D‑4** | **All coordinate work stays inside the WinAgent.** | Seed §5.2 — the agent is already PerMonitorV2 (verified `true/pm` + `PerMonitorV2`). A DPI‑unaware probe read this desktop 25 % wrong, plausibly. |
 | **D‑5** | **An empty result must say WHICH empty it is** — "the desktop has no icons" and "I could not read the desktop" have opposite remedies. | The empty‑value rule; it has bitten this project three times. |
 | **D‑6** | **No fixture may name `Code.exe`** in either Sandbox data dir. **Never `Stop-Process -Name Code`.** | VS Code hosts the session. |
-| **D‑8** | **THE SANDBOX CANNOT ISOLATE THIS FRONT, and the plan must not pretend otherwise.** The Sandbox is a side‑by‑side *app* (own bundle id, own data dir, orange badge); it isolates InstaDesk’s settings and installed product. **There is exactly one Windows desktop per session**, so a sandboxed InstaDesk moving desktop icons moves the operator’s real icons. Agent work on this front therefore runs as a **direct console invocation of the repo build** (`winagent/.../bin/Release/.../InstaDesk.WinAgent.exe`), never through either installed app — both installed agents are to stay untouched until a release. The desktop’s protection comes from **D‑2 (undo before apply)**, a planner with **no write path**, and a byte‑identical re‑scan after every run — not from the Sandbox. ⚠ **The Sandbox gate still binds I‑4 (the ON/OFF screen) and I‑8 (release) in full**: those are app UI and a promotion, which is precisely what the Sandbox does isolate. | Operator question, 2026‑09‑10: *"Where are you building all of this in? Our Instadesk Sandbox?"* The plan had never stated where this front executes, so the honest answer was not derivable from it. |
+| **D‑8** | **THE SANDBOX IS WHERE THIS FEATURE IS VALIDATED — it just cannot isolate the *desktop*.** Two separate facts, and conflating them is how a gate gets rationalised away. **(a)** There is exactly one Windows desktop per session, so a sandboxed InstaDesk moving icons moves the operator’s real icons: the desktop’s protection comes from **D‑2 (undo before apply)**, a planner with **no write path**, and a byte‑identical re‑scan after every run. **(b)** The feature itself is nevertheless **built and exercised in the Sandbox app** across all four layers (**WinAgent → Rust → `api.ts` → UI**, §5 of the handbook) and validated there before any release (**R‑6**). Agent‑level console runs prove a *mechanism*; they never stand in for the Sandbox trial. ⚠ **Only the Sandbox agent is ever rebuilt** — the production install stays untouched until release. ⚠ **`sandbox.mjs --dev` runs the BUNDLED agent**, so `node src-tauri/scripts/build-agent.mjs` must run after *any* agent change or the Sandbox silently tests the old one (this already cost a debug cycle on 2026‑07‑29). | Operator ruling **R‑6**, correcting this row’s first wording, which explained (a) and left (b) unsaid — readable as licence to skip the gate. |
 | **D‑7** | **Two‑repo order:** `Program.cs` committed and pushed to the WinAgent repo **before** the app tag. | The robot builds the agent from that repo's HEAD. |
 
 ---
@@ -308,9 +309,21 @@ distinct; no problems. The desktop was re‑scanned afterwards: **0 of 65 change
 > planner reports `phaseMeasured: false` for any monitor holding no icons rather than sounding
 > confident about a number it has never seen.
 
-### I‑4 — The InstaDesk screen, with the ON/OFF ☐ *not risky*
+### I‑3c — `--desktop-apply` in the agent ☐ **RISKY** → tag `pre-desktop-apply`
+The *mechanism* only: write an undo file, refuse any plan carrying a problem, dry run by default,
+`--apply` required to move anything. This is the **WinAgent layer** of the four (**D‑8b**) — proving it
+alone means a first failure is unambiguously the writer, not the IPC above it. **It is not the trial.**
+
+### I‑4 — The feature inside the SANDBOX app: Rust → `api.ts` → UI, with the ON/OFF ☐ *not risky*
+The remaining three layers, iterated in `node src-tauri/scripts/sandbox.mjs --dev`. **This is where the
+feature actually gets used** — monitor selection, the plan preview, Apply, Undo — and where the operator
+tries it (**R‑6**).
+
 The toggle is **part of this increment, not a later polish** (**R‑4/D‑1**): it must exist the moment
 there is anything to switch on. Default OFF, persisted, mirroring `switchMode`.
+
+> ⚠ **Run `node src-tauri/scripts/build-agent.mjs` after every agent change before `--dev`**, or the
+> Sandbox runs the *bundled* (old) agent and the new commands appear not to exist (**D‑8**).
 
 ### I‑5 — `--desktop-watch`, the resident re‑apply ☐ **RISKY** → tag `pre-desktop-watch`
 `WM_DISPLAYCHANGE` / `WM_DPICHANGED` / `TaskbarCreated` → re‑apply. **Runs only while the feature is
@@ -321,6 +334,7 @@ ON** (**D‑1**). Ships in v1 per **R‑3**.
 that mutates Explorer's window tree, and everything above is useful without it.
 
 ### I‑7 — OPERATOR CHECKPOINT, installed Sandbox ☐
+**The gate R‑6 names.** Operator installs the packaged **InstaDesk Sandbox** (upgrades only the Sandbox app) and exercises the feature as a product: toggle OFF proven to do *nothing*, plan preview, apply, undo, Explorer restart, a resolution/DPI change. Only after this does I‑8 exist.
 ### I‑8 — Release ☐ **RISKY** — requires explicit operator authorisation
 
 ---
