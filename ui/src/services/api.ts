@@ -186,6 +186,16 @@ export type DesktopApplyResponse = {
 
 export type DesktopUndoAvailable = { ok: boolean; available: boolean; count: number }
 
+export type DesktopWatchStatus = {
+  ok: boolean
+  running: boolean
+  pid?: number
+  /** True when the process had exited on its own by the time we looked. */
+  exited?: boolean
+  exitCode?: number | null
+  log?: string
+}
+
 // One window read by --capture-layout (auto-capture). `exe` is null when the app
 // couldn't be identified (elevated/Store app) — `error` says why. `grid`/`gridSize`
 // are the reverse-mapped region this window snaps to on `monitor` (1-based).
@@ -350,6 +360,12 @@ export const api = {
     call<DesktopApplyResponse>('desktop_undo', { file: file ?? null }),
   desktopUndoAvailable: () =>
     call<DesktopUndoAvailable>('desktop_undo_available'),
+  // The resident re-apply. Starting is idempotent -- any existing watcher is
+  // killed first, so a double start cannot leave two processes fighting.
+  desktopWatchStart: (monitor?: number) =>
+    call<DesktopWatchStatus>('desktop_watch_start', { monitor: monitor ?? null }),
+  desktopWatchStop: () => call<DesktopWatchStatus>('desktop_watch_stop'),
+  desktopWatchStatus: () => call<DesktopWatchStatus>('desktop_watch_status'),
   launch: (req: LaunchRequest) =>
     inTauri()
       ? call<LaunchResponse>('launch', { body: req })

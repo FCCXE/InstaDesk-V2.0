@@ -906,6 +906,7 @@
     "title": "Partición del escritorio",
     "undo": "Deshacer",
     "undoSaved": "Se guardó y comprobó una copia de la disposición anterior, así que Deshacer funcionará.",
+    "watching": "Manteniendo el orden: tu disposición se restaurará tras un cambio de pantalla o un reinicio del Explorador. Los iconos que muevas tú se quedan donde los pongas.",
     "willMove": "Se moverían {{n}} iconos.",
     "working": "Trabajando...",
     "zones": "Carpetas {{folders}} - documentos {{documents}} - aplicaciones {{apps}} - sin tocar {{untouched}}."

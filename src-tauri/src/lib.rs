@@ -226,6 +226,9 @@ pub fn run() {
       backend::desktop_apply,
       backend::desktop_undo,
       backend::desktop_undo_available,
+      backend::desktop_watch_start,
+      backend::desktop_watch_stop,
+      backend::desktop_watch_status,
       backend::launch,
       backend::presets_run,
       backend::quickpresets_run,
@@ -334,6 +337,14 @@ pub fn run() {
       if let Ok(mut f) = FAILED_HOTKEYS.lock() { *f = failed; }
       Ok(())
     })
-    .run(tauri::generate_context!())
-    .expect("error while running tauri application");
+    .build(tauri::generate_context!())
+    .expect("error while building tauri application")
+    .run(|_app, event| {
+      // Kill the desktop watcher when the app exits. Without this an orphan would
+      // outlive InstaDesk and keep rearranging the desktop after it was closed --
+      // exactly the "off but still doing things" D-1 forbids.
+      if matches!(event, tauri::RunEvent::Exit) {
+        backend::desktop_watch_kill_on_exit();
+      }
+    });
 }

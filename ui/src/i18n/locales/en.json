@@ -906,6 +906,7 @@
     "title": "Desktop partition",
     "undo": "Undo",
     "undoSaved": "A copy of the previous arrangement was saved and checked, so Undo will work.",
+    "watching": "Keeping it tidy: your layout will be restored after a screen change or an Explorer restart. Icons you move yourself stay where you put them.",
     "willMove": "{{n}} icons would move.",
     "working": "Working...",
     "zones": "Folders {{folders}} - documents {{documents}} - apps {{apps}} - left alone {{untouched}}."

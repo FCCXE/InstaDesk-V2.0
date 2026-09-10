@@ -988,6 +988,123 @@ pub async fn desktop_undo(file: Option<String>) -> Result<Value, String> {
     desktop_agent(vec!["--desktop-restore".to_string(), format!("file={}", path.display()), "--apply".to_string()], 60).await
 }
 
+// ----------------------------------------------------------------------------
+// The resident re-apply watcher (R-3).
+//
+// The agent process IS the feature being on. There is no separate enabled flag
+// down there to fall out of step with the UI: switching the feature off kills the
+// process, and "off" then means no watcher exists at all (D-1).
+// ----------------------------------------------------------------------------
+
+#[cfg(windows)]
+fn desktop_watcher() -> &'static std::sync::Mutex<Option<std::process::Child>> {
+    static W: std::sync::OnceLock<std::sync::Mutex<Option<std::process::Child>>> = std::sync::OnceLock::new();
+    W.get_or_init(|| std::sync::Mutex::new(None))
+}
+
+/// Kill the watcher if one is running. Safe to call when none is.
+#[cfg(windows)]
+pub fn desktop_watch_kill() {
+    if let Ok(mut g) = desktop_watcher().lock() {
+        if let Some(mut child) = g.take() {
+            let _ = child.kill();
+            // Reap it here rather than leaving a zombie: unlike the drag overlay
+            // this is not on a message pump, so a short wait costs nothing.
+            let _ = child.wait();
+        }
+    }
+}
+
+/// Called from the app's exit handler. Without this an orphaned watcher would
+/// outlive InstaDesk and go on rearranging the desktop after the app was closed -
+/// which is exactly the "off but still doing things" that D-1 forbids.
+#[cfg(windows)]
+pub fn desktop_watch_kill_on_exit() {
+    desktop_watch_kill();
+}
+
+#[cfg(not(windows))]
+pub fn desktop_watch_kill_on_exit() {}
+
+/// Start the watcher. Idempotent: any existing one is killed first, so a double
+/// start cannot leave two processes re-applying over each other.
+#[tauri::command]
+pub async fn desktop_watch_start(monitor: Option<i32>) -> Result<Value, String> {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
+        desktop_watch_kill();
+
+        let undo_dir = desktop_undo_dir();
+        if let Err(e) = std::fs::create_dir_all(&undo_dir) {
+            return Err(berr1("desktopUndoDir", format!("Could not create the undo folder: {e}"), "path", undo_dir.display().to_string()));
+        }
+
+        // stdout goes to a file, never to a pipe nobody reads. An unread pipe fills
+        // and then BLOCKS the child - the watcher would stop reacting after some
+        // number of events, and look perfectly alive while doing so.
+        let log_path = data_dir().join("desktop-watch.log");
+        let log = std::fs::OpenOptions::new().create(true).append(true).open(&log_path)
+            .map_err(|e| format!("Could not open the watcher log: {e}"))?;
+        let log_err = log.try_clone().map_err(|e| format!("Could not open the watcher log: {e}"))?;
+
+        let mut args: Vec<String> = vec![
+            "--desktop-watch".into(),
+            format!("undoDir={}", undo_dir.display()),
+        ];
+        if let Some(m) = monitor { args.push(format!("monitor={m}")); }
+
+        let (prog, argv) = agent_invocation(&args);
+        let child = std::process::Command::new(&prog)
+            .args(&argv)
+            .creation_flags(CREATE_NO_WINDOW)
+            .stdout(std::process::Stdio::from(log))
+            .stderr(std::process::Stdio::from(log_err))
+            .spawn()
+            .map_err(|e| format!("Could not start the desktop watcher: {e}"))?;
+
+        let pid = child.id();
+        if let Ok(mut g) = desktop_watcher().lock() { *g = Some(child); }
+        Ok(serde_json::json!({ "ok": true, "running": true, "pid": pid, "log": log_path.display().to_string() }))
+    }
+    #[cfg(not(windows))]
+    { let _ = monitor; Ok(serde_json::json!({ "ok": true, "running": false })) }
+}
+
+/// Stop the watcher. Succeeds whether or not one was running.
+#[tauri::command]
+pub async fn desktop_watch_stop() -> Result<Value, String> {
+    #[cfg(windows)]
+    { desktop_watch_kill(); }
+    Ok(serde_json::json!({ "ok": true, "running": false }))
+}
+
+/// Is it actually alive? `try_wait` is what makes this a real answer: a stored
+/// handle only proves one was started, not that it is still there.
+#[tauri::command]
+pub async fn desktop_watch_status() -> Result<Value, String> {
+    #[cfg(windows)]
+    {
+        if let Ok(mut g) = desktop_watcher().lock() {
+            if let Some(child) = g.as_mut() {
+                match child.try_wait() {
+                    Ok(None) => return Ok(serde_json::json!({ "ok": true, "running": true, "pid": child.id() })),
+                    // It exited on its own - drop the handle so the next start is clean.
+                    Ok(Some(status)) => {
+                        let code = status.code();
+                        *g = None;
+                        return Ok(serde_json::json!({ "ok": true, "running": false, "exited": true, "exitCode": code }));
+                    }
+                    Err(_) => return Ok(serde_json::json!({ "ok": true, "running": false, "unknown": true })),
+                }
+            }
+        }
+    }
+    Ok(serde_json::json!({ "ok": true, "running": false }))
+}
+
 /// Whether an undo capture exists at all — so the UI can show Undo as available
 /// or not, instead of offering a button that will fail.
 #[tauri::command]

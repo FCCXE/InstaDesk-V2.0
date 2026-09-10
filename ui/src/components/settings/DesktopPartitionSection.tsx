@@ -31,6 +31,7 @@ export default function DesktopPartitionSection() {
   const [result, setResult] = useState<DesktopApplyResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [undoAvailable, setUndoAvailable] = useState(false);
+  const [watching, setWatching] = useState(false);
 
   // Monitor ids are "m{N}" and the agent takes the 1-based N — the same
   // conversion LayoutsPane uses. The partition follows the selection the rest of
@@ -42,6 +43,53 @@ export default function DesktopPartitionSection() {
   const monitorId = monitorIdToIndex(currentMonitorId ?? monitors[0]?.id ?? "m1");
   const monitorLabel =
     monitors.find((m) => m.id === (currentMonitorId ?? monitors[0]?.id))?.name ?? `M${monitorId}`;
+
+  // Has the operator ever actually applied a layout on this machine?
+  //
+  // The watcher exists to KEEP THE ARRANGEMENT THEY CHOSE across screen changes
+  // and Explorer restarts. Running it before they have ever pressed Apply would
+  // mean a resolution change silently rearranges a desktop they never asked to
+  // have rearranged -- switching the feature on would become a destructive act by
+  // itself, which is not what "on" should mean.
+  const APPLIED_KEY = "instadesk:desktopPartitionApplied";
+  const hasApplied = () => {
+    try {
+      return window.localStorage.getItem(APPLIED_KEY) === "true";
+    } catch {
+      // Unreadable storage falls to "never applied", which only withholds the
+      // watcher. The safe direction for anything that moves the user's icons.
+      return false;
+    }
+  };
+  const markApplied = () => {
+    try {
+      window.localStorage.setItem(APPLIED_KEY, "true");
+    } catch {
+      /* the watcher simply will not auto-start; nothing breaks */
+    }
+  };
+
+  // Start the watcher only when BOTH are true: the feature is on, and a layout has
+  // been applied at least once. Asking Rust for the live status rather than
+  // trusting our own flag -- a stored handle proves one was started, not that it
+  // is still alive.
+  const syncWatcher = useCallback(async () => {
+    try {
+      if (desktopPartitionOn && hasApplied()) {
+        const r = await api.desktopWatchStart(monitorId);
+        setWatching(Boolean(r?.running));
+      } else {
+        await api.desktopWatchStop();
+        setWatching(false);
+      }
+    } catch {
+      setWatching(false);
+    }
+    // monitorId is intentionally read fresh on each call rather than being a dep:
+    // restarting the watcher on every monitor selection change would kill and
+    // respawn a process for a click that may not be about the desktop at all.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [desktopPartitionOn]);
 
   const refreshUndo = useCallback(async () => {
     if (!desktopPartitionOn) return;
@@ -63,10 +111,15 @@ export default function DesktopPartitionSection() {
       setResult(null);
       setError(null);
       setUndoAvailable(false);
+      // OFF stops the watcher as well. A feature that is "off" but still has a
+      // process rearranging the desktop is not off (D-1).
+      void api.desktopWatchStop().catch(() => {});
+      setWatching(false);
       return;
     }
     void refreshUndo();
-  }, [desktopPartitionOn, refreshUndo]);
+    void syncWatcher();
+  }, [desktopPartitionOn, refreshUndo, syncWatcher]);
 
   async function preview() {
     setBusy("plan");
@@ -90,6 +143,8 @@ export default function DesktopPartitionSection() {
     try {
       const r = await api.desktopApply(monitorId, true);
       setResult(r);
+      // Only a real apply arms the watcher.
+      if (r?.ok && !r?.refused) { markApplied(); void syncWatcher(); }
       // Whatever happened, the desktop may have changed — re-read rather than
       // assuming the plan on screen still describes it.
       await preview();
@@ -176,6 +231,12 @@ export default function DesktopPartitionSection() {
               </button>
             )}
           </div>
+
+          {watching && (
+            <div className="text-[11px] text-emerald-700 dark:text-emerald-400">
+              {t("desktopPartition.watching")}
+            </div>
+          )}
 
           {error && (
             <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
