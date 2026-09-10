@@ -165,12 +165,12 @@ cd "C:/FcXe Studios/Instadesk/instadesk-tauri/src-tauri" && cargo test --lib && 
 No version is promoted until it passes the local, robot‑free **Sandbox** — an isolated,
 side‑by‑side build (`com.fcxestudios.instadesk.sandbox`, productName "InstaDesk Sandbox",
 window title "InstaDesk — SANDBOX", on‑screen orange **SANDBOX** badge, and its **own
-icon** — , an amber disc on the InstaDesk mark, declared in
- under ). ⚠ **The icon was MISSING until 2026‑09‑10**: the
-override set productName, binary name, identifier and title but no icon, so the Sandbox shipped
-production’s icon byte‑for‑byte. The badge is *inside* the window and cannot help on the taskbar,
-in Alt‑Tab, on the Start menu or on a shortcut — exactly where you choose which app to launch.
-It builds
+icon** — `src-tauri/icons/sandbox/`, an amber disc on the InstaDesk mark, declared
+under `bundle.icon` in `src-tauri/tauri.sandbox.conf.json`). ⚠ **The icon was MISSING
+until 2026‑09‑10** — the override set productName, binary name, identifier and title but no
+icon, so the Sandbox shipped production’s icon byte‑for‑byte. The badge is *inside* the window
+and cannot help on the taskbar, in Alt‑Tab, on the Start menu or on a shortcut — exactly where
+you choose which app to launch. It builds
 entirely locally, never auto‑updates, ships no updater artifacts, and can never touch
 stable users. The gate is unconditional — **no rationalizing a skip** even for a
 "one‑line, already‑validated" fix (we were caught skipping it on 0.2.1).
