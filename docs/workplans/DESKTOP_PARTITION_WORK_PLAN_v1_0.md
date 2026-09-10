@@ -237,6 +237,40 @@ apply (**D‑2**).
 Per‑monitor zones, grid‑aware packing (snap‑to‑grid is ON and stays on), folders one side / apps the
 other. Dry run reports every intended move before any is made.
 
+**I‑3a — identity ✔ DONE.** The carried blocker is closed: every item now has an absolute
+parsing name, and `ambiguous` is **gone (9 → 0)**.
+
+The route that got there was not the one planned, and the difference was decided by measurement:
+
+* **The lParam/PIDL trick is DEAD on this DefView.** The documented-everywhere technique — each
+  ListView item keeps its PIDL in `lParam` — was built, run, and measured: `LVM_GETITEMW` **succeeded**
+  for all 65 items and returned `lParam = 0` for **every one**. Not a bug; the items carry no lParam.
+  The code was deleted rather than left looking live.
+* **What caught it was a tally I only added because of D‑5.** The first run reported
+  `byIdentity = {name: 65}` — every PIDL read had failed and the display-name fallback had silently
+  absorbed all 65, producing output *byte-identical to the previous version*. Without the counter
+  there was nothing to see. The eight bare `return null`s were then given reasons, and the answer came
+  back as one word: `lparam-zero` ×65.
+* **Identity now comes from the shell's own view** (`IShellWindows(SWC_DESKTOP)` →
+  `IShellBrowser` → `IFolderView`), over COM — **no cross-process memory access at all**.
+  Two preconditions were verified *before* the code was written: the agent is **not elevated**
+  (an elevated process is refused the desktop's view), and the calls run on their **own STA thread**
+  because `Main` is not `[STAThread]`.
+* **The two readers were proven to agree before either was trusted** — `--desktop-identity-probe`, a
+  control, not a feature: 65 = 65, **all 65 positions identical**, identity on 65/65. Index pairing is
+  therefore sound, and `DesktopSnapshot` **re-checks it every capture** and withholds identity for the
+  whole snapshot if it ever fails, rather than pairing the wrong rows.
+* **`IFolderView::GetSpacing` reports 116 × 142** — exactly the grid measured by hand from icon
+  coordinates in Phase 0. Two unrelated instruments, one number: the grid is now *known*, not inferred.
+
+All nine formerly-`ambiguous` items resolved correctly, and they show why a display name could never
+have worked: **three different items are all called "FcXe Drive"** — `C:\Users\Public\Desktop\FcXe Drive.lnk`,
+`C:\Users\FABIAN C\Desktop\FcXe Drive.lnk`, and the real folder `C:\Users\FABIAN C\Desktop\FcXe Drive`.
+
+> ⚠ **Carried into the zone engine:** two `desktop.ini` entries are visible desktop items here (hidden
+> files are shown). They are system files and the engine must **leave them where they are**, not file
+> them under "file". Recorded, not yet built.
+
 ### I‑4 — The InstaDesk screen, with the ON/OFF ☐ *not risky*
 The toggle is **part of this increment, not a later polish** (**R‑4/D‑1**): it must exist the moment
 there is anything to switch on. Default OFF, persisted, mirroring `switchMode`.
@@ -268,6 +302,8 @@ that mutates Explorer's window tree, and everything above is useful without it.
 | 2026‑09‑10 | **The handbook the seed defers to was two releases stale**, and following it literally would have rebuilt a shipped feature (§8 named v0.4.0 live and Quick Preset Switch open, three weeks after v0.5.0 shipped it; §4 claimed four gates, there are nine). Method intact, state rotten. Refreshed, and the staleness recorded in place rather than erased. |
 | 2026‑09‑10 | **My own first gate count read EIGHT** — a sloppy `grep -o` pattern, not the file. Reading `package.json` as JSON gave nine. Recorded because it is the fourth time in this project that the instrument, not the artifact, was the wrong part. |
 | 2026‑09‑10 | **I‑1's own defects were found by checking the operator's RULING, not the scan's numbers.** Every total reconciled — 65 items, classes summing to 65, unmapped 0 — while 36 icons were mapped to the wrong monitor and 9 were misclassified. What exposed both was asking *"where did the three shortcuts R-1 was made about actually go?"* and finding the answer implausible. **A self-consistent report is not a correct one.** |
+| 2026‑09‑10 | **F‑3 is SETTLED by identity, and the seed was wrong.** `FcXe Drive.lnk` and `FCLX Drive.lnk` resolve to executables → `app-shortcut`; the folders `FcXe Drive`, `FCLX DRIVE`, `RIGMATRIX` are separate real directories that merely share a name. **R‑1's only true subject on this desktop is `Dropbox`.** The operator question about the Drive shortcuts is answered by evidence rather than by ruling. |
+| 2026‑09‑10 | **A fallback hid a total failure, and only a counter exposed it.** All 65 PIDL reads returned null; the display-name fallback absorbed every one and the output was byte-identical to the previous run. The lesson is not "the trick failed" — it is that **a fallback which cannot be seen firing is indistinguishable from success**. Any future fallback in this front ships with a count of how often it fired. |
 | 2026‑09‑10 | **R‑4 arrived after the seed was written** and is not in it: the feature must be a selectable ON/OFF. Promoted to invariant **D‑1** rather than a UI bullet, because "off" has to reach the watcher and the Explorer mutations, not just hide a screen. |
 
 ---
