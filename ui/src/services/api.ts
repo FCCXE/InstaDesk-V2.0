@@ -116,6 +116,76 @@ export type ApiMonitor = {
 
 export type MonitorsResponse = { ok: boolean; monitors: ApiMonitor[] }
 
+/* ---------------------------- Desktop Partition ---------------------------- */
+/* These mirror the agent's JSON exactly. The agent refuses a bad plan by
+   returning ok:false WITH the reasons, rather than failing - so `problems` and
+   `stage` are the useful part of a refusal and must survive to the screen. */
+
+export type DesktopPlacement = {
+  index: number
+  name: string
+  classification: string
+  /** folders | documents | apps | untouched */
+  zone: string
+  from: { x: number; y: number }
+  to: { x: number; y: number }
+  moves: boolean
+  /** Why an item is left alone. Empty for placed items. */
+  untouchedReason: string
+}
+
+export type DesktopMonitorPlan = {
+  monitor: number
+  ok: boolean
+  error: string
+  problems: string[]
+  grid: {
+    columns: number
+    rows: number
+    originX: number
+    originY: number
+    cellW: number
+    cellH: number
+    /** False when this monitor holds no icons, so the grid inset is assumed. */
+    phaseMeasured: boolean
+    phaseNote: string
+  }
+  iconsHere: number
+  zoneCounts: Record<string, number>
+  willMove: number
+  alreadyRight: number
+  placements: DesktopPlacement[]
+}
+
+export type DesktopPlanResponse = {
+  ok: boolean
+  dryRun?: boolean
+  identityNote?: string
+  byIdentity?: Record<string, number>
+  plans?: DesktopMonitorPlan[]
+  error?: string
+}
+
+export type DesktopApplyResponse = {
+  ok: boolean
+  dryRun?: boolean
+  /** Which step refused: plan | identity | undo | freshness. */
+  stage?: string
+  refused?: boolean
+  problems?: string[]
+  undoFile?: string
+  undoVerified?: boolean
+  planned?: number
+  willMove?: number
+  moved?: number
+  verified?: number
+  landedWrong?: unknown[]
+  error?: string
+  note?: string
+}
+
+export type DesktopUndoAvailable = { ok: boolean; available: boolean; count: number }
+
 // One window read by --capture-layout (auto-capture). `exe` is null when the app
 // couldn't be identified (elevated/Store app) — `error` says why. `grid`/`gridSize`
 // are the reverse-mapped region this window snaps to on `monitor` (1-based).
@@ -268,6 +338,18 @@ export const api = {
     inTauri()
       ? call<MonitorsResponse>('monitors')
       : request<MonitorsResponse>('GET', '/monitors'),
+  // Desktop Partition. Every one of these is a thin pass-through to the agent;
+  // no coordinate maths happens on this side of the wire (D-4).
+  desktopPlan: (monitor?: number) =>
+    call<DesktopPlanResponse>('desktop_plan', { monitor: monitor ?? null }),
+  // `apply` defaults to false in Rust. Called without it, this writes the undo
+  // file, PROVES it, and moves nothing.
+  desktopApply: (monitor?: number, apply?: boolean) =>
+    call<DesktopApplyResponse>('desktop_apply', { monitor: monitor ?? null, apply: apply ?? false }),
+  desktopUndo: (file?: string) =>
+    call<DesktopApplyResponse>('desktop_undo', { file: file ?? null }),
+  desktopUndoAvailable: () =>
+    call<DesktopUndoAvailable>('desktop_undo_available'),
   launch: (req: LaunchRequest) =>
     inTauri()
       ? call<LaunchResponse>('launch', { body: req })

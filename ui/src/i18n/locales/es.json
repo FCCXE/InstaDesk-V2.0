@@ -872,6 +872,11 @@
   "backendErrors": {
     "agentMissing": "Falta el programa auxiliar de InstaDesk. Reinstalar debería restaurarlo. ({{path}})",
     "agentTimeoutMonitors": "Se agotó el tiempo al detectar tus monitores. Inténtalo de nuevo.",
+    "desktopBadJson": "El asistente del escritorio devolvió algo ilegible. No se cambió nada.",
+    "desktopEmptyResponse": "El asistente del escritorio no devolvió nada. No se cambió nada.",
+    "desktopNoUndo": "No hay ninguna disposición del escritorio guardada a la que volver.",
+    "desktopTimeout": "El asistente del escritorio no respondió a tiempo. No se cambió nada.",
+    "desktopUndoDir": "No se pudo crear la carpeta del archivo para deshacer, así que no se intentó nada.",
     "invalidKind": "Tipo de Diseño no válido: {{kind}}.",
     "invalidSlot": "Ranura no válida: {{slot}}. Las ranuras son letras sueltas de la A a la Z.",
     "licenseKeyRequired": "Introduce una clave de licencia.",
@@ -884,5 +889,25 @@
     "qpNotFound": "No hay ningún Preajuste rápido guardado en esa ranura.",
     "qpSlotNotFound": "No hay ningún Preajuste rápido guardado en la ranura {{slot}}.",
     "trialEnded": "Tu prueba de InstaDesk ha terminado. Introduce una licencia en Configuración → Licencia para continuar."
+  },
+  "desktopPartition": {
+    "apply": "Aplicar",
+    "enable": "Organizar los iconos del escritorio",
+    "forMonitor": "Se aplica a {{name}}.",
+    "gridAssumed": "Este monitor aún no tiene iconos, así que la posición de la cuadrícula se supone, no se ha medido.",
+    "landedWrong": "{{n}} iconos no quedaron donde debían. Usa Deshacer.",
+    "moved": "Se movieron {{moved}} iconos; {{verified}} verificados en su sitio.",
+    "noIconsHere": "No hay iconos de escritorio en este monitor.",
+    "offHint": "Desactivado: InstaDesk no toca los iconos de tu escritorio en absoluto.",
+    "onHint": "Activado: InstaDesk puede ordenar los iconos de este monitor cuando se lo pidas.",
+    "planFor": "Monitor {{n}}: {{icons}} iconos.",
+    "preview": "Vista previa",
+    "refused": "Rechazado en el paso «{{stage}}»: no se movió nada.",
+    "title": "Partición del escritorio",
+    "undo": "Deshacer",
+    "undoSaved": "Se guardó y comprobó una copia de la disposición anterior, así que Deshacer funcionará.",
+    "willMove": "Se moverían {{n}} iconos.",
+    "working": "Trabajando...",
+    "zones": "Carpetas {{folders}} - documentos {{documents}} - aplicaciones {{apps}} - sin tocar {{untouched}}."
   }
 }

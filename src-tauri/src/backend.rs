@@ -883,6 +883,126 @@ pub async fn monitors() -> Result<Value, String> {
 }
 
 // ----------------------------------------------------------------------------
+// Desktop Partition — plan / apply / undo.
+//
+// All Win32 coordinate work lives in the agent (invariant D-4); these commands
+// only carry arguments down and JSON back. Note what is NOT here: no decision
+// about where an icon goes, and no write of any kind.
+//
+// The agent's own refusals (a plan with problems, a bad undo, a desktop that
+// shifted) come back as `ok:false` JSON with a `stage` and a `problems` list, and
+// are returned to the UI AS DATA rather than raised as errors. The UI has to show
+// the operator *what* was refused and why; collapsing that into an error string
+// would throw away the only part that is useful.
+// ----------------------------------------------------------------------------
+
+/// Undo captures live in the flavour's own data dir, so the Sandbox's undo files
+/// never land where only the production install would look for them (D-8).
+fn desktop_undo_dir() -> PathBuf {
+    data_dir().join("desktop-undo")
+}
+
+/// Run the agent with the given desktop flags and parse its JSON. One place for
+/// the four ways this can fail infrastructurally, each named distinctly — a bare
+/// "it didn't work" would leave the UI unable to say whether the agent is
+/// missing, hung, silent, or babbling.
+async fn desktop_agent(args: Vec<String>, timeout_secs: u64) -> Result<Value, String> {
+    let agent = agent_path();
+    if !agent.exists() {
+        return Err(berr1("agentMissing", format!("Agent not found at {}", agent.display()), "path", agent.display().to_string()));
+    }
+    let fut = agent_command(&args).output();
+    let out = match tokio::time::timeout(std::time::Duration::from_secs(timeout_secs), fut).await {
+        Ok(Ok(o)) => o,
+        Ok(Err(e)) => return Err(format!("Failed to run agent: {e}")),
+        Err(_) => return Err(berr("desktopTimeout", "The desktop agent did not answer in time")),
+    };
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let line = stdout.lines().map(str::trim).filter(|l| !l.is_empty()).last().unwrap_or("");
+    if line.is_empty() {
+        return Err(berr("desktopEmptyResponse", "The desktop agent returned nothing"));
+    }
+    serde_json::from_str(line).map_err(|_| berr("desktopBadJson", "The desktop agent returned something that is not JSON"))
+}
+
+/// Compute where every icon on a monitor should go. Reads only; moves nothing.
+#[tauri::command]
+pub async fn desktop_plan(monitor: Option<i32>) -> Result<Value, String> {
+    let mut args = vec!["--desktop-plan".to_string()];
+    if let Some(m) = monitor { args.push(format!("monitor={m}")); }
+    desktop_agent(args, 30).await
+}
+
+/// Apply the plan. `apply=false` (the default path the UI uses first) writes the
+/// undo file, PROVES it, and moves nothing.
+///
+/// The undo path is chosen HERE rather than by the UI: the agent refuses `--apply`
+/// without one, and a path picked in the front end could be anywhere.
+#[tauri::command]
+pub async fn desktop_apply(monitor: Option<i32>, apply: Option<bool>) -> Result<Value, String> {
+    let apply = apply.unwrap_or(false);
+    let dir = desktop_undo_dir();
+    if let Err(e) = std::fs::create_dir_all(&dir) {
+        return Err(berr1("desktopUndoDir", format!("Could not create the undo folder: {e}"), "path", dir.display().to_string()));
+    }
+    let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S").to_string();
+    let undo = dir.join(format!("undo-{stamp}.json"));
+
+    let mut args = vec!["--desktop-apply".to_string(), format!("undo={}", undo.display())];
+    if let Some(m) = monitor { args.push(format!("monitor={m}")); }
+    if apply { args.push("--apply".to_string()); }
+    desktop_agent(args, 60).await
+}
+
+/// Put every icon back where the newest undo capture says it was.
+///
+/// `file` is optional on purpose: after a restart the UI no longer remembers the
+/// path, and "undo my last tidy" must still work. With none given, the newest
+/// capture in the flavour's undo folder is used.
+#[tauri::command]
+pub async fn desktop_undo(file: Option<String>) -> Result<Value, String> {
+    let path = match file {
+        Some(f) if !f.trim().is_empty() => PathBuf::from(f),
+        _ => {
+            let dir = desktop_undo_dir();
+            let mut newest: Option<(std::time::SystemTime, PathBuf)> = None;
+            if let Ok(rd) = std::fs::read_dir(&dir) {
+                for entry in rd.flatten() {
+                    let p = entry.path();
+                    if p.extension().and_then(|e| e.to_str()) != Some("json") { continue; }
+                    if let Ok(md) = entry.metadata() {
+                        if let Ok(m) = md.modified() {
+                            if newest.as_ref().map_or(true, |(best, _)| m > *best) {
+                                newest = Some((m, p));
+                            }
+                        }
+                    }
+                }
+            }
+            match newest {
+                Some((_, p)) => p,
+                None => return Err(berr("desktopNoUndo", "There is no saved desktop to go back to")),
+            }
+        }
+    };
+    desktop_agent(vec!["--desktop-restore".to_string(), format!("file={}", path.display()), "--apply".to_string()], 60).await
+}
+
+/// Whether an undo capture exists at all — so the UI can show Undo as available
+/// or not, instead of offering a button that will fail.
+#[tauri::command]
+pub async fn desktop_undo_available() -> Result<Value, String> {
+    let dir = desktop_undo_dir();
+    let mut count = 0usize;
+    if let Ok(rd) = std::fs::read_dir(&dir) {
+        for entry in rd.flatten() {
+            if entry.path().extension().and_then(|e| e.to_str()) == Some("json") { count += 1; }
+        }
+    }
+    Ok(serde_json::json!({ "ok": true, "available": count > 0, "count": count }))
+}
+
+// ----------------------------------------------------------------------------
 // Launch / apply — spawn the agent to place windows. Mirrors the Python
 // _dotnet_cmd / _run_launch / _apply_preset, including TEMP-FILE stdio (the
 // agent's spawned apps inherit its handles → pipes would block forever) and

@@ -8,6 +8,7 @@ import { telemetryConfigured, isOptedOut, setOptedOut } from "../../services/tel
 import { checkForUpdate, installUpdate, type Update } from "../../services/updater";
 import { loadBinding, saveBinding, formatBinding, type HotkeyAction, type HotkeyParts } from "../../services/hotkeys";
 import { useTour } from "../../tour/TourProvider";
+import DesktopPartitionSection from "./DesktopPartitionSection";
 
 /**
  * SettingsPane
@@ -213,6 +214,14 @@ export default function SettingsPane() {
                 <Toggle on={shareUsage} onToggle={onToggleShareUsage} />
               </Row>
             )}
+          </Section>
+
+          <Section title={t("desktopPartition.title")}>
+            <Row>
+              <div className="w-full min-w-0">
+                <DesktopPartitionSection />
+              </div>
+            </Row>
           </Section>
 
           <Section title={t("settings.gridSnapping")}>

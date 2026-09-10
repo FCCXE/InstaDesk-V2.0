@@ -872,6 +872,11 @@
   "backendErrors": {
     "agentMissing": "InstaDesk’s helper program is missing. Reinstalling should restore it. ({{path}})",
     "agentTimeoutMonitors": "Timed out while detecting your monitors. Try again.",
+    "desktopBadJson": "The desktop helper returned something unreadable. Nothing was changed.",
+    "desktopEmptyResponse": "The desktop helper returned nothing. Nothing was changed.",
+    "desktopNoUndo": "There is no saved desktop arrangement to go back to.",
+    "desktopTimeout": "The desktop helper did not answer in time. Nothing was changed.",
+    "desktopUndoDir": "Could not create the folder for the undo file, so nothing was attempted.",
     "invalidKind": "Invalid Layout type: {{kind}}.",
     "invalidSlot": "Invalid slot: {{slot}}. Slots are single letters A–Z.",
     "licenseKeyRequired": "Enter a licence key.",
@@ -884,5 +889,25 @@
     "qpNotFound": "No Quick Preset is saved in that slot.",
     "qpSlotNotFound": "No Quick Preset is saved in slot {{slot}}.",
     "trialEnded": "Your InstaDesk trial has ended. Enter a licence in Settings → Licence to continue."
+  },
+  "desktopPartition": {
+    "apply": "Apply",
+    "enable": "Organize desktop icons",
+    "forMonitor": "Applies to {{name}}.",
+    "gridAssumed": "This monitor has no icons yet, so the grid position is assumed rather than measured.",
+    "landedWrong": "{{n}} icons did not land where intended. Use Undo.",
+    "moved": "Moved {{moved}} icons; {{verified}} verified in place.",
+    "noIconsHere": "There are no desktop icons on this monitor.",
+    "offHint": "Off - InstaDesk does not touch your desktop icons at all.",
+    "onHint": "On - InstaDesk can tidy this monitor's desktop icons when you ask it to.",
+    "planFor": "Monitor {{n}} - {{icons}} icons.",
+    "preview": "Preview",
+    "refused": "Refused at the {{stage}} step - nothing was moved.",
+    "title": "Desktop partition",
+    "undo": "Undo",
+    "undoSaved": "A copy of the previous arrangement was saved and checked, so Undo will work.",
+    "willMove": "{{n}} icons would move.",
+    "working": "Working...",
+    "zones": "Folders {{folders}} - documents {{documents}} - apps {{apps}} - left alone {{untouched}}."
   }
 }

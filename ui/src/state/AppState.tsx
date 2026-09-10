@@ -148,6 +148,32 @@ function saveSwitchMode(value: boolean) {
   }
 }
 
+// Desktop Partition (2026-09-10): the whole feature is opt-in (ruling R-4), and
+// OFF has to mean genuinely nothing happens - no plan, no apply, and later no
+// watcher (invariant D-1). It is stored the same way switchMode is, and for the
+// same reason: a feature that rearranges the user's desktop must never come back
+// on by itself after a tab change or a restart.
+const DESKTOP_PARTITION_STORAGE_KEY = 'instadesk:desktopPartition'
+
+function loadDesktopPartition(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    // Only the exact string 'true' turns it on; anything else falls to OFF.
+    return window.localStorage.getItem(DESKTOP_PARTITION_STORAGE_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+function saveDesktopPartition(value: boolean) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(DESKTOP_PARTITION_STORAGE_KEY, String(value))
+  } catch {
+    // Same silent fallback.
+  }
+}
+
 export type CellKey = string
 // IMPORTANT: keep comma (compatible with existing WorkspaceGrid.tsx)
 export const cellKey = (r: number, c: number): CellKey => `${r},${c}`
@@ -506,6 +532,11 @@ type AppStateContext = {
   switchMode: boolean
   setSwitchMode: (on: boolean) => void
 
+  // Desktop Partition on/off (R-4). Default OFF; while off, nothing in the
+  // feature runs at all — see the storage helpers above.
+  desktopPartitionOn: boolean
+  setDesktopPartitionOn: (on: boolean) => void
+
   // Assignments of the Layout being edited that the GRID CANNOT REPRESENT, held
   // so that saving does not delete them (defect A, 2026-08-26). Lives here, not
   // in LayoutsPane, for the same reason editingLayoutId does: the pane unmounts
@@ -642,6 +673,17 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
 
   const setSwitchMode = (on: boolean) => {
     setSwitchModeState(on)
+  }
+
+  /* ---------- Desktop Partition (2026-09-10) ---------- */
+  const [desktopPartitionOn, setDesktopPartitionOnState] = useState<boolean>(loadDesktopPartition)
+
+  useEffect(() => {
+    saveDesktopPartition(desktopPartitionOn)
+  }, [desktopPartitionOn])
+
+  const setDesktopPartitionOn = (on: boolean) => {
+    setDesktopPartitionOnState(on)
   }
 
   const setWindowMargin = (px: number) => {
@@ -1080,6 +1122,9 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     // switch mode
     switchMode,
     setSwitchMode,
+    // desktop partition on/off
+    desktopPartitionOn,
+    setDesktopPartitionOn,
     // assignments the grid cannot show, preserved across an edit
     preservedAssignments,
     setPreservedAssignments,
@@ -1109,7 +1154,7 @@ export const AppStateProvider: React.FC<React.PropsWithChildren<{}>> = ({ childr
     selectedApp, clipboard,
     monitors, currentMonitorId, presets, pendingPresetByMonitor,
     gridSizeByMonitor, currentGridCols, currentGridRows, defaultGridSize,
-    windowMargin, switchMode, preservedAssignments, previewedLayoutId,
+    windowMargin, switchMode, desktopPartitionOn, preservedAssignments, previewedLayoutId,
     urlBuilder, editingUrlGroupId, browsers
   ])
 
