@@ -5,7 +5,7 @@
 > truth for *how we work*; live *version* facts are in `CHANGELOG.md` / `gh release list`
 > (if this doc and the repo disagree on a version, **the repo wins**).
 >
-> Last updated: **2026‑09‑10**, at the opening of the **Desktop Partition** front (live: **v0.5.2**).
+> Last updated: **2026‑09‑10**, at the CLOSE of the **Desktop Partition** front (live: **v0.6.0**).
 
 ---
 
@@ -256,7 +256,7 @@ updater follows `latest.json`); or re‑point Latest to the previous good releas
 ## §7 — Rollback points & safety invariants
 
 **Safe rollback point:** the **current release tag is the rollback point.** As of this
-handoff that is **`v0.5.2`**.
+handoff that is **`v0.6.0`**.
 
 **Per‑increment `pre-*` tags.** `docs/RELEASING.md §7` defines `pre-<slug>` as disposable local
 safety markers cut before risky edits — distinct from the `vX.Y.Z` version record, kept **local**,
@@ -281,7 +281,8 @@ abandoned, `git reset`/checkout back to the last good tag.
 
 ## §8 — Current state (verify before trusting)
 
-- **Live: v0.5.2** (2026‑08‑27). Verified from the published `latest.json` **through `gh api`, not
+- **Live: v0.6.0** (2026‑09‑10) — the **Desktop partition**, its guided‑tour chapter in both
+  locales, and a distinct Sandbox icon. Verified from the published `latest.json` **through `gh api`, not
   `curl`** — the CDN served stale bytes on 08‑27 and nearly convinced a session that a good upload
   had failed. Both repos clean on `main`.
 - Three releases shipped on 2026‑08‑27: **v0.5.0** Quick Preset Switch mode, **v0.5.1** editable URL
@@ -305,7 +306,33 @@ abandoned, `git reset`/checkout back to the last good tag.
 > literally would have rebuilt a shipped feature. **One place per fact: this section is state, the
 > work plans hold increment status, and `gh release list` outranks both.**
 
-### ⚑ ACTIVE FRONT — DESKTOP PARTITION (opened 2026‑09‑10)
+### ✔ CLOSED PROGRAMME — DESKTOP PARTITION (opened and shipped 2026‑09‑10, v0.6.0)
+
+> **Operator accepted 2026‑09‑10:** *"Version 0.6.0 working as expected."* There is **no active
+> front**. The record is `docs/workplans/DESKTOP_PARTITION_WORK_PLAN_v1_0.md` — **read its amendment
+> log**, it carries traps paid for in full.
+
+> ⚠ **THREE THINGS SHIPPED AS KNOWN, NOT AS FINISHED.** None is a defect; each is recorded so nobody
+> re‑derives it or assumes it was proven:
+> 1. **The watcher has never been observed performing a real restore.** Every logged run ended in a
+>    legitimate refusal or *"already correct"*; `moved` has never been above zero. The re‑apply PATH
+>    is proven (atomic positioning, verified byte‑identical against a baseline); the watcher
+>    **invoking** it on a genuinely disturbed desktop has not been caught in the act.
+> 2. **The layout is not stable across a resolution change.** It flows AROUND the icons that are
+>    never moved (Recycle Bin, `desktop.ini`), and Windows relocates those — so everything
+>    downstream shifts by one cell. Anchoring zones to fixed cells rather than to a fill order would
+>    remove it; that is a design change, unbuilt.
+> 3. **`desktop_undo` takes the NEWEST capture**, so applying twice and undoing once returns to the
+>    previous tidy state, not the original. Correct as *"undo the last apply"*; there is no way to
+>    step back further.
+
+> ⛔ **I‑6, visual panels, was NEVER STARTED and needs explicit operator authorisation.** It is the
+> only piece that mutates Explorer’s window tree (`WorkerW` re‑parenting), and everything shipped is
+> useful without it.
+
+<details>
+<summary>The front as it stood while open (kept for its rulings)</summary>
+
 
 > **Desktop icon zoning.** Select a monitor, define zones, and keep desktop **folders** on one side
 > and **app icons** on the other — and *keep* them there. Operator‑ruled, 2026‑09‑10.
@@ -324,6 +351,9 @@ and the feasibility verdict. **Read it before the plan.**
    restarts.
 4. **The whole feature is a selectable ON/OFF**, and when OFF it must do genuinely nothing to the
    desktop — no watcher, no re‑apply, no Explorer window‑tree mutation.
+5. **Items are ordered ALPHABETICALLY within their zone** (added 2026‑09‑10).
+6. **The feature is implemented and tried in the SANDBOX app before any release** (added
+   2026‑09‑10). The agent CLI is a build layer beneath the product, not where it is validated.
 
 **Three things a resuming session must know:**
 1. **This programme changes `Program.cs`.** The two‑repo sequencing rule (§2) is live.
@@ -334,6 +364,8 @@ and the feasibility verdict. **Read it before the plan.**
    `--desktop-scan` / `--desktop-apply` / `--desktop-restore` / `--desktop-watch`.
 
 Rollback point: **`v0.5.2`**. Programme tag: **`pre-desktop-partition-v1`** (both repos).
+
+</details>
 
 ## §9 — Command quick‑reference (WHERE = app repo root `C:\FcXe Studios\Instadesk\instadesk-tauri` unless noted)
 

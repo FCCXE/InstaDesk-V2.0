@@ -25,6 +25,18 @@
 
 ---
 
+## §0 — STATUS: CLOSED, SHIPPED AS v0.6.0 (2026‑09‑10)
+
+> Operator: *"Version 0.6.0 working as expected."* **Nothing here is awaiting work.**
+> **I‑6 (visual panels) was never started** and needs explicit authorisation.
+> Three things shipped as **known, not finished** — the watcher has never been observed performing a
+> real restore, the layout drifts by one cell when Windows moves the Recycle Bin, and undo steps back
+> only one apply. Details at I‑5, I‑7 and the amendment log.
+> ⛔ **Read the amendment log before acting on anything here.** It is the part of this document that
+> cost the most to write.
+
+---
+
 ## §1 — What is being built
 
 Select a monitor, define zones on it, and place desktop **folders** on one side and **app icons** on
@@ -580,13 +592,32 @@ with text in both.
 > ⚠ **Owed:** the operator has not yet WALKED the chapter. Wording and highlight placement are unverified
 > — "show, don’t tell" (handbook §5.4) is the check, and it has not been run.
 
-### I‑6 — Visual panels ☐ **RISKY** → tag `pre-desktop-panels`
+### I‑6 — Visual panels ☐ **NOT STARTED** — requires explicit operator authorisation
 `WorkerW` re‑parenting, panels painted behind native icons. **Last**, because it is the only piece
 that mutates Explorer's window tree, and everything above is useful without it.
 
-### I‑7b — OPERATOR CHECKPOINT, **packaged** Sandbox install ☐
+### I‑7b — OPERATOR CHECKPOINT, **packaged** Sandbox install ✔ **PASSED**
 **The gate R‑6 names.** Operator installs the packaged **InstaDesk Sandbox** (upgrades only the Sandbox app) and exercises the feature as a product: toggle OFF proven to do *nothing*, plan preview, apply, undo, Explorer restart, a resolution/DPI change. Only after this does I‑8 exist.
-### I‑8 — Release ☐ **RISKY** — requires explicit operator authorisation
+### I‑8 — Release ✔ **SHIPPED as v0.6.0**, 2026‑09‑10
+Authorised by the operator (*"lets ship the new official App version"*) and accepted after install
+(*"Version 0.6.0 working as expected"*). **MINOR** bump per `RELEASING.md` §1 — a new user‑facing
+capability.
+
+*Gates, each with a real exit code rather than a glance at a pipe:* `cargo test --lib` **0** (26 passed),
+`cargo build --lib` **0**, `npm run build` **0** (nine gates, 64 tests), i18n parity **713** keys per
+locale, changelog clean across **40** sections.
+
+> ⚠ **THE TWO‑REPO ORDER (D‑7) IS WHAT MAKES THIS RELEASE CORRECT.** The robot builds the WinAgent
+> from the **agent repo’s own `main` HEAD**, so the agent must be pushed BEFORE the app tag — an
+> unpushed agent would have shipped an app with no desktop‑partition code inside it, and every UI gate
+> would still have passed. Verified immediately pre‑tag: agent `80c66de` on its remote main.
+
+*Published and verified through `gh api`, never `curl`* (the CDN has served stale bytes here and nearly
+convinced a session a good upload had failed): release **not draft, not prerelease, marked Latest**;
+three assets; `latest.json` reports **0.6.0** with a valid signature; notes **1,464** chars with no
+internal text. Installer SHA‑256 `8E41A44620892F38410E82CC2054FE3BFF6C437B5DC7C9FCF6690AB05CCB4592`,
+taken from the **published asset downloaded back through the API** — so the number in
+`INSTALL_FOR_TESTERS.md` describes the file users actually receive, not one built on this machine.
 
 ---
 
