@@ -76,6 +76,12 @@ export default function DesktopPartitionSection() {
   const syncWatcher = useCallback(async () => {
     try {
       if (desktopPartitionOn && hasApplied()) {
+        // Ask whether one is ALREADY running before starting another. Start is
+        // idempotent -- it kills any existing watcher first -- so calling it on
+        // every sync churned eight processes in one session and would discard an
+        // in-flight debounce, losing the very re-apply it was about to perform.
+        const cur = await api.desktopWatchStatus();
+        if (cur?.running) { setWatching(true); return; }
         const r = await api.desktopWatchStart(monitorId);
         setWatching(Boolean(r?.running));
       } else {
