@@ -11,7 +11,7 @@
 
 Download the **`InstaDesk_…_x64-setup.exe`** file (about 66 MB).
 
-> The page always shows the newest version. The details below were captured for **v0.5.2**; if the
+> The page always shows the newest version. The details below were captured for **v0.6.0**; if the
 > page offers something newer, take that instead — the checksum will simply not match, which is
 > expected rather than a problem.
 
@@ -21,11 +21,11 @@ and very few people have downloaded it yet, which is the whole reason for that m
 **To check you got the right file** (optional), run this in PowerShell and compare:
 
 ```powershell
-Get-FileHash "$HOME\Downloads\InstaDesk_0.5.2_x64-setup.exe" -Algorithm SHA256
+Get-FileHash "$HOME\Downloads\InstaDesk_0.6.0_x64-setup.exe" -Algorithm SHA256
 ```
 
 ```
-0B764790FB7804C9F55A14F390A5DEAE0452A3851858119C7C76C9C0623FF5A3
+8E41A44620892F38410E82CC2054FE3BFF6C437B5DC7C9FCF6690AB05CCB4592
 ```
 
 ---
