@@ -34,10 +34,11 @@ the other — and **keep them there** across Explorer restarts, resolution chang
 
 | # | Ruling |
 |---|---|
-| R‑1 | **Folder‑shortcuts count as FOLDERS.** `FcXe Drive.lnk`, `FCLX Drive.lnk`, `FCLX Drive Sandbox.lnk` are files on disk but open folders. Overrides the seed's unruled default (seed §9.1). |
+| R‑1 | **Folder‑shortcuts count as FOLDERS.** Overrides the seed’s unruled default (seed §9.1). ⚠ **The three files the seed named as examples were the WRONG ones** — `FcXe Drive.lnk`, `FCLX Drive.lnk` and `FCLX Drive Sandbox.lnk` all resolve to executables and are app‑shortcuts (measured, I‑3a). The ruling is unaffected; on this desktop its only true subject is `Dropbox`. |
 | R‑2 | Built on **v0.5.2**, the current standing release. |
 | R‑3 | **The re‑apply watcher ships in the FIRST version.** *"Keep it tidy is a must."* |
 | R‑4 | **The whole feature is a selectable ON/OFF**, and when OFF it does *genuinely nothing* to the desktop. |
+| R‑5 | **Items are ordered ALPHABETICALLY within their zone.** Operator, 2026‑09‑10. Implemented with `StrCmpLogicalW` — Explorer’s own *Sort by > Name*, which is digit‑aware, so "Item 2" precedes "Item 10". |
 
 ---
 
@@ -271,6 +272,41 @@ have worked: **three different items are all called "FcXe Drive"** — `C:\Users
 > files are shown). They are system files and the engine must **leave them where they are**, not file
 > them under "file". Recorded, not yet built.
 
+**I‑3b — the zone engine ✔ DONE, DRY RUN ONLY.** `--desktop-plan` computes where every icon should go
+and prints it. **There is no write path in `DesktopZonePlan.cs` at all** — not a disabled one, not one
+behind a flag — and the command accepts no `--apply`. Moving icons is a separate increment.
+
+*Grid.* Monitor 1 is **21 × 7 cells** of 116 × 142, anchored at `(31, 770)`. The model was not assumed:
+**all 65 icons sit on exact lattice points**, and the observed extremes (`x` 31…2351, `y` 770…1622) are
+precisely the model’s last column and last row. The planner **re‑runs that check on every plan and
+refuses if a single icon is off‑lattice** — proven to bite by shifting the phase one pixel: 65 of 65
+rejected, 0 placements.
+
+*Layout.* Folders hard left, apps hard right, documents after the folders with a separating gap;
+column‑major fill (down, then across), alphabetical per **R‑5**.
+
+*Result here.* folders 13 · documents 19 · apps 29 · untouched 4 = **65**; all 65 destinations
+distinct; no problems. The desktop was re‑scanned afterwards: **0 of 65 changed**.
+
+> ⛔ **A DEFECT THE FIRST PLAN HID BEHIND A CLEAN SUMMARY.** It reported `ok=true` with all 65
+> accounted for and every count reconciling — while planning **"MAria colegio" onto the Recycle
+> Bin’s cell**. The post‑condition compared *placed* items against each other and **excluded the
+> untouched ones**, so the single collision that existed lived exactly in the comparison never made.
+> Fixed on both sides: the engine now routes around fixed cells (leaving a deliberate visible gap),
+> and the check now covers **every** destination. Bite‑proven by disabling only the avoidance — it
+> named `(147,770) claimed by: MAria colegio + Recycle Bin`.
+
+*Two rules the plan itself revealed, both now in the engine:*
+* **A bare `.exe` is an application**, not a document — `AnyDesk.exe` was being filed with the
+  spreadsheets. Only the true extension counts, so `FcXeDrive-Launcher.exe.bak_20260506-094502`
+  correctly stays a document.
+* **`shell-virtual` items and `desktop.ini` are never moved**, and the plan states *why* for each.
+
+> ⚠ **UNMEASURED, and flagged as such in the output:** all 65 icons are on monitor 1, so whether other
+> monitors use the same `(31, 2)` inset **cannot be measured without first moving an icon there**. The
+> planner reports `phaseMeasured: false` for any monitor holding no icons rather than sounding
+> confident about a number it has never seen.
+
 ### I‑4 — The InstaDesk screen, with the ON/OFF ☐ *not risky*
 The toggle is **part of this increment, not a later polish** (**R‑4/D‑1**): it must exist the moment
 there is anything to switch on. Default OFF, persisted, mirroring `switchMode`.
@@ -302,6 +338,7 @@ that mutates Explorer's window tree, and everything above is useful without it.
 | 2026‑09‑10 | **The handbook the seed defers to was two releases stale**, and following it literally would have rebuilt a shipped feature (§8 named v0.4.0 live and Quick Preset Switch open, three weeks after v0.5.0 shipped it; §4 claimed four gates, there are nine). Method intact, state rotten. Refreshed, and the staleness recorded in place rather than erased. |
 | 2026‑09‑10 | **My own first gate count read EIGHT** — a sloppy `grep -o` pattern, not the file. Reading `package.json` as JSON gave nine. Recorded because it is the fourth time in this project that the instrument, not the artifact, was the wrong part. |
 | 2026‑09‑10 | **I‑1's own defects were found by checking the operator's RULING, not the scan's numbers.** Every total reconciled — 65 items, classes summing to 65, unmapped 0 — while 36 icons were mapped to the wrong monitor and 9 were misclassified. What exposed both was asking *"where did the three shortcuts R-1 was made about actually go?"* and finding the answer implausible. **A self-consistent report is not a correct one.** |
+| 2026‑09‑10 | **A POST‑CONDITION THAT EXCLUDED HALF THE BOARD PASSED A COLLISION.** The first zone plan was internally perfect — 65 accounted for, counts reconciling, `ok=true` — and put a folder on the Recycle Bin. The distinct‑cell check ran over *placed* items only, so the untouched items it skipped were precisely where the one collision was. **A check that excludes a category cannot find a defect in that category**, and the summary will look flawless while it does so. Both the engine and the check were fixed, and the check was bite‑proven against the original defect. |
 | 2026‑09‑10 | **F‑3 is SETTLED by identity, and the seed was wrong.** `FcXe Drive.lnk` and `FCLX Drive.lnk` resolve to executables → `app-shortcut`; the folders `FcXe Drive`, `FCLX DRIVE`, `RIGMATRIX` are separate real directories that merely share a name. **R‑1's only true subject on this desktop is `Dropbox`.** The operator question about the Drive shortcuts is answered by evidence rather than by ruling. |
 | 2026‑09‑10 | **A fallback hid a total failure, and only a counter exposed it.** All 65 PIDL reads returned null; the display-name fallback absorbed every one and the output was byte-identical to the previous run. The lesson is not "the trick failed" — it is that **a fallback which cannot be seen firing is indistinguishable from success**. Any future fallback in this front ships with a count of how often it fired. |
 | 2026‑09‑10 | **R‑4 arrived after the seed was written** and is not in it: the feature must be a selectable ON/OFF. Promoted to invariant **D‑1** rather than a UI bullet, because "off" has to reach the watcher and the Explorer mutations, not just hide a screen. |
