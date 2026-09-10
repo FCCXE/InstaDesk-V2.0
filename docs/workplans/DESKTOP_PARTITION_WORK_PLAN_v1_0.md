@@ -422,9 +422,49 @@ where they started. The operator’s desktop is back as it was found.
 > to the *previous tidy state*, not to the original. Correct as "undo the last apply", but the UI offers no
 > way to step back further. Recorded, not yet built.
 
-### I‑5 — `--desktop-watch`, the resident re‑apply ☐ **RISKY** → tag `pre-desktop-watch`
-`WM_DISPLAYCHANGE` / `WM_DPICHANGED` / `TaskbarCreated` → re‑apply. **Runs only while the feature is
-ON** (**D‑1**). Ships in v1 per **R‑3**.
+### I‑5 — `--desktop-watch`, the resident re‑apply ✔ **BUILT** — rollback tag `pre-desktop-watch`
+Reacts to **Explorer restarting** (`TaskbarCreated`), a **resolution change** (`WM_DISPLAYCHANGE`), a
+**DPI change**, and a **work‑area change**. Ships in v1 per **R‑3**.
+
+> ⭐ **WHAT IT DELIBERATELY DOES NOT DO: react to the operator dragging an icon.** There is **no polling
+> at all**. An icon moved on purpose **stays moved** until the next display event. A watcher that snapped
+> every drag back would be fighting its own user — *"keep it tidy"* is about surviving **Windows**, not
+> overruling the person.
+
+> ⚠ **The window is a hidden TOP‑LEVEL window, not a message‑only one.** Message‑only windows are
+> excluded from **broadcast** messages, and `TaskbarCreated` and `WM_DISPLAYCHANGE` are broadcasts — a
+> message‑only watcher would receive **nothing at all** while looking perfectly healthy.
+
+*It shells out to its own `--desktop-apply --apply`* rather than calling the apply code directly. That
+command is verified as one unit, so invoking it keeps **a single place where a desktop can be
+rearranged**, and process isolation means a fault inside an apply cannot take the watcher down.
+
+*Events are debounced* — an Explorer restart needs time before the desktop list exists again, and a
+resolution change arrives as a burst. Undo captures **rotate, newest ten kept**. The process publishes
+its **pid and HWND before entering the message loop**, so a parent can tell *running* from *died on
+startup* without waiting for an event that may not come for hours.
+
+*App side.* `desktop_watch_start` is **idempotent** (kills any existing watcher first, so a double start
+cannot leave two processes re‑applying over each other); `desktop_watch_status` uses `try_wait`, because
+a stored handle proves one was *started*, not that it is *alive*. Its stdout goes to a **file, never a
+pipe nobody reads** — an unread pipe fills and then **blocks the child**, so the watcher would stop
+reacting after some number of events and look perfectly alive doing it. **The app’s exit handler kills
+it**: an orphan would outlive InstaDesk and keep rearranging the desktop after it was closed, which is
+exactly the "off but still doing things" **D‑1** forbids.
+
+> ⭐ **NEW RULE, and it is a judgement, not a mechanism:** the watcher starts only when **BOTH** the
+> feature is ON **and a layout has been applied at least once**. Running it before the operator has ever
+> pressed Apply would mean a resolution change silently rearranges a desktop they never asked to have
+> rearranged — **switching the feature on would become a destructive act by itself**, which is not what
+> "on" should mean. "Keep it tidy" means keep **the arrangement they chose**.
+
+*Verified end to end without moving a single icon.* Pointed at **monitor 2 (no icons)** and poked
+directly with `WM_DISPLAYCHANGE` and the real `TaskbarCreated` message id — a targeted `PostMessage`, not
+a broadcast, so nothing else on the machine was disturbed. Both arrived; the **debounce coalesced them
+into ONE apply**; that apply refused with *"monitor 2 holds no icons"*. Desktop unchanged throughout.
+
+> ⚠ **Not yet exercised for real:** an actual Explorer restart or resolution change on monitor 1. That is
+the operator’s check in the Sandbox.
 
 ### I‑6 — Visual panels ☐ **RISKY** → tag `pre-desktop-panels`
 `WorkerW` re‑parenting, panels painted behind native icons. **Last**, because it is the only piece
