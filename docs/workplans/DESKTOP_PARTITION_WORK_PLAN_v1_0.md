@@ -380,8 +380,47 @@ pass as the Rust that emits them, never afterwards.
 after the variable) beside camelCase fields. Fixed **at the agent, before the UI was written against it**,
 so the inconsistency never became a contract.
 
-> ⛔ **STILL NO LIVE APPLY.** Nothing has moved an icon. The first real move is the operator’s, in the
-> Sandbox (**R‑6**) — that is I‑7.
+### I‑7 — FIRST LIVE RUN, and the defect it exposed ✔ **operator ran it**
+
+Operator drove Preview / Apply / Undo in the Sandbox on 2026‑09‑10 and confirmed the **arrangement is
+correct**: *"You separated App Icons from folders, from files. This is the correct way."* The layout, the
+zones and the alphabetical order are **accepted**.
+
+> ⛔⛔ **AND IT MOVED FOUR ICONS IT HAD PROMISED NEVER TO TOUCH.** The Recycle Bin, both `desktop.ini`
+> files and "Learn about this picture" were pushed into the empty middle columns. **Nothing ever wrote to
+> those cells.** The tidy result looked right, the operator was satisfied, and the summary reconciled —
+> the only trace was a preview afterwards reading *"15 icons would move"* where a settled desktop must
+> read 0. **That single number is what exposed it.**
+
+*Cause.* Positions were written **one at a time**. With align‑to‑grid on, an icon written into a cell its
+previous occupant has not vacated yet makes Explorer shove that occupant somewhere free, and the cascade
+reaches bystanders. **No per‑icon writer can avoid this**, because the intermediate states are real states
+of the desktop, not an implementation detail.
+
+> ⛔⛔⛔ **THE UNDO HAD THE SAME DEFECT, WHICH IS WORSE.** A restore left **23 of 65** icons away from
+> their captured positions and drifted three untouched items one row down. **The safety net was built
+> from the same flawed primitive as the thing it protects against** — and it had been declared proven,
+> because the test that proved it (I‑2) restored a desktop that had never been disturbed, so it moved
+> nothing and the cascade never had a chance to appear.
+
+*Fix.* Both apply and undo now go through `DesktopFolderView.PositionItems` →
+`IFolderView::SelectAndPositionItems`, which takes **every item and every destination in ONE call**, so
+there is no intermediate state to collide with. It is the documented API for this and needs **no
+cross‑process memory access at all**. Keyed by **absolute parsing name**, not index: an index is a
+position in a list Explorer may reorder between the plan and the move. `--desktop-restore` keeps every
+identity check it had (count, index and name per item, via `DesktopIcons.Restore` in dry run) — **only
+the write changed**.
+
+*Verified on the live desktop.* Restoring the pre‑move baseline moved **23** icons, `unmatched` empty, and
+the result is **byte‑identical to the baseline: 0 of 65 differ**, with all four never‑move items exactly
+where they started. The operator’s desktop is back as it was found.
+
+> ⚠ **Owed before I‑5:** the watcher re‑applies automatically, so it would have repeated this cascade on
+> every trigger. Fixing the writer was therefore a **precondition** of the watcher, not a tidy‑up after it.
+
+> ⚠ **Also owed:** `desktop_undo` takes the NEWEST capture, so applying twice and then undoing once returns
+> to the *previous tidy state*, not to the original. Correct as "undo the last apply", but the UI offers no
+> way to step back further. Recorded, not yet built.
 
 ### I‑5 — `--desktop-watch`, the resident re‑apply ☐ **RISKY** → tag `pre-desktop-watch`
 `WM_DISPLAYCHANGE` / `WM_DPICHANGED` / `TaskbarCreated` → re‑apply. **Runs only while the feature is
@@ -391,7 +430,7 @@ ON** (**D‑1**). Ships in v1 per **R‑3**.
 `WorkerW` re‑parenting, panels painted behind native icons. **Last**, because it is the only piece
 that mutates Explorer's window tree, and everything above is useful without it.
 
-### I‑7 — OPERATOR CHECKPOINT, installed Sandbox ☐
+### I‑7b — OPERATOR CHECKPOINT, **packaged** Sandbox install ☐
 **The gate R‑6 names.** Operator installs the packaged **InstaDesk Sandbox** (upgrades only the Sandbox app) and exercises the feature as a product: toggle OFF proven to do *nothing*, plan preview, apply, undo, Explorer restart, a resolution/DPI change. Only after this does I‑8 exist.
 ### I‑8 — Release ☐ **RISKY** — requires explicit operator authorisation
 
@@ -412,6 +451,7 @@ that mutates Explorer's window tree, and everything above is useful without it.
 | 2026‑09‑10 | **My own first gate count read EIGHT** — a sloppy `grep -o` pattern, not the file. Reading `package.json` as JSON gave nine. Recorded because it is the fourth time in this project that the instrument, not the artifact, was the wrong part. |
 | 2026‑09‑10 | **I‑1's own defects were found by checking the operator's RULING, not the scan's numbers.** Every total reconciled — 65 items, classes summing to 65, unmapped 0 — while 36 icons were mapped to the wrong monitor and 9 were misclassified. What exposed both was asking *"where did the three shortcuts R-1 was made about actually go?"* and finding the answer implausible. **A self-consistent report is not a correct one.** |
 | 2026‑09‑10 | **A POST‑CONDITION THAT EXCLUDED HALF THE BOARD PASSED A COLLISION.** The first zone plan was internally perfect — 65 accounted for, counts reconciling, `ok=true` — and put a folder on the Recycle Bin. The distinct‑cell check ran over *placed* items only, so the untouched items it skipped were precisely where the one collision was. **A check that excludes a category cannot find a defect in that category**, and the summary will look flawless while it does so. Both the engine and the check were fixed, and the check was bite‑proven against the original defect. |
+| 2026‑09‑10 | ⛔⛔ **A SAFETY NET BUILT FROM THE SAME FLAWED PRIMITIVE AS THE THING IT GUARDS.** Apply displaced four untouched icons; the undo, which exists to repair exactly that, displaced them too and left 23 of 65 unrestored. **And it had been declared proven** — by a test that restored an undisturbed desktop, so it moved nothing and the failure mode could not appear. ⇒ **Test the undo against a desktop the apply has actually disturbed**, and ask what PRIMITIVE the safety net shares with the operation: if they share the flaw, the net cannot catch it. The visible trace was one number — a settled desktop reading *"15 icons would move"* instead of 0 — in a result the operator had already accepted as correct. |
 | 2026‑09‑10 | **F‑3 is SETTLED by identity, and the seed was wrong.** `FcXe Drive.lnk` and `FCLX Drive.lnk` resolve to executables → `app-shortcut`; the folders `FcXe Drive`, `FCLX DRIVE`, `RIGMATRIX` are separate real directories that merely share a name. **R‑1's only true subject on this desktop is `Dropbox`.** The operator question about the Drive shortcuts is answered by evidence rather than by ruling. |
 | 2026‑09‑10 | **A fallback hid a total failure, and only a counter exposed it.** All 65 PIDL reads returned null; the display-name fallback absorbed every one and the output was byte-identical to the previous run. The lesson is not "the trick failed" — it is that **a fallback which cannot be seen firing is indistinguishable from success**. Any future fallback in this front ships with a count of how often it fired. |
 | 2026‑09‑10 | **R‑4 arrived after the seed was written** and is not in it: the feature must be a selectable ON/OFF. Promoted to invariant **D‑1** rather than a UI bullet, because "off" has to reach the watcher and the Explorer mutations, not just hide a screen. |
