@@ -187,7 +187,49 @@ scan, confirm the reported position changed by the expected delta. Until then th
 accepted**: nothing yet proves these coordinates track the real desktop rather than being internally
 consistent nonsense. **No icon has been moved by InstaDesk.**
 
-### I‑2 — `--desktop-restore` ☐ **RISKY** → tag `pre-desktop-restore`
+### I‑2 — `--desktop-restore` ✅ **DONE + ACCEPTED 2026‑09‑10** → tag `pre-desktop-restore` *(both repos, first)*
+
+The undo, built before any apply exists (**D-2**). A capture is simply a `--desktop-scan` output file,
+so there is one format and one reader rather than two that can drift.
+
+**DRY RUN IS THE DEFAULT.** `--apply` is required to move anything: the dangerous direction needs a
+deliberate extra word, and a typo cannot rearrange a desktop.
+
+**It REFUSES rather than guesses.** Restoring by index onto a changed item set would move the *wrong*
+icons and look like it worked, so every item's `(index, name)` must match the capture:
+
+```
+$ --desktop-restore file=<capture with one item removed>
+{"ok":false,"error":"the desktop has 65 items but the capture holds 64 — items were added or
+ removed, so restoring by position would move the wrong icons","readable":false}          exit=1
+
+$ --desktop-restore file=<capture with item 5 renamed>
+{"ok":false,"error":"item 5 is \"USDJ_Jubilee_RepoSnapshot_20251220_211255\" (index 5) but the
+ capture recorded \"NOT THE REAL NAME\" (index 5) — the desktop no longer matches the capture"}  exit=1
+
+$ --desktop-restore file=<not a capture>
+{"ok":false,"error":"that file is not a --desktop-scan capture (no items array)"}          exit=1
+```
+
+**ROUND TRIP PROVEN — and deliberately not circular.** The scramble could not be produced by the code
+under test: had `WriteItemPosition` silently done nothing, the scramble would not have happened,
+restore would have reported *"0 moves"*, and that would have read as success. So the verification uses
+the **independently accepted I‑1 read path**:
+
+```
+write   item 0 "Adecuacion Oficinas Cali y Bogota"  (31,770) -> (611,1196)   [5 cells right, 3 down]
+verify  independent scan reports exactly (611,1196); items changed: 1 of 65
+restore --apply from the original capture -> moved 1
+verify  index+name+x+y identical for ALL 65 items;  out of place: 0
+        AND identical to the baseline captured BEFORE any write code existed
+```
+
+**Net effect on the operator's desktop: none.** One icon moved and returned; 64 never touched.
+
+**⚠ `LVM_SETITEMPOSITION32`, not `LVM_SETITEMPOSITION`.** The latter packs x and y into `lParam` as
+two 16-bit halves, which truncates silently beyond ±32767 and on negatives. This desktop is 6200×2688
+and *would* have fitted — a coordinate space that only happens to fit is the kind of assumption that
+fails on somebody else's monitor wall.
 Capture all positions to JSON, scramble by hand, restore, confirm **byte‑identical**. Built before
 apply (**D‑2**).
 
