@@ -519,10 +519,30 @@ one: **66 of 66 rejected, 0 placements**.
 > inherits their instability.** Recorded, not yet solved — anchoring zones to cells rather than to a fill
 > order would remove it.
 
-> ⛔ **STILL UNPROVEN: A REAL RESTORE.** Every run to date has ended in a legitimate refusal — *"monitor 2
-> holds no icons"*, *"already correct"*, *"the icons do not agree on one grid"*. **The watcher has never
-> actually put a disturbed layout back**, and `moved` has never once been above zero. Recorded as NOT
-> done rather than implied by the increment being built.
+**I‑5 ACCEPTED by the operator, 2026‑09‑10:** *"the build did survive … I believe the functionality for our Desk Top Partition is working correctly."*
+
+The watcher fired on `work‑area‑change` and `explorer‑restarted` (15:32) and reported
+`alreadyCorrect, moved=0` both times — **and that was correct**: the layout had survived the restart.
+
+> ⛔⛔ **A CORRECTION I OWE THE RECORD.** I read the scattered desktop that followed as *"Explorer repacked
+> everything and the watcher missed it"*, and wrote that into this plan and into commit `80c66de` as an
+> observed failure. **It was not.** The operator had **manually rearranged the icons**. The evidence — four
+> untouched icons in the top‑left, 50 of 59 far out of place — fits a person rearranging a desktop
+> exactly as well as it fits Explorer repacking one, and **I asserted the cause instead of asking**. Same
+> failure as the positive control earlier in this programme: I listed only causes that lived in my own
+> code and never listed *the human moved them*.
+> ⇒ **When a desktop changes and a person is using it, the person is a hypothesis.** State the reading as
+> a question when the evidence cannot separate the two.
+
+*What stands from that episode.* The **settle loop** (commit `80c66de`) is a **HARDENING, not a repair**.
+The risk it addresses is real in principle — an Explorer restart completes asynchronously, so a single
+look at a fixed delay is a guess about another process’s timing — but **no such failure was ever
+observed**. It is kept on that basis, and its commit message overstates the evidence.
+
+> ⚠ **Still literally true and worth keeping:** `moved` has never been above zero in any logged run. Every
+watcher apply so far ended in a legitimate refusal or in `alreadyCorrect`. The re‑apply PATH is proven
+(atomic positioning, verified against the baseline in I‑7); the watcher **invoking** it on a genuinely
+disturbed desktop has not been observed. Recorded as such.
 
 ### I‑6 — Visual panels ☐ **RISKY** → tag `pre-desktop-panels`
 `WorkerW` re‑parenting, panels painted behind native icons. **Last**, because it is the only piece
@@ -549,6 +569,7 @@ that mutates Explorer's window tree, and everything above is useful without it.
 | 2026‑09‑10 | **My own first gate count read EIGHT** — a sloppy `grep -o` pattern, not the file. Reading `package.json` as JSON gave nine. Recorded because it is the fourth time in this project that the instrument, not the artifact, was the wrong part. |
 | 2026‑09‑10 | **I‑1's own defects were found by checking the operator's RULING, not the scan's numbers.** Every total reconciled — 65 items, classes summing to 65, unmapped 0 — while 36 icons were mapped to the wrong monitor and 9 were misclassified. What exposed both was asking *"where did the three shortcuts R-1 was made about actually go?"* and finding the answer implausible. **A self-consistent report is not a correct one.** |
 | 2026‑09‑10 | **A POST‑CONDITION THAT EXCLUDED HALF THE BOARD PASSED A COLLISION.** The first zone plan was internally perfect — 65 accounted for, counts reconciling, `ok=true` — and put a folder on the Recycle Bin. The distinct‑cell check ran over *placed* items only, so the untouched items it skipped were precisely where the one collision was. **A check that excludes a category cannot find a defect in that category**, and the summary will look flawless while it does so. Both the engine and the check were fixed, and the check was bite‑proven against the original defect. |
+| 2026‑09‑10 | ⛔⛔ **I DIAGNOSED A FAILURE THAT NEVER HAPPENED, AND WROTE IT INTO THE PLAN AND A COMMIT.** A scattered desktop after an Explorer restart was read as *"Explorer repacked it and the watcher missed it"*; the operator had **rearranged the icons by hand**. The evidence fitted both causes equally. ⇒ ***When the artifact is something a person actively uses, THE PERSON IS A HYPOTHESIS*** — and if the evidence cannot separate the causes, ask rather than assert. **Second time in this programme** I offered only explanations located in my own code. The remedy shipped anyway (the settle loop) is sound as a hardening, so it stays — relabelled, with its commit noted as overstating the evidence. |
 | 2026‑09‑10 | ⭐⭐ **A CHECK CAUGHT A DEFECT ITS AUTHOR HAD NOT IMAGINED.** The grid check existed to catch a wrong *model*; what it actually caught was a **constant that is not constant** — Windows moves the icon‑grid inset when the resolution changes (31 → 33 → 31). Measuring it once and calling it measured is the same error as assuming it. ⇒ **A value read from one configuration is a SAMPLE, not a constant** — derive it per run where the cost is trivial. And note what made this survivable: the check was written before the code it guards, so the wrong grid produced a refusal instead of 66 plausible‑looking wrong positions. |
 | 2026‑09‑10 | ⛔ **A BEHAVIOURAL TEST IS WORTHLESS WHEN THE ENVIRONMENT PRODUCES THE SAME BEHAVIOUR BY ITSELF.** I asked the operator to prove the watcher stops with the app by closing it and restarting Explorer — but Explorer restores icon positions across its own restart, so the layout survives either way. The test had no failing branch. ⇒ **Measure the invariant directly** (is the process running?) rather than inferring it from behaviour the environment also produces. The operator reported the observation accurately; the instrument was mine and it was incapable of disagreeing. |
 | 2026‑09‑10 | ⛔⛔ **A SAFETY NET BUILT FROM THE SAME FLAWED PRIMITIVE AS THE THING IT GUARDS.** Apply displaced four untouched icons; the undo, which exists to repair exactly that, displaced them too and left 23 of 65 unrestored. **And it had been declared proven** — by a test that restored an undisturbed desktop, so it moved nothing and the failure mode could not appear. ⇒ **Test the undo against a desktop the apply has actually disturbed**, and ask what PRIMITIVE the safety net shares with the operation: if they share the flaw, the net cannot catch it. The visible trace was one number — a settled desktop reading *"15 icons would move"* instead of 0 — in a result the operator had already accepted as correct. |
