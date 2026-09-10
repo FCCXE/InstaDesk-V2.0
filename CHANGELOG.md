@@ -10,6 +10,20 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-10
+
+### Added
+- **Tidy your desktop icons.** In **Settings → Desktop partition**, switch it on and InstaDesk can arrange a monitor's desktop icons into three groups: folders down one side, documents in the middle, and programs down the other. Each group is sorted alphabetically, using the same name ordering Windows itself uses, so "Item 2" comes before "Item 10".
+  - **Preview** shows exactly what would move, and how many icons, before anything moves. **Apply** appears only once you have seen a preview with no problems.
+  - **Undo** puts every icon back. Applying saves a copy of your current arrangement first, and checks that copy works *before* moving anything.
+  - **It keeps your layout.** Once applied, InstaDesk restores the arrangement after a screen resolution change, a DPI change or an Explorer restart — the moments Windows normally scatters desktop icons.
+  - **It leaves your own choices alone.** Icons you move yourself stay where you put them. The Recycle Bin, "Learn about this picture" and system files are never moved.
+  - **It is off until you switch it on.** While it is off, InstaDesk does not read or move your desktop icons at all, and closing InstaDesk stops it.
+- **A guided tour chapter for it** — *"Tidy your desktop icons"*, in English and Spanish.
+
+### Changed
+- The **InstaDesk Sandbox** test build now has its own icon, so it can be told apart from InstaDesk on the taskbar and in shortcuts. This does not affect the app you use.
+
 ## [0.5.2] - 2026-08-27
 
 ### Added
@@ -215,7 +229,8 @@ Release and a `vX.Y.Z` tag. See `docs/RELEASING.md` for the release procedure.
 ### Added
 - First InstaDesk release — establishes the signed auto-update baseline. Windows x64 installer.
 
-[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/FCCXE/InstaDesk-V2.0/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.6.0
 [0.5.2]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.5.2
 [0.5.1]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.5.1
 [0.5.0]: https://github.com/FCCXE/InstaDesk-V2.0/releases/tag/v0.5.0
