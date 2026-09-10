@@ -94,7 +94,7 @@ caught was pointing each at a defect whose answer was already known.
 Phase 0 evidence tracked (`19d3b60`); handbook de‑staled; `pre-desktop-partition-v1` pushed to both
 repos.
 
-### I‑1 — `--desktop-scan`, read‑only ☐ *not risky (writes nothing)*
+### I‑1 — `--desktop-scan`, read‑only ✔ **DONE** *(writes nothing)*
 Enumerate the ListView and emit JSON on the existing stdout contract: index, display name, current
 position, classification (`folder` | `folder-shortcut` | `app-shortcut` | `file` | `shell-virtual`),
 and which monitor the position falls on.
@@ -248,7 +248,7 @@ fails on somebody else's monitor wall.
 Capture all positions to JSON, scramble by hand, restore, confirm **byte‑identical**. Built before
 apply (**D‑2**).
 
-### I‑3 — `--desktop-apply` + the zone engine ☐ **RISKY** → tag `pre-desktop-apply`
+### I‑3 — `--desktop-apply` + the zone engine ✔ **DONE** (split into I‑3a identity, I‑3b engine, I‑3c mover) — tags `pre-desktop-apply`, `pre-desktop-writer`
 Per‑monitor zones, grid‑aware packing (snap‑to‑grid is ON and stays on), folders one side / apps the
 other. Dry run reports every intended move before any is made.
 
