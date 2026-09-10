@@ -309,10 +309,34 @@ distinct; no problems. The desktop was re‑scanned afterwards: **0 of 65 change
 > planner reports `phaseMeasured: false` for any monitor holding no icons rather than sounding
 > confident about a number it has never seen.
 
-### I‑3c — `--desktop-apply` in the agent ☐ **RISKY** → tag `pre-desktop-apply`
-The *mechanism* only: write an undo file, refuse any plan carrying a problem, dry run by default,
-`--apply` required to move anything. This is the **WinAgent layer** of the four (**D‑8b**) — proving it
-alone means a first failure is unambiguously the writer, not the IPC above it. **It is not the trial.**
+### I‑3c — `--desktop-apply` in the agent ✔ **DONE** — rollback tag `pre-desktop-writer`
+The *mechanism* only. This is the **WinAgent layer** of the four (**D‑8b**); **it is not the trial**
+(**R‑6**), and **no live apply has been executed** — the first real move belongs in the Sandbox app.
+
+**It adds no new write code.** The single write goes through `DesktopIcons.Restore`, the same mover that
+has already returned this desktop byte‑identical, with the planned positions as its target.
+
+*The order IS the design:* plan → **refuse if the plan carries any problem** → refuse unless every item has
+a real identity → write the undo → **PROVE the undo** → refuse if anything shifted since planning → write →
+re‑read and verify every icon landed.
+
+> ⭐ **Step 4 is the point.** The undo is proven by *replaying it in dry run before anything moves*:
+> restoring to a state nothing has left yet must report **exactly zero moves**. An unreadable or wrong undo
+> is therefore found while the desktop is still untouched, instead of after 58 icons have moved.
+
+`ReadCaptureFile` is now shared by `--desktop-restore` and `--desktop-apply`: an apply’s undo is consumed
+by restore, so two parsers would let the safety net silently stop fitting the thing it catches.
+
+**Verified on the live desktop — nothing moved:**
+* dry run: 65 planned, **58 would move, 0 moved**, undo written and proven;
+* `--apply` without `undo=` → refused;
+* **bite test A** (grid phase shifted one pixel) → refused at stage `plan`, **and no undo file was even
+  created**;
+* **bite test B** (undo writer corrupted to record `x+1`) → refused at stage `undo`: *"would move 65 icon(s)
+  though nothing has moved yet"* — **run WITH `--apply`**, so a broken safety net aborts the operation
+  rather than being ignored;
+* desktop across every test: **65 items, 0 changed**;
+* the dry run’s undo file replays through `--desktop-restore` cleanly.
 
 ### I‑4 — The feature inside the SANDBOX app: Rust → `api.ts` → UI, with the ON/OFF ☐ *not risky*
 The remaining three layers, iterated in `node src-tauri/scripts/sandbox.mjs --dev`. **This is where the
