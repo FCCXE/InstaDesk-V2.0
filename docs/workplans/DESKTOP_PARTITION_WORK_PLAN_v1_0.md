@@ -94,6 +94,70 @@ Verb namespace is `--desktop-*`; `--capture-layout` is taken (verified).
 
 **Done when:** both controls in §3 are run and their output is pasted here. **No icon is moved.**
 
+### I‑1 findings — four defects and a corrected ruling
+
+**F-1 — my monitor mapping was wrong, and looked right.** ListView coordinates are relative to the
+**virtual desktop's bounding box**, not the screen. With DISPLAY3 at `y = -768`, every icon's `y` is
+768 larger than its screen `y`. Comparing them directly mapped **36 of 65** icons to "no monitor" —
+and the other 29 were right only by **coincidence**, their `y` falling inside DISPLAY1's range both
+before and after translation. The output therefore read as *"some icons are off-screen"* rather than
+*"the mapping is broken"*. Fixed by translating through `virtualOrigin`, derived from the same
+`EnumerateMonitors()` the geometry is tested against. **Unmapped: 36 → 0.**
+
+**F-2 — a display name is NOT a unique key, and every total still reconciled.** A folder `FcXe Drive`
+and a shortcut `FcXe Drive.lnk` both render as *"FcXe Drive"* once Explorer hides known extensions.
+The first version stored one path per name and let whichever entry enumerated first win, so **9 of 65
+items were misclassified** — `FcXe Drive` ×3, `FCLX Drive`, `FCLX DRIVE`, `RigMatrix`, `RIGMATRIX`,
+`desktop.ini` ×2. Meanwhile the count was 65, the classes summed to 65, and unmapped was 0. **Totals
+reconciling proves nothing about per-item truth.** Now reported as `ambiguous` — D-5's rule: two
+candidates with different answers must never collapse into the reassuring one.
+
+> ⚠ **Carried to I‑3:** the zone engine cannot place an `ambiguous` item. It needs a real identity key
+> (the item's PIDL / parsing name via `IShellFolder`), not a display name. Recorded, not built.
+
+**F-3 — the seed is WRONG about the three shortcuts R-1 was made for.** Seed §9.1 calls
+`FcXe Drive.lnk`, `FCLX Drive.lnk` and `FCLX Drive Sandbox.lnk` *"files on disk but folders in the
+operator's head"*. Measured targets: `FcXeDrive.exe`, `FcXeDrive-Sandbox.exe`,
+`wscript.exe` / `FcXeDrive-Launcher.exe`. **They launch executables — they are apps.** `app-shortcut`
+is correct for them and R-1 does not apply. **R-1's only subject on this desktop is `Dropbox`.** The
+ruling stands as written; its scope is simply almost empty. *Recorded, not resolved — the operator may
+still want those three treated as folders for a reason a target path cannot see.*
+
+**F-4 — D-3 demonstrated, not asserted.** The seed measured ListView `0x10240`, explorer pid `15080`
+on 09‑09. Today: `0x10242`, pid `13896`. **Explorer restarted in between.** A cached handle would already
+be stale, one day later.
+
+**F-5 — the seed's §2 display table mixes coordinate spaces.** It lists DISPLAY1 as `2048x864` while
+`--list-monitors` (PerMonitorV2) reads `2560x1080`; its *positions* are physical while its *sizes* are
+logical, which cannot both hold in one table. Its virtual-desktop total (`6200x2688`) is right and
+reproduces exactly. **Use `--list-monitors` for geometry, not the seed's table.**
+
+### I‑1 — `--desktop-scan`, read-only ✅ **CODE DONE**, awaiting the positive control
+
+`DesktopIcons.cs` + `ShellLink.cs`, both added to `<Compile Include>` (trap 1 — verified real).
+Verb namespaced `--desktop-scan` (trap 2 — `--capture-layout` verified taken).
+
+**NEGATIVE CONTROL — PASSED.** A bogus handle fails loudly, not silently-empty:
+
+```
+$ InstaDesk.WinAgent.exe --desktop-scan hwnd=0xDEADBEEF
+{"ok":false,"error":"hwnd 0xDEADBEEF is not a window","readable":false}
+exit=1
+```
+
+**Read-only scan — 65 items, reconciling exactly with the seed's independent 09‑09 count:**
+
+```
+route  Progman/SHELLDLL_DefView/SysListView32   listView 0x10242   explorer pid 13896
+count 65 · unmapped 0 · virtualOrigin (0,-768) · classes sum to 65
+folder 9 · folder-shortcut 1 · app-shortcut 24 · file 20 · ambiguous 9 · shell-virtual 2
+```
+
+**POSITIVE CONTROL — OWED, and it needs the operator.** Move one desktop icon by hand, re-run the
+scan, confirm the reported position changed by the expected delta. Until then the scan is **not
+accepted**: nothing yet proves these coordinates track the real desktop rather than being internally
+consistent nonsense. **No icon has been moved by InstaDesk.**
+
 ### I‑2 — `--desktop-restore` ☐ **RISKY** → tag `pre-desktop-restore`
 Capture all positions to JSON, scramble by hand, restore, confirm **byte‑identical**. Built before
 apply (**D‑2**).
@@ -132,6 +196,7 @@ that mutates Explorer's window tree, and everything above is useful without it.
 | 2026‑09‑10 | Front opened. Phase 0 was done by a **non‑InstaDesk session** and arrived as an untracked file; tracked as evidence of record. Its four repo traps were **re‑verified** rather than trusted: `EnableDefaultItems` false with five explicit `Compile Include` entries, `--capture-layout` taken, agent manifest `true/pm` + `PerMonitorV2`, nine gates + vitest. All four hold. |
 | 2026‑09‑10 | **The handbook the seed defers to was two releases stale**, and following it literally would have rebuilt a shipped feature (§8 named v0.4.0 live and Quick Preset Switch open, three weeks after v0.5.0 shipped it; §4 claimed four gates, there are nine). Method intact, state rotten. Refreshed, and the staleness recorded in place rather than erased. |
 | 2026‑09‑10 | **My own first gate count read EIGHT** — a sloppy `grep -o` pattern, not the file. Reading `package.json` as JSON gave nine. Recorded because it is the fourth time in this project that the instrument, not the artifact, was the wrong part. |
+| 2026‑09‑10 | **I‑1's own defects were found by checking the operator's RULING, not the scan's numbers.** Every total reconciled — 65 items, classes summing to 65, unmapped 0 — while 36 icons were mapped to the wrong monitor and 9 were misclassified. What exposed both was asking *"where did the three shortcuts R-1 was made about actually go?"* and finding the answer implausible. **A self-consistent report is not a correct one.** |
 | 2026‑09‑10 | **R‑4 arrived after the seed was written** and is not in it: the feature must be a selectable ON/OFF. Promoted to invariant **D‑1** rather than a UI bullet, because "off" has to reach the watcher and the Explorer mutations, not just hide a screen. |
 
 ---
