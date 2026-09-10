@@ -387,6 +387,19 @@ git -C "C:/FcXe Studios/Instadesk" push origin main      # WinAgent FIRST (if Pr
 # …commit app repo (explicit paths) then:
 git tag vX.Y.Z && git push origin vX.Y.Z                 # triggers robot
 gh run list --repo FCCXE/InstaDesk-V2.0 --limit 3        # watch the robot
+gh api repos/FCCXE/InstaDesk-V2.0/releases/latest --jq .tag_name   # VERIFY here, never curl
+
+# Desktop partition (v0.6.0) - agent CLI. Read-only unless --apply is present.
+# WHERE: C:/FcXe Studios/Instadesk/winagent/InstaDesk.WinAgent
+./bin/Release/net8.0-windows/InstaDesk.WinAgent.exe --desktop-scan            # every icon + identity
+./bin/Release/net8.0-windows/InstaDesk.WinAgent.exe --desktop-plan            # where each would go
+./bin/Release/net8.0-windows/InstaDesk.WinAgent.exe --desktop-apply undo=<f>  # DRY RUN by default
+#   …add --apply to actually move; --apply REQUIRES undo=<path>
+./bin/Release/net8.0-windows/InstaDesk.WinAgent.exe --desktop-restore file=<f> --apply   # undo
+./bin/Release/net8.0-windows/InstaDesk.WinAgent.exe --desktop-identity-probe  # control: both readers agree?
+# Sandbox watcher log + undo captures:
+#   %APPDATA%/com.fcxestudios.instadesk.sandbox/desktop-watch.log
+#   %APPDATA%/com.fcxestudios.instadesk.sandbox/desktop-undo/
 
 # Docs of record
 docs/RELEASING.md   # full release SOP (this handbook summarises it)
@@ -412,6 +425,13 @@ CHANGELOG.md        # human history / what is live
   Use the editor tool for anything containing escapes, then grep the escapes back out.
 - **PowerShell needs quoting AND the call operator** for paths with spaces:
   `& "C:\FcXe Studios\...\setup.exe"`.
+- **Backticks inside `python -c "…"` are COMMAND SUBSTITUTION to bash.** Writing a doc paragraph
+  that way on 2026‑09‑10 executed three code‑span paths and replaced them with nothing; the shipped
+  sentence read *"its own icon — , an amber disc … declared in  under )."* The script printed its own
+  success line and the errors went to stderr among unrelated noise. **Never build file CONTENT in an
+  inline shell string** — write the edit script to a file and run the file. Then **re‑open the file and
+  assert the tokens are present**: a `replace()` that inserts corrupted text reports exactly the same
+  success as one that inserts correct text.
 - **`head` on a build pipe kills npm with EPIPE**, which reads as a failed build that never failed.
   Re‑run without truncation before believing an exit code. *Suspect the instrument.*
 - **`git rev-parse <missing-tag>` echoes the argument back**, which reads as a false positive. Use
@@ -445,6 +465,39 @@ CHANGELOG.md        # human history / what is live
   reassuring reading.
 - **Gates verify structure; nothing verifies that prose is TRUE.** Three green gates once shipped a
   walkthrough describing grid sizes the app does not offer. A human reading the screen caught it.
+- **A CHECK WRITTEN AFTER A DEFECT COVERS ONLY THE SHAPE THAT DEFECT TOOK.** `check‑tour‑anchors` was
+  hardened in August after a step pointed inside `favorites.map(...)`. On 2026‑09‑10 the identical
+  failure arriving as `{flag && (` sailed straight through, and `kind:"tab"` anchors were skipped
+  entirely. **After fixing a defect, ask what OTHER shapes the same failure can take.**
+- **A VALUE MEASURED IN ONE CONFIGURATION IS A SAMPLE, NOT A CONSTANT.** The desktop icon‑grid inset
+  was measured as 31, called "measured, not assumed", and **Windows moved it to 33 at another
+  resolution**. Derive per run where the cost is trivial. What made it survivable: the grid check was
+  written before the code it guards, so a wrong grid produced a **refusal** instead of 66
+  plausible‑looking wrong positions.
+- **A SAFETY NET BUILT FROM THE SAME PRIMITIVE AS THE OPERATION CANNOT CATCH THAT OPERATION’S
+  FAILURE.** Apply moved icons one at a time and displaced four it had promised never to touch; the
+  **undo used the same per‑item writer** and displaced them again, leaving 23 of 65 unrestored — and
+  it had been "proven" by a test that restored an **undisturbed** desktop, so it moved nothing and the
+  failure could not appear. **Test the undo against a state the operation has actually disturbed.**
+  ⇒ When per‑item writes interact, **look for the batch API** (`IFolderView::SelectAndPositionItems`)
+  before engineering an ordering.
+- **A BEHAVIOURAL TEST IS WORTHLESS WHEN THE ENVIRONMENT PRODUCES THE SAME BEHAVIOUR BY ITSELF.** I
+  asked the operator to prove the watcher stops with the app by closing it and restarting Explorer —
+  **but Explorer restores icon positions across its own restart**, so the layout survives either way.
+  The test had no failing branch. **Measure the invariant directly** (is the process running?).
+- **WHEN THE ARTIFACT IS SOMETHING A PERSON ACTIVELY USES, THE PERSON IS A HYPOTHESIS.** A scattered
+  desktop was diagnosed as *"Explorer repacked it and the watcher missed it"* and written into a plan
+  and a commit as an observed failure. **The operator had rearranged the icons by hand.** The evidence
+  fitted both causes equally. **Twice now** I have offered only explanations located in my own code.
+  If the evidence cannot separate the causes, **ask**.
+- **A FALLBACK THAT CANNOT BE SEEN FIRING IS INDISTINGUISHABLE FROM SUCCESS.** All 65 identity reads
+  failed; the display‑name fallback absorbed every one and the output was **byte‑identical to the
+  previous version**. Only a counter added minutes earlier revealed it. **Every fallback ships with a
+  count of how often it fired, and every failure path says WHICH failure it was.**
+- **A POST‑CONDITION THAT EXCLUDES A CATEGORY CANNOT FIND A DEFECT IN THAT CATEGORY** — and that is
+  exactly where the defect will be. A "no two icons share a cell" check ran over *placed* items only;
+  the one collision in the plan was a placed item landing on an **untouched** item’s cell, and every
+  total still reconciled.
 - **React state updaters must be pure.** A side effect inside `setIndex` ran twice under
   `StrictMode` and emitted both `tour_completed` and `tour_abandoned` for the same tour.
 
