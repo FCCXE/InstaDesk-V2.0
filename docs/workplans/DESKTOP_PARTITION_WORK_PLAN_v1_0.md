@@ -132,7 +132,7 @@ be stale, one day later.
 logical, which cannot both hold in one table. Its virtual-desktop total (`6200x2688`) is right and
 reproduces exactly. **Use `--list-monitors` for geometry, not the seed's table.**
 
-### I‑1 — `--desktop-scan`, read-only ✅ **CODE DONE**, awaiting the positive control
+### I‑1 — `--desktop-scan`, read-only ✅ **DONE + ACCEPTED 2026‑09‑10**
 
 `DesktopIcons.cs` + `ShellLink.cs`, both added to `<Compile Include>` (trap 1 — verified real).
 Verb namespaced `--desktop-scan` (trap 2 — `--capture-layout` verified taken).
@@ -153,7 +153,7 @@ count 65 · unmapped 0 · virtualOrigin (0,-768) · classes sum to 65
 folder 9 · folder-shortcut 1 · app-shortcut 24 · file 20 · ambiguous 9 · shell-virtual 2
 ```
 
-**POSITIVE CONTROL — RUN 2026‑09‑10, INCONCLUSIVE: 2 of 3 moves detected.**
+**POSITIVE CONTROL — PASSED 2026‑09‑10: 2 moves made, 2 detected.**
 
 Operator moved three icons (2 app, 1 folder). The scan detected **two**, both with deltas that are
 **exact whole-cell multiples** of the measured snap grid:
@@ -165,19 +165,24 @@ RigMatrix      ambiguous  lv ( 611,1196) -> (1423, 912)   delta ( +812,-284) =  
 63 items unchanged · count 65 -> 65 · unmapped 0 · classes sum 65
 ```
 
-Whole-cell alignment is strong evidence the scan reads **real snapped coordinates**, not plausible
-noise. But **the third move was not detected, and that is not yet explained.**
+Whole-cell alignment is the evidence that matters: the scan reads **real snapped coordinates**, not
+plausible noise. Nothing else moved, and nothing was invented.
 
-Two readings, and they have different remedies — so they must not be collapsed:
-- **Benign:** the third drag was shorter than one cell (116 x 142), so snap-to-grid returned the icon
-  to identical coordinates. Genuinely invisible to any position-based comparison, and not a defect.
-- **A defect:** the scan missed a real change.
+**The discrepancy resolved, and NEITHER of my hypotheses was right.** Reported initially as three
+moves, the scan found two, and I offered exactly two explanations: a sub-cell drag hidden by
+snap-to-grid, or a defect in the scan. The operator then confirmed **only two icons were moved** — a
+third possibility I had not listed, because I treated the human count as ground truth and confined the
+doubt to my own code.
 
-⛔ **I‑1 is NOT accepted while this is open.** Settling it needs one fact only the operator has: **which
-third icon was moved.** If that item's coordinates are identical in both scans and the drag was short,
-the benign reading is confirmed by measurement rather than assumed.
+> ⚠ **Worth keeping.** This programme's standing lesson is *suspect the instrument*. Here the
+> instrument was the **report**, not the code. When a measurement and a report disagree, "the
+> measurement is wrong" and "the measurement is right" do not exhaust the options — **the report can
+> be the wrong side**, and enumerating only the two that live inside your own work is how that gets
+> missed. Refusing to accept on the reassuring reading was still correct: it just turned out the
+> reassuring reading was *"my code is fine"*, which is exactly the one that needed evidence.
 
-*(superseded wording)* **POSITIVE CONTROL — OWED, and it needs the operator.** Move one desktop icon by hand, re-run the
+✅ **I‑1 ACCEPTED.** Both controls passed — negative (loud failure on a bogus handle), positive (2 of 2
+moves detected, whole-cell deltas). No icon has been moved by InstaDesk. Move one desktop icon by hand, re-run the
 scan, confirm the reported position changed by the expected delta. Until then the scan is **not
 accepted**: nothing yet proves these coordinates track the real desktop rather than being internally
 consistent nonsense. **No icon has been moved by InstaDesk.**
