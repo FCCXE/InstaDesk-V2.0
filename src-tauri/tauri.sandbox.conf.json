@@ -18,7 +18,13 @@
     ]
   },
   "bundle": {
-    "createUpdaterArtifacts": false
+    "createUpdaterArtifacts": false,
+    "icon": [
+      "icons/sandbox/32x32.png",
+      "icons/sandbox/128x128.png",
+      "icons/sandbox/128x128@2x.png",
+      "icons/sandbox/icon.ico"
+    ]
   },
   "plugins": {
     "updater": {
