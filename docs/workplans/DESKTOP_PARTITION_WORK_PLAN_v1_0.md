@@ -338,7 +338,7 @@ by restore, so two parsers would let the safety net silently stop fitting the th
 * desktop across every test: **65 items, 0 changed**;
 * the dry run’s undo file replays through `--desktop-restore` cleanly.
 
-### I‑4 — The feature inside the SANDBOX app: Rust → `api.ts` → UI, with the ON/OFF ☐ *not risky*
+### I‑4 — The feature inside the SANDBOX app: Rust → `api.ts` → UI, with the ON/OFF ✔ **BUILT**
 The remaining three layers, iterated in `node src-tauri/scripts/sandbox.mjs --dev`. **This is where the
 feature actually gets used** — monitor selection, the plan preview, Apply, Undo — and where the operator
 tries it (**R‑6**).
@@ -348,6 +348,40 @@ there is anything to switch on. Default OFF, persisted, mirroring `switchMode`.
 
 > ⚠ **Run `node src-tauri/scripts/build-agent.mjs` after every agent change before `--dev`**, or the
 > Sandbox runs the *bundled* (old) agent and the new commands appear not to exist (**D‑8**).
+
+**Built 2026‑09‑10.** Rust `desktop_plan` / `desktop_apply` / `desktop_undo` /
+`desktop_undo_available`; `api.ts` types and methods; a **Settings section**, not a fifth tab — four tabs
+already sit in that row and a fifth risks exactly the overflow `check‑layout‑yield` exists for.
+
+*Undo location.* `data_dir()/desktop-undo`, which is **per‑flavour**: the Sandbox’s undo files land where
+the Sandbox looks for them, never in the production install’s folder (**D‑8**).
+
+*Refusals are DATA, not errors.* A plan with problems, an unproven undo, a desktop that shifted — all come
+back as `ok:false` **with the reasons** and reach the screen intact. Collapsing a refusal into an error
+string would discard the only part the operator needs.
+
+> ⭐ **OFF MEANS OFF, implemented literally.** While the switch is off the component **does not call the
+> agent at all — not even to read**. A read‑only scan would be harmless, but an "off" that still runs
+> things is the kind of almost‑off that makes a feature untrustworthy, and from outside nobody can tell a
+> scan from a move. Turning it off also **clears any plan still on screen**, so nothing looks pending under
+> an off switch. Default OFF, persisted like `switchMode`, and held in `AppState` rather than the pane so a
+> tab change cannot silently reset it.
+
+*Two smaller choices, recorded because they are easy to undo later and hard to rediscover:*
+* **Apply is offered only after a plan has been seen AND is clean.** The agent refuses a bad plan anyway;
+  the button being absent first means the refusal is not how the operator discovers a problem.
+* **An assumed grid inset is stated on screen**, not hidden behind a confident number.
+
+*Gates.* All nine pass; **64 tests pass**; `tsc` + `vite build` clean. i18n parity **707 keys per locale**;
+backend errors **19 codes, each translated in both locales** — the five new codes were added in the same
+pass as the Rust that emits them, never afterwards.
+
+*Casing.* The agent’s desktop JSON was emitting `Ok`/`Columns`/`Index` (C# names a shorthand property
+after the variable) beside camelCase fields. Fixed **at the agent, before the UI was written against it**,
+so the inconsistency never became a contract.
+
+> ⛔ **STILL NO LIVE APPLY.** Nothing has moved an icon. The first real move is the operator’s, in the
+> Sandbox (**R‑6**) — that is I‑7.
 
 ### I‑5 — `--desktop-watch`, the resident re‑apply ☐ **RISKY** → tag `pre-desktop-watch`
 `WM_DISPLAYCHANGE` / `WM_DPICHANGED` / `TaskbarCreated` → re‑apply. **Runs only while the feature is
