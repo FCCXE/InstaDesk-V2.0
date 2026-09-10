@@ -463,8 +463,39 @@ directly with `WM_DISPLAYCHANGE` and the real `TaskbarCreated` message id — a 
 a broadcast, so nothing else on the machine was disturbed. Both arrived; the **debounce coalesced them
 into ONE apply**; that apply refused with *"monitor 2 holds no icons"*. Desktop unchanged throughout.
 
-> ⚠ **Not yet exercised for real:** an actual Explorer restart or resolution change on monitor 1. That is
-the operator’s check in the Sandbox.
+**Operator ran the watcher checks, 2026‑09‑10 — and the headline result was MINE to fix.**
+
+> ⛔ **I HANDED THE OPERATOR A TEST THAT COULD NOT FAIL.** Step 6 was *"close the app, restart Explorer,
+> the layout should NOT come back"*. It came back — and that proves nothing, because **Explorer restores
+> icon positions across its own restart**. On an Explorer restart the layout survives whether the watcher
+> runs or not, so the test cannot separate *correctly off* from *wrongly still running*. The timings
+> settled it: Explorer restarted at **1:51:54**, the watcher started at **1:52:15** — 21 seconds later, so
+> nothing of ours acted. Corroborated by the log: eight startup entries and, until the deliberate
+> trigger, **zero events and zero `undo-watch-*.json` files**.
+> ⇒ **A behavioural test is worthless when the environment produces the same behaviour by itself.**
+> Prefer a DIRECT measurement of the invariant — "is a watcher process running?" — over inferring it.
+
+**Then a deliberate trigger found two real defects.** A targeted `PostMessage` to the live watcher
+(matched to its pid, after a stale HWND from an earlier process wasted a poke) produced a clean
+receive → debounce → apply — which then reported `stage:"move", error:"no targets given"`.
+
+> ⛔ **"NOTHING TO MOVE" WAS BEING REPORTED AS A FAILURE, AND THAT IS THE NORMAL CASE.** The watcher
+> fires on display changes long after the last Apply, by which time the desktop already matches the
+> plan — so the **healthy** path was the one that looked broken, once per event, each writing an undo
+> file for a move that never happened. *No targets* and *targets exist but none matched an icon* are
+> opposite conditions with opposite remedies; only the second is a fault. Now `alreadyCorrect:true,
+> moved:0`, and **no undo file**. **Third time this programme has collapsed two meanings of empty into
+> the reassuring one** (see also the identity fallback, and the collision check).
+
+> ⚠ **Eight watcher startups in one session.** `desktop_watch_start` is idempotent — it kills any
+> existing watcher first — so calling it on every sync churned processes and, worse, **would discard an
+> in‑flight debounce and with it the very re‑apply about to happen**. The UI now asks
+> `desktop_watch_status` first.
+
+> ⛔ **STILL UNPROVEN: A REAL RESTORE.** Every run so far ended in a legitimate refusal — *"monitor 2
+> holds no icons"*, *"already correct"*. **The watcher has never actually put a disturbed layout back.**
+> That needs a disturbance Explorer will not undo by itself: a **resolution change**. Owed, and it is
+> the operator’s check — recorded here as NOT done rather than implied by the increment being built.
 
 ### I‑6 — Visual panels ☐ **RISKY** → tag `pre-desktop-panels`
 `WorkerW` re‑parenting, panels painted behind native icons. **Last**, because it is the only piece
@@ -491,6 +522,7 @@ that mutates Explorer's window tree, and everything above is useful without it.
 | 2026‑09‑10 | **My own first gate count read EIGHT** — a sloppy `grep -o` pattern, not the file. Reading `package.json` as JSON gave nine. Recorded because it is the fourth time in this project that the instrument, not the artifact, was the wrong part. |
 | 2026‑09‑10 | **I‑1's own defects were found by checking the operator's RULING, not the scan's numbers.** Every total reconciled — 65 items, classes summing to 65, unmapped 0 — while 36 icons were mapped to the wrong monitor and 9 were misclassified. What exposed both was asking *"where did the three shortcuts R-1 was made about actually go?"* and finding the answer implausible. **A self-consistent report is not a correct one.** |
 | 2026‑09‑10 | **A POST‑CONDITION THAT EXCLUDED HALF THE BOARD PASSED A COLLISION.** The first zone plan was internally perfect — 65 accounted for, counts reconciling, `ok=true` — and put a folder on the Recycle Bin. The distinct‑cell check ran over *placed* items only, so the untouched items it skipped were precisely where the one collision was. **A check that excludes a category cannot find a defect in that category**, and the summary will look flawless while it does so. Both the engine and the check were fixed, and the check was bite‑proven against the original defect. |
+| 2026‑09‑10 | ⛔ **A BEHAVIOURAL TEST IS WORTHLESS WHEN THE ENVIRONMENT PRODUCES THE SAME BEHAVIOUR BY ITSELF.** I asked the operator to prove the watcher stops with the app by closing it and restarting Explorer — but Explorer restores icon positions across its own restart, so the layout survives either way. The test had no failing branch. ⇒ **Measure the invariant directly** (is the process running?) rather than inferring it from behaviour the environment also produces. The operator reported the observation accurately; the instrument was mine and it was incapable of disagreeing. |
 | 2026‑09‑10 | ⛔⛔ **A SAFETY NET BUILT FROM THE SAME FLAWED PRIMITIVE AS THE THING IT GUARDS.** Apply displaced four untouched icons; the undo, which exists to repair exactly that, displaced them too and left 23 of 65 unrestored. **And it had been declared proven** — by a test that restored an undisturbed desktop, so it moved nothing and the failure mode could not appear. ⇒ **Test the undo against a desktop the apply has actually disturbed**, and ask what PRIMITIVE the safety net shares with the operation: if they share the flaw, the net cannot catch it. The visible trace was one number — a settled desktop reading *"15 icons would move"* instead of 0 — in a result the operator had already accepted as correct. |
 | 2026‑09‑10 | **F‑3 is SETTLED by identity, and the seed was wrong.** `FcXe Drive.lnk` and `FCLX Drive.lnk` resolve to executables → `app-shortcut`; the folders `FcXe Drive`, `FCLX DRIVE`, `RIGMATRIX` are separate real directories that merely share a name. **R‑1's only true subject on this desktop is `Dropbox`.** The operator question about the Drive shortcuts is answered by evidence rather than by ruling. |
 | 2026‑09‑10 | **A fallback hid a total failure, and only a counter exposed it.** All 65 PIDL reads returned null; the display-name fallback absorbed every one and the output was byte-identical to the previous run. The lesson is not "the trick failed" — it is that **a fallback which cannot be seen firing is indistinguishable from success**. Any future fallback in this front ships with a count of how often it fired. |
